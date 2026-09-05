@@ -1,0 +1,25 @@
+server:
+  port: 8761
+
+spring:
+  application:
+    name: eureka-server
+
+eureka:
+  instance:
+    hostname: localhost
+    lease-renewal-interval-in-seconds: 30      # PRD 8.1 health check interval
+    lease-expiration-duration-in-seconds: 90   # PRD 8.1 de-registration timeout
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+  server:
+    # Self-preservation off in dev so a stopped service actually disappears from the registry.
+    enable-self-preservation: false
+    eviction-interval-timer-in-ms: 15000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -1,0 +1,67 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+      # PRD 7.1 routing table. lb:// targets are resolved through Eureka and round-robined
+      # across healthy instances (PRD 8.2).
+      routes:
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**
+        - id: sensor-service
+          uri: lb://sensor-service
+          predicates:
+            - Path=/api/sensors/**,/api/telemetry/**
+        - id: crop-service
+          uri: lb://crop-service
+          predicates:
+            - Path=/api/crops/**
+        - id: irrigation-service
+          uri: lb://irrigation-service
+          predicates:
+            - Path=/api/irrigation/**,/api/valves/**
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns:
+              - "http://localhost:*"
+              - "http://127.0.0.1:*"
+            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+            allowedHeaders: "*"
+            exposedHeaders: [X-RateLimit-Limit, X-RateLimit-Remaining]
+            allowCredentials: true
+
+agritech:
+  jwt:
+    secret: ${AGRITECH_JWT_SECRET:agritech-dev-secret-key-change-me-in-production-0123456789}
+    revocation-poll-ms: 15000
+  rate-limit:
+    # PRD 7.2
+    public-per-minute: 100
+    authenticated-per-minute: 1000
+    device-per-minute: 100
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+
+logging:
+  level:
+    AUDIT: INFO

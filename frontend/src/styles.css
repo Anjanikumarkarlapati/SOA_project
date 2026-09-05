@@ -1,0 +1,1674 @@
+/* AgriTech design system - tokens per AGRITECH_UI_UX.md section 2. */
+
+:root {
+  --bg-base: #f7f8f6;
+  --bg-surface: #ffffff;
+  --bg-raised: #fbfcfa;
+  --text-primary: #1b1f1a;
+  --text-secondary: #5c6659;
+  --border: #e1e5dd;
+  --border-strong: #cfd6ca;
+  --accent: #2f6b3c;
+  --accent-hover: #275a32;
+  --accent-wash: #eaf1eb;
+  --accent-rgb: 47, 107, 60;
+  --glass-rgb: 255, 255, 255;
+
+  --status-good: #2e7d32;
+  /* The brief specifies #B8860B, but that reads at 3.05:1 on this near-white surface and the
+     same brief requires WCAG AA on every status indicator. Same goldenrod hue, darkened to
+     clear 4.5:1; the swatch on a dark surface below keeps the brief's lighter value. */
+  --status-warning: #8f6708;
+  --status-critical: #b3261e;
+  --status-info: #3b6e91;
+  --status-muted: #646e62;
+
+  --radius: 8px;
+  --sidebar-width: 232px;
+  --rail-width: 64px;
+
+  --font-ui: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', ui-monospace, monospace;
+
+  --shadow-popover: 0 4px 16px rgb(27 31 26 / 12%);
+}
+
+[data-theme='dark'] {
+  --bg-base: #141812;
+  --bg-surface: #1e241a;
+  --bg-raised: #242b20;
+  --text-primary: #edefea;
+  --text-secondary: #a3ab9e;
+  --border: #333c2d;
+  --border-strong: #46523f;
+  --accent: #5fa06d;
+  --accent-hover: #71b47f;
+  --accent-wash: #253022;
+  --accent-rgb: 95, 160, 109;
+  --glass-rgb: 30, 36, 26;
+
+  /* Same hues, lifted for contrast against the dark surface (doc section 7). */
+  --status-good: #5cb860;
+  --status-warning: #d9a520;
+  --status-critical: #e86a62;
+  --status-info: #6ba3c9;
+  --status-muted: #95a190;
+
+  --shadow-popover: 0 4px 16px rgb(0 0 0 / 45%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--text-secondary);
+}
+
+/* ---------- App shell ---------- */
+
+.shell {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  min-height: 100vh;
+}
+
+/* Same device as the login page, turned down: fixed so it never scrolls away, low-opacity so it
+   reads as atmosphere behind the glass chrome rather than competing with sensor readings. */
+.app-blobs {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.app-blobs::before,
+.app-blobs::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(110px);
+  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.14), rgba(var(--accent-rgb), 0) 70%);
+}
+
+.app-blobs::before {
+  width: 640px;
+  height: 640px;
+  top: -260px;
+  left: -200px;
+}
+
+.app-blobs::after {
+  width: 560px;
+  height: 560px;
+  bottom: -260px;
+  right: -180px;
+  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.1), rgba(var(--accent-rgb), 0) 70%);
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  align-self: start;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 12px;
+  background: rgba(var(--glass-rgb), 0.86);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-right: 1px solid rgba(var(--glass-rgb), 0.4);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 20px;
+  color: var(--text-primary);
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+.brand-mark {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+}
+
+.brand-text,
+.user-text {
+  display: grid;
+  min-width: 0;
+}
+
+.brand-name {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Sign-out is a <button> among <a> nav items; strip the UA chrome so the row matches. */
+button.nav-item {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.nav-item:hover {
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.nav-item.active {
+  background: var(--accent-wash);
+  color: var(--accent);
+}
+
+.nav-spacer {
+  flex: 1;
+}
+
+.sidebar-footer {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+}
+
+.avatar {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-role {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background: rgba(var(--glass-rgb), 0.8);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid rgba(var(--glass-rgb), 0.4);
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.page-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 2px 0 0;
+}
+
+.topbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* ---------- Primitives ---------- */
+
+.card {
+  position: relative;
+  z-index: 1;
+  background: rgba(var(--glass-rgb), 0.86);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(var(--glass-rgb), 0.45);
+  border-radius: var(--radius);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.card-body {
+  padding: 16px;
+}
+
+.section-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--bg-raised);
+}
+
+/* Physical push on press, so a valve or a schedule toggle feels acknowledged before the
+   network answers. */
+.btn:active:not(:disabled),
+.switch:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn,
+.switch-track,
+.switch-thumb,
+.nav-item,
+.status svg {
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    transform 90ms ease;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+[data-theme='dark'] .btn-primary {
+  color: #0f1410;
+}
+
+.btn-danger {
+  border-color: var(--status-critical);
+  color: var(--status-critical);
+  background: transparent;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--status-critical) 10%, transparent);
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-icon {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 8px;
+}
+
+.btn-quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-quiet:hover:not(:disabled) {
+  background: var(--bg-raised);
+  color: var(--text-primary);
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.field label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.input,
+.select {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+}
+
+.input:focus,
+.select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: var(--accent);
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--status-critical);
+}
+
+.input-affix {
+  position: relative;
+}
+
+.input-affix .input {
+  padding-right: 68px;
+}
+
+.input-affix button {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.field-error {
+  font-size: 12px;
+  color: var(--status-critical);
+}
+
+.form-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--status-critical);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--status-critical) 8%, transparent);
+  color: var(--status-critical);
+  font-size: 13px;
+}
+
+/* ---------- Status encoding (color + shape + label) ---------- */
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status svg {
+  flex: none;
+}
+
+.status-good {
+  color: var(--status-good);
+}
+
+.status-warning {
+  color: var(--status-warning);
+}
+
+.status-critical {
+  color: var(--status-critical);
+}
+
+.status-info {
+  color: var(--status-info);
+}
+
+.status-muted {
+  color: var(--status-muted);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* ---------- Stat strip (flat, hairline-divided) ---------- */
+
+ /* Tiles stay divided by hairlines internally (brief 4.2), now inside one glass card so the
+   dashboard's top strip matches every other surface instead of floating directly on the blobs. */
+.stat-strip {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-bottom: 20px;
+  background: rgba(var(--glass-rgb), 0.86);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(var(--glass-rgb), 0.45);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.stat {
+  padding: 16px 20px;
+  border-left: 1px solid var(--border);
+}
+
+.stat:first-child {
+  border-left: 0;
+}
+
+.stat:first-child {
+  border-left: 0;
+}
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.stat-meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ---------- Tables ---------- */
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+table.data th {
+  position: sticky;
+  top: 0;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: rgba(var(--glass-rgb), 0.96);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+table.data td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+table.data tbody tr:hover {
+  background: var(--bg-raised);
+}
+
+/* Offline rows recede, but their status dot stays at full strength. */
+table.data tr.row-offline td:not(.col-status) {
+  color: var(--text-secondary);
+  opacity: 0.72;
+}
+
+.row-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.toolbar .input,
+.toolbar .select {
+  width: auto;
+  min-width: 160px;
+  min-height: 36px;
+}
+
+.toolbar-right {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+/* ---------- Dashboard ---------- */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.2fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  color: inherit;
+}
+
+.field-row:last-child {
+  border-bottom: 0;
+}
+
+.field-row:hover {
+  background: var(--bg-raised);
+  text-decoration: none;
+}
+
+.field-name {
+  font-weight: 600;
+}
+
+.field-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.alert-feed {
+  display: grid;
+  max-height: 460px;
+  overflow-y: auto;
+}
+
+.alert-item {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  animation: alert-enter 200ms ease both;
+}
+
+.alert-item:last-child {
+  border-bottom: 0;
+}
+
+@keyframes alert-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.alert-source {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.alert-message {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.alert-time {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.zone-rail {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 16px;
+}
+
+.zone-chip {
+  scroll-snap-align: start;
+  flex: 0 0 200px;
+  padding: 12px 14px;
+  border: 1px solid rgba(var(--glass-rgb), 0.5);
+  border-radius: var(--radius);
+  background: rgba(var(--glass-rgb), 0.5);
+}
+
+.zone-name {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+/* ---------- Crop cards ---------- */
+
+.crop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.crop-score {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.crop-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.metric-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.metric-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.recommendations {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
+.recommendations li {
+  font-size: 13px;
+}
+
+/* ---------- Tabs ---------- */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.tab {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.tab[aria-selected='true'] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.range-tabs {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.range-tabs button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: var(--bg-surface);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.range-tabs button:first-child {
+  border-left: 0;
+}
+
+.range-tabs button[aria-pressed='true'] {
+  background: var(--accent-wash);
+  color: var(--accent);
+}
+
+/* ---------- Toggle switch ---------- */
+
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.switch-track {
+  width: 40px;
+  height: 24px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--border-strong);
+  transition: background 120ms ease;
+}
+
+.switch-thumb {
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 3px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  transition: transform 120ms ease;
+}
+
+.switch[aria-checked='true'] .switch-track {
+  background: var(--accent);
+}
+
+.switch[aria-checked='true'] .switch-thumb {
+  transform: translateX(16px);
+}
+
+.switch-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ---------- Valve cards ---------- */
+
+.valve-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.valve-syncing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.emergency-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+}
+
+.emergency-copy {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* ---------- Auth (login / create account) ----------
+   The rest of the product deliberately has "no gradients, no illustration" (brief 2.1) - this
+   is the one screen where that is relaxed on request. Glass surfaces still borrow the app's own
+   accent green rather than a generic AI-purple, so the front door still feels like this product. */
+
+.auth-page {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg-base);
+}
+
+/* Soft blurred fields of colour behind the glass, all in the one accent hue so the page still
+   reads as a single palette (taste-skill color-consistency lock). */
+.auth-blobs {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.auth-blobs::before,
+.auth-blobs::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.32), rgba(var(--accent-rgb), 0) 70%);
+}
+
+.auth-blobs::before {
+  width: 620px;
+  height: 620px;
+  top: -220px;
+  left: -160px;
+}
+
+.auth-blobs::after {
+  width: 560px;
+  height: 560px;
+  bottom: -240px;
+  right: -160px;
+  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.22), rgba(var(--accent-rgb), 0) 70%);
+}
+
+.auth-shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 440px) minmax(0, 380px);
+  gap: 0;
+  width: 100%;
+  max-width: 860px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: var(--shadow-popover);
+  animation: auth-enter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes auth-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* The glass panel itself: translucent surface, blurred backdrop, a bright top-left highlight and
+   a hairline inner border so the edge reads as an actual pane, not a flat tint. */
+.auth-card {
+  position: relative;
+  isolation: isolate;
+  padding: 40px 36px;
+  background: rgba(var(--glass-rgb), 0.72);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgba(var(--glass-rgb), 0.4);
+}
+
+.auth-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.35),
+    rgba(255, 255, 255, 0.05) 40%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  pointer-events: none;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .auth-card {
+    background: var(--bg-surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .sidebar,
+  .topbar,
+  .card,
+  .stat-strip,
+  table.data th {
+    background: var(--bg-surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.auth-brand .brand-name {
+  font-size: 15px;
+}
+
+/* The prompt this whole redesign was for: tell a first-time visitor to create an account before
+   they try to sign in, instead of leaving them to find it on their own. */
+.auth-switch-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
+  border-radius: var(--radius);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.auth-switch-banner p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.auth-switch-banner button {
+  flex: none;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 4px;
+}
+
+.auth-switch-banner button:hover {
+  text-decoration: underline;
+}
+
+/* The banner sits on translucent glass over a blurred, variable backdrop - the flat --accent
+   used everywhere else on solid surfaces measures under 4.7:1 here. Same hue, brightened, so it
+   holds AA with margin regardless of what the blurred blob layer looks like underneath. */
+[data-theme='dark'] .auth-switch-banner button {
+  color: #7cc48a;
+}
+
+.auth-heading {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 0 0 6px;
+}
+
+.auth-subheading {
+  margin: 0 0 24px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.auth-subheading a {
+  font-weight: 500;
+}
+
+.auth-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.auth-helper {
+  margin: -8px 0 14px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+
+.auth-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 18px;
+  font-size: 13px;
+  min-height: 24px;
+}
+
+.auth-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+/* Farmer / Administrator segmented control. */
+.auth-segment {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: rgba(var(--glass-rgb), 0.5);
+}
+
+.auth-segment button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.auth-segment button[aria-pressed='true'] {
+  background: var(--accent);
+  color: #fff;
+}
+
+[data-theme='dark'] .auth-segment button[aria-pressed='true'] {
+  color: #0f1410;
+}
+
+.auth-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.auth-foot {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.auth-hint {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.hint-title {
+  margin: 0 0 8px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.hint-accounts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+}
+
+.hint-accounts dt {
+  font-weight: 500;
+}
+
+.hint-accounts dd {
+  margin: 0;
+  font-size: 11px;
+}
+
+.hint-note {
+  margin: 12px 0 0;
+}
+
+/* Right-hand decorative pane: same glass family, a stronger tint than the form side so the two
+   halves read as one object, three real content rows (not a fake screenshot). */
+/* A fixed pair of dark greens, not the theme-swapped --accent - the dark-mode accent is
+   calibrated to be readable AS TEXT on a near-black surface, so it is too light to also serve as
+   a background for white text here. Solid stops (not alpha-over-page) so this reads the same in
+   both themes and the ratio holds regardless of what happens to sit behind the panel. */
+.auth-visual {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 28px;
+  padding: 40px 32px;
+  background: linear-gradient(165deg, #2f6b3c, #1f4527);
+  color: #fff;
+}
+
+.auth-visual-mark {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.auth-visual h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+.auth-features {
+  display: grid;
+  gap: 16px;
+}
+
+.auth-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.auth-feature-icon {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.14);
+  animation: auth-float 4.5s ease-in-out infinite;
+}
+
+.auth-feature:nth-child(2) .auth-feature-icon {
+  animation-delay: 0.4s;
+}
+
+.auth-feature:nth-child(3) .auth-feature-icon {
+  animation-delay: 0.8s;
+}
+
+@keyframes auth-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.auth-feature-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.auth-feature-body {
+  margin-top: 2px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+  .auth-shell {
+    grid-template-columns: minmax(0, 440px);
+    max-width: 440px;
+  }
+
+  .auth-visual {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 28px 22px;
+  }
+
+  .auth-row {
+    grid-template-columns: 1fr;
+  }
+
+  /* Text and CTA no longer share a cramped row - text needs the full width to read cleanly. */
+  .auth-switch-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .auth-switch-banner button {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-shell {
+    animation: none;
+  }
+
+  .auth-feature-icon {
+    animation: none;
+  }
+}
+
+/* ---------- Empty / loading states ---------- */
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.skeleton {
+  height: 14px;
+  border-radius: 4px;
+  background: var(--border);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+/* Placeholders take the shape of the thing that is loading, so the page does not reflow
+   when data lands. */
+.skeleton-stat {
+  padding: 16px 20px;
+  border-left: 1px solid var(--border);
+  display: grid;
+  gap: 10px;
+}
+
+.skeleton-stat:first-child {
+  border-left: 0;
+}
+
+.skeleton-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.2fr) 80px;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.skeleton-row:last-child {
+  border-bottom: 0;
+}
+
+.skeleton-card {
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.chart-box {
+  width: 100%;
+  height: 260px;
+}
+
+.toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 20;
+  max-width: 360px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-popover);
+  font-size: 13px;
+}
+
+.toast-critical {
+  border-color: var(--status-critical);
+  color: var(--status-critical);
+}
+
+/* ---------- Responsive (doc section 8) ---------- */
+
+@media (max-width: 1023px) {
+  .shell {
+    grid-template-columns: var(--rail-width) 1fr;
+  }
+
+  .sidebar {
+    padding: 16px 8px;
+    align-items: center;
+  }
+
+  .brand-text,
+  .nav-item span,
+  .user-text {
+    display: none;
+  }
+
+  .nav-item,
+  .user-chip {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stat:nth-child(3) {
+    border-left: 0;
+  }
+
+  .stat:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 767px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    top: auto;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+    padding: 6px 8px;
+    border-right: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .brand,
+  .sidebar-footer .user-chip {
+    display: none;
+  }
+
+  .nav-spacer {
+    display: none;
+  }
+
+  .sidebar-footer {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .main {
+    padding-bottom: 64px;
+  }
+
+  .content,
+  .topbar {
+    padding: 16px;
+  }
+
+  .stat-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .stat {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .stat:first-child {
+    border-top: 0;
+  }
+
+  .crop-grid,
+  .valve-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .field-row {
+    grid-template-columns: 1fr auto;
+    row-gap: 6px;
+  }
+
+  /* The sensor table collapses to a card per row. */
+  .table-wrap.collapsible table.data,
+  .table-wrap.collapsible thead,
+  .table-wrap.collapsible tbody,
+  .table-wrap.collapsible tr,
+  .table-wrap.collapsible td {
+    display: block;
+    width: 100%;
+  }
+
+  .table-wrap.collapsible thead {
+    display: none;
+  }
+
+  .table-wrap.collapsible tr {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    padding: 8px 4px;
+  }
+
+  .table-wrap.collapsible td {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 0;
+    padding: 6px 12px;
+  }
+
+  .table-wrap.collapsible td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
