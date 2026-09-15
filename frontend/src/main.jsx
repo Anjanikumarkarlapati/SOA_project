@@ -13,14 +13,25 @@ import '@fontsource/dm-mono/500.css'
 
 import App from './App'
 import { SessionProvider } from './session'
+import { consumeAuthRedirect } from './supabase'
 import './styles.css'
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <BrowserRouter>
-      <SessionProvider>
-        <App />
-      </SessionProvider>
-    </BrowserRouter>
-  </StrictMode>,
-)
+/**
+ * Let Supabase read an OAuth result out of the URL before the first render.
+ *
+ * The router rewrites the URL as soon as it renders without a session, which used to wipe the
+ * token out of the hash before the lazily-loaded Supabase client had even been fetched. Nothing
+ * is awaited on a normal load - consumeAuthRedirect() returns immediately unless the URL
+ * actually carries a redirect result.
+ */
+consumeAuthRedirect().finally(() => {
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <BrowserRouter>
+        <SessionProvider>
+          <App />
+        </SessionProvider>
+      </BrowserRouter>
+    </StrictMode>,
+  )
+})

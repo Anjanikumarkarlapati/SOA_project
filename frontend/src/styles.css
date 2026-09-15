@@ -1469,6 +1469,24 @@ table.data tr.row-offline td:not(.col-status) {
   background: var(--bg-base);
 }
 
+/* The return leg of the Google redirect, before our own JWT exists. */
+.auth-page-pending {
+  display: grid;
+  place-items: center;
+}
+
+.auth-pending {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  color: var(--text-secondary);
+}
+
+.auth-pending p {
+  margin: 0;
+}
+
+
 .auth-top {
   display: flex;
   align-items: center;

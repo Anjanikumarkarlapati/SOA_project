@@ -11,7 +11,7 @@ import {
   IconUserPlus,
 } from '../icons'
 import { useSession, useTheme } from '../session'
-import { supabaseEnabled, onSupabaseSignIn } from '../supabase'
+import { supabaseEnabled } from '../supabase'
 
 // Single-farm demo (see the seeded pilot farm in sensor-service) - a self-serve signup does not
 // need to ask a new user to type an id they cannot know yet.
@@ -76,7 +76,7 @@ function Feature({ icon, title, body }) {
 }
 
 function SignIn({ onCreateAccount }) {
-  const { signIn, signInWithGoogle, exchangeSupabaseToken } = useSession()
+  const { signIn, signInWithGoogle, googlePending, googleError, clearGoogleError } = useSession()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -86,30 +86,15 @@ function SignIn({ onCreateAccount }) {
   const [submitting, setSubmitting] = useState(false)
   const [googleBusy, setGoogleBusy] = useState(false)
 
-  // On return from the Google redirect, Supabase restores its session and hands us an access
-  // token. It arrives asynchronously (in the URL hash), so we subscribe rather than poll once:
-  // the first token delivered is traded for our app JWT, exactly once.
+  // The redirect is handled in SessionProvider, which is mounted whatever route the return
+  // lands on; this form only has to surface whatever it reports back.
   useEffect(() => {
-    if (!supabaseEnabled) return
-    let exchanged = false
-    const unsubscribe = onSupabaseSignIn(async (token) => {
-      if (exchanged) return
-      exchanged = true
-      setGoogleBusy(true)
-      try {
-        await exchangeSupabaseToken(token)
-      } catch (error) {
-        exchanged = false
-        setAuthError(error.message || 'Google sign-in failed')
-      } finally {
-        setGoogleBusy(false)
-      }
-    })
-    return unsubscribe
-  }, [exchangeSupabaseToken])
+    if (googleError) setAuthError(googleError)
+  }, [googleError])
 
   const google = async () => {
     setAuthError('')
+    clearGoogleError()
     setGoogleBusy(true)
     try {
       await signInWithGoogle() // redirects away; control returns via the effect above
@@ -218,10 +203,10 @@ function SignIn({ onCreateAccount }) {
               type="button"
               className="btn btn-block auth-google"
               onClick={google}
-              disabled={googleBusy || submitting}
+              disabled={googleBusy || googlePending || submitting}
             >
-              {googleBusy ? <span className="spinner" /> : <GoogleMark />}
-              {googleBusy ? 'Connecting' : 'Continue with Google'}
+              {googleBusy || googlePending ? <span className="spinner" /> : <GoogleMark />}
+              {googleBusy || googlePending ? 'Connecting' : 'Continue with Google'}
             </button>
           </>
         ) : null}

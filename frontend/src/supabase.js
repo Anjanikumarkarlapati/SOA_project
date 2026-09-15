@@ -39,26 +39,77 @@ export async function currentSupabaseToken() {
 }
 
 /**
- * Delivers the Supabase access token once the implicit-flow redirect has been consumed. After
- * Google bounces back, the token sits in the URL hash and supabase-js processes it on a later
- * tick, so a one-shot getSession() on mount can run before the session exists and miss it. This
- * checks the restored session now AND listens for the SIGNED_IN event, so the token is handed to
- * the callback exactly once whenever it lands. Returns an unsubscribe function.
+ * True when the current URL carries an OAuth implicit-flow result - either the token Google
+ * bounced back, or an error because the user cancelled or the provider refused.
+ */
+export function hasAuthRedirectResult() {
+  const hash = window.location.hash || ''
+  const query = window.location.search || ''
+  return (
+    hash.includes('access_token=') ||
+    hash.includes('error=') ||
+    query.includes('error=') ||
+    query.includes('code=')
+  )
+}
+
+/** The OAuth error in the URL, if the provider sent one back instead of a token. */
+export function authRedirectError() {
+  const params = new URLSearchParams((window.location.hash || '').replace(/^#/, ''))
+  const search = new URLSearchParams(window.location.search || '')
+  const code = params.get('error') || search.get('error')
+  if (!code) return null
+  const description = params.get('error_description') || search.get('error_description')
+  if (code === 'access_denied') return 'Google sign-in was cancelled.'
+  return description ? description.replace(/\+/g, ' ') : 'Google sign-in failed.'
+}
+
+/**
+ * Consumes an OAuth redirect result before the app renders.
+ *
+ * Supabase delivers the implicit-flow token in the URL hash, and supabase-js only reads it when
+ * the client is constructed. This client is loaded lazily, so on the return leg the router used
+ * to rewrite the URL to /login - dropping the hash - several ticks before supabase-js existed to
+ * look at it, and the sign-in silently died there. Awaiting this before the first render means
+ * the token is already stored in the Supabase session by the time any route is decided.
+ *
+ * Resolves (rather than rejects) on failure: a broken Supabase must still let the app boot and
+ * show its password form.
+ */
+export async function consumeAuthRedirect() {
+  if (!supabaseEnabled || !hasAuthRedirectResult()) return
+  try {
+    const supabase = await getClient()
+    await supabase?.auth.getSession()
+  } catch {
+    // Ignored: handled as "no session" downstream, where it can be shown to the user.
+  }
+}
+
+/**
+ * Delivers the Supabase access token once the redirect has been consumed. It can already be in
+ * the restored session, or arrive a tick later on the SIGNED_IN event, so this covers both and
+ * calls back at most once per token. Returns an unsubscribe function.
  */
 export function onSupabaseSignIn(onToken) {
   if (!supabaseEnabled) return () => {}
   let active = true
+  let delivered = false
   let subscription
+
+  const deliver = (token) => {
+    if (!active || delivered || !token) return
+    delivered = true
+    onToken(token)
+  }
 
   getClient().then((supabase) => {
     if (!supabase || !active) return
-    // Session may already be restored by the time the client finishes loading.
-    supabase.auth.getSession().then(({ data }) => {
-      if (active && data.session?.access_token) onToken(data.session.access_token)
-    })
-    // Or it arrives a tick later when the hash is processed.
+    // consumeAuthRedirect() has normally stored the session already.
+    supabase.auth.getSession().then(({ data }) => deliver(data.session?.access_token))
+    // Or it lands a tick later, when the client finishes processing the URL.
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      if (active && event === 'SIGNED_IN' && session?.access_token) onToken(session.access_token)
+      if (event === 'SIGNED_IN') deliver(session?.access_token)
     })
     subscription = data?.subscription
   })

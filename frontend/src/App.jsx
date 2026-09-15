@@ -15,7 +15,20 @@ const Crops = lazy(() => import('./pages/Crops'))
 const CropDetail = lazy(() => import('./pages/CropDetail'))
 
 export default function App() {
-  const { session } = useSession()
+  const { session, googlePending } = useSession()
+
+  // Mid-exchange on the return from Google: there is no app session yet, but showing the sign-in
+  // form here would look like the sign-in had failed.
+  if (!session && googlePending) {
+    return (
+      <div className="auth-page auth-page-pending">
+        <div className="auth-pending" role="status">
+          <span className="spinner" />
+          <p>Signing you in with Google...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!session) {
     return (
