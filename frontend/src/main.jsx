@@ -4,13 +4,12 @@ import { BrowserRouter } from 'react-router-dom'
 
 // Self-hosted so the dashboard renders without a round trip to a font CDN. Field tablets on a
 // patchy connection get the interface immediately instead of a flash of fallback type.
-import '@fontsource-variable/inter'
-import '@fontsource/instrument-serif/400.css'
-import '@fontsource/instrument-serif/400-italic.css'
-import '@fontsource/ibm-plex-mono/400.css'
-import '@fontsource/ibm-plex-mono/500.css'
-import '@fontsource/ibm-plex-mono/600.css'
-import '@fontsource/ibm-plex-mono/700.css'
+// The three faces the Figma reference is built on: DM Sans for the interface, Crimson Text for
+// headlines and headline figures, DM Mono for data labels. Only the weights the UI uses ship.
+import '@fontsource-variable/dm-sans'
+import '@fontsource/crimson-text/400.css'
+import '@fontsource/dm-mono/400.css'
+import '@fontsource/dm-mono/500.css'
 
 import App from './App'
 import { SessionProvider } from './session'

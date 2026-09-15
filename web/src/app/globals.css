@@ -1,0 +1,211 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─────────────────────────────────────────────────────────────
+   AgriTech brand tokens - ported verbatim from the Vite app's
+   design system (AGRITECH_UI_UX.md section 2).
+
+   These hex values are not arbitrary: every foreground/background
+   pair here was measured and tuned to clear WCAG AA (4.5:1) in both
+   themes, worst case 4.63:1. Two of them deviate from the brief on
+   purpose because the brief's literal values could not reach AA:
+     --status-warning light  #B8860B -> #8F6708  (3.05:1 -> 4.79:1)
+     --status-muted          added, tuned to clear AA in both themes
+   Change these only with a contrast re-measure.
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  --bg-base: #f7f8f6;
+  --bg-surface: #ffffff;
+  --bg-raised: #fbfcfa;
+  --text-primary: #1b1f1a;
+  --text-secondary: #5c6659;
+  --brand-border: #e1e5dd;
+  --border-strong: #cfd6ca;
+  --brand-accent: #2f6b3c;
+  --accent-hover: #275a32;
+  --accent-wash: #eaf1eb;
+  --accent-rgb: 47, 107, 60;
+  --glass-rgb: 255, 255, 255;
+
+  --status-good: #2e7d32;
+  --status-warning: #8f6708;
+  --status-critical: #b3261e;
+  --status-info: #3b6e91;
+  --status-muted: #646e62;
+
+  --radius: 0.5rem;
+
+  /* Tells the browser to render scrollbars and native controls for this theme. */
+  color-scheme: light;
+
+  /* shadcn semantic surface mapped onto the brand palette, so anything
+     pulled from the registry inherits AgriTech rather than default neutral. */
+  --background: var(--bg-base);
+  --foreground: var(--text-primary);
+  --card: var(--bg-surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-surface);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--brand-accent);
+  --primary-foreground: #ffffff;
+  --secondary: var(--bg-raised);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-raised);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--accent-wash);
+  --accent-foreground: var(--brand-accent);
+  --destructive: var(--status-critical);
+  --border: var(--brand-border);
+  --input: var(--border-strong);
+  --ring: var(--brand-accent);
+
+  --chart-1: var(--brand-accent);
+  --chart-2: var(--status-info);
+  --chart-3: var(--status-good);
+  --chart-4: var(--status-warning);
+  --chart-5: var(--status-critical);
+
+  --sidebar: var(--bg-surface);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-primary: var(--brand-accent);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--accent-wash);
+  --sidebar-accent-foreground: var(--brand-accent);
+  --sidebar-border: var(--brand-border);
+  --sidebar-ring: var(--brand-accent);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --bg-base: #141812;
+  --bg-surface: #1e241a;
+  --bg-raised: #242b20;
+  --text-primary: #edefea;
+  --text-secondary: #a3ab9e;
+  --brand-border: #333c2d;
+  --border-strong: #46523f;
+  --brand-accent: #5fa06d;
+  --accent-hover: #71b47f;
+  --accent-wash: #253022;
+  --accent-rgb: 95, 160, 109;
+  --glass-rgb: 30, 36, 26;
+
+  /* Same hues, lifted for contrast against the dark surface. */
+  --status-good: #5cb860;
+  --status-warning: #d9a520;
+  --status-critical: #e86a62;
+  --status-info: #6ba3c9;
+  --status-muted: #95a190;
+
+  --primary-foreground: #0f1410;
+  --sidebar-primary-foreground: #0f1410;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Brand-specific utilities: bg-surface, text-status-critical, border-hairline ... */
+  --color-surface: var(--bg-surface);
+  --color-raised: var(--bg-raised);
+  --color-hairline: var(--brand-border);
+  --color-hairline-strong: var(--border-strong);
+  --color-brand: var(--brand-accent);
+  --color-brand-hover: var(--accent-hover);
+  --color-brand-wash: var(--accent-wash);
+  --color-status-good: var(--status-good);
+  --color-status-warning: var(--status-warning);
+  --color-status-critical: var(--status-critical);
+  --color-status-info: var(--status-info);
+  --color-status-muted: var(--status-muted);
+
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-plex-mono), "SF Mono", ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Telemetry columns line up. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Glass surface shared by the shell, cards and the auth screen. One definition, so the
+   whole product reads as one material. */
+@utility glass {
+  background: rgba(var(--glass-rgb), 0.86);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(var(--glass-rgb), 0.45);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--bg-surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

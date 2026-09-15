@@ -25,12 +25,18 @@ public class AuthController {
     private final UserRepository users;
     private final JwtService jwt;
     private final TokenStore tokens;
+    private final SupabaseVerifier supabase;
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
-    public AuthController(UserRepository users, JwtService jwt, TokenStore tokens) {
+    /** New Google users land here: read-only role, single-farm demo. Promote to ADMIN by hand. */
+    private static final String DEFAULT_PROVIDER_ROLE = "FARMER";
+    private static final String DEFAULT_PROVIDER_FARM = "FARM-001";
+
+    public AuthController(UserRepository users, JwtService jwt, TokenStore tokens, SupabaseVerifier supabase) {
         this.users = users;
         this.jwt = jwt;
         this.tokens = tokens;
+        this.supabase = supabase;
     }
 
     public record RegisterRequest(
@@ -41,6 +47,8 @@ public class AuthController {
             String displayName) {}
 
     public record LoginRequest(@NotBlank String email, @NotBlank String password) {}
+
+    public record GoogleRequest(@NotBlank String accessToken) {}
 
     public record TokenResponse(String token, String refreshToken, long expiresIn,
                                 String email, String role, String farmId, String displayName) {}
@@ -65,11 +73,33 @@ public class AuthController {
     @PostMapping("/login")
     public TokenResponse login(@Valid @RequestBody LoginRequest req) {
         User user = users.findByEmail(req.email()).orElse(null);
-        if (user == null || !encoder.matches(req.password(), user.getPasswordHash())) {
+        if (user == null || user.getPasswordHash() == null
+                || !encoder.matches(req.password(), user.getPasswordHash())) {
             audit.warn("login FAILED email={}", req.email());
             throw new ApiException(HttpStatus.UNAUTHORIZED, "invalid_credentials", "Incorrect email or password");
         }
         audit.info("login OK email={} role={}", user.getEmail(), user.getRole());
+        return issue(user);
+    }
+
+    /**
+     * Google sign-in via Supabase. The SPA completes the Google OAuth flow through Supabase and
+     * posts the resulting Supabase access token here; we verify it and mint our own app JWT. A
+     * first-time Google user is provisioned read-only (FARMER) on the demo farm - promote to ADMIN
+     * by hand, never automatically from an external identity.
+     */
+    @PostMapping("/google")
+    public TokenResponse google(@Valid @RequestBody GoogleRequest req) {
+        String email = supabase.verifiedEmail(req.accessToken());
+        User user = users.findByEmail(email).orElseGet(() -> {
+            String name = email.split("@")[0];
+            User created = users.save(
+                    User.forProvider(email, DEFAULT_PROVIDER_ROLE, DEFAULT_PROVIDER_FARM, name));
+            audit.info("provision google email={} role={} farm={}",
+                    created.getEmail(), created.getRole(), created.getFarmId());
+            return created;
+        });
+        audit.info("login OK via=google email={} role={}", user.getEmail(), user.getRole());
         return issue(user);
     }
 

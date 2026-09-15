@@ -6,3 +6,21 @@ dist/
 .idea/
 .vscode/
 *.iml
+
+# Local environment configuration and credentials
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+!**/.env.example
+
+# Next.js
+web/.next/
+web/out/
+web/next-env.d.ts
+
+# Tooling cache and local backups (not project code)
+.serena/
+*.bak

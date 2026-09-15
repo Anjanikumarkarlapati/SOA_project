@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { Empty, Loading, Status, Toggle, formatDuration, relativeTime } from '../components'
+import {
+  ConfirmButton,
+  DataError,
+  Empty,
+  Loading,
+  Status,
+  Toggle,
+  formatDuration,
+  relativeTime,
+} from '../components'
 import { IconEdit, IconPlus, IconTrash } from '../icons'
 import { usePolling, useSession } from '../session'
 
@@ -47,7 +56,7 @@ function Schedules() {
 
   const refresh = () => setReloadKey((k) => k + 1)
 
-  const { data, loading } = usePolling(
+  const { data, loading, refresh: retry } = usePolling(
     async () => {
       const [schedules, valves, crops] = await Promise.all([
         api.schedules(token),
@@ -71,7 +80,7 @@ function Schedules() {
   }
 
   if (loading && !data) return <Loading variant="rows" rows={4} />
-  if (!data) return <Empty title="Schedules are unavailable" />
+  if (!data) return <DataError what="the irrigation schedules" onRetry={retry} />
 
   return (
     <>
@@ -132,7 +141,7 @@ function Schedules() {
                 />
               </div>
             ) : (
-              <div key={schedule.scheduleId} className="field-row" style={{ cursor: 'default' }}>
+              <div key={schedule.scheduleId} className="field-row">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <Toggle
                     checked={schedule.active}
@@ -168,18 +177,13 @@ function Schedules() {
                     >
                       <IconEdit />
                     </button>
-                    <button
-                      type="button"
-                      className="btn btn-quiet btn-icon"
-                      aria-label={`Delete ${schedule.scheduleId}`}
-                      onClick={() => {
-                        if (window.confirm(`Delete ${schedule.scheduleId}?`)) {
-                          act(() => api.deleteSchedule(token, schedule.scheduleId))
-                        }
-                      }}
+                    <ConfirmButton
+                      label={`Delete ${schedule.scheduleId}`}
+                      confirmLabel="Delete"
+                      onConfirm={() => act(() => api.deleteSchedule(token, schedule.scheduleId))}
                     >
                       <IconTrash />
-                    </button>
+                    </ConfirmButton>
                   </div>
                 ) : (
                   <span />
@@ -358,7 +362,11 @@ function ManualControl() {
   const [error, setError] = useState('')
   const [confirmStop, setConfirmStop] = useState(false)
 
-  const { data, loading } = usePolling(() => api.valves(token), [token, reloadKey], 10000)
+  const { data, loading, refresh: retry } = usePolling(
+    () => api.valves(token),
+    [token, reloadKey],
+    10000,
+  )
 
   const setValve = async (valve, open) => {
     setError('')
@@ -406,7 +414,7 @@ function ManualControl() {
   }
 
   if (loading && !data) return <Loading variant="cards" rows={4} />
-  if (!data) return <Empty title="Valve states are unavailable" />
+  if (!data) return <DataError what="the valve states" onRetry={retry} />
 
   return (
     <>

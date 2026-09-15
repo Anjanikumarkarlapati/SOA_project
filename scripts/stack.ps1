@@ -18,6 +18,19 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $logDir = Join-Path $root '.run'
 
+# Load local environment variables (kept out of Git) before starting child Java processes.
+$envFile = Join-Path $root '.env'
+if (Test-Path $envFile) {
+    foreach ($line in Get-Content $envFile) {
+        $trimmed = $line.Trim()
+        if (-not $trimmed -or $trimmed.StartsWith('#')) { continue }
+        $parts = $trimmed -split '=', 2
+        if ($parts.Count -eq 2) {
+            [Environment]::SetEnvironmentVariable($parts[0].Trim(), $parts[1].Trim(), 'Process')
+        }
+    }
+}
+
 # Eureka must be up before anything registers; the gateway last so its routes resolve.
 $services = @(
     @{ Name = 'eureka-server';      Port = 8761 },

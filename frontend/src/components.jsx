@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { IconCritical, IconGood, IconInfo, IconOffline, IconWarning } from './icons'
+import { useEffect, useRef, useState } from 'react'
+import { IconCritical, IconGood, IconInfo, IconOffline, IconRefresh, IconWarning } from './icons'
 
 /**
  * The stylesheet collapses CSS transitions under prefers-reduced-motion, but the chart library
@@ -19,6 +19,35 @@ export function usePrefersReducedMotion() {
   }, [])
 
   return reduced
+}
+
+/**
+ * Dismiss-on-outside-click-or-Escape for the two disclosure surfaces in the top bar (the account
+ * menu and the mobile nav drawer). Listeners only exist while the surface is open, so a closed
+ * menu costs nothing.
+ */
+export function useClickAway(active, onDismiss) {
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!active) return undefined
+
+    const onPointer = (event) => {
+      if (ref.current && !ref.current.contains(event.target)) onDismiss()
+    }
+    const onKey = (event) => {
+      if (event.key === 'Escape') onDismiss()
+    }
+
+    document.addEventListener('mousedown', onPointer)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onPointer)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [active, onDismiss])
+
+  return ref
 }
 
 /**
@@ -78,6 +107,46 @@ export function Toggle({ checked, onChange, label, name, disabled }) {
   )
 }
 
+/**
+ * Destructive row actions used to go through window.confirm, which steals focus, ignores the
+ * theme and cannot say what is about to be lost. This is the same arm-then-confirm shape the
+ * irrigation emergency stop already uses, pulled out so both sites share it.
+ */
+export function ConfirmButton({ label, confirmLabel, onConfirm, children }) {
+  const [armed, setArmed] = useState(false)
+
+  if (!armed) {
+    return (
+      <button
+        type="button"
+        className="btn btn-quiet btn-icon"
+        aria-label={label}
+        onClick={() => setArmed(true)}
+      >
+        {children}
+      </button>
+    )
+  }
+
+  return (
+    <span className="confirm-inline" role="group" aria-label={label}>
+      <button
+        type="button"
+        className="btn btn-danger btn-sm"
+        onClick={() => {
+          setArmed(false)
+          onConfirm()
+        }}
+      >
+        {confirmLabel}
+      </button>
+      <button type="button" className="btn btn-sm" onClick={() => setArmed(false)}>
+        Cancel
+      </button>
+    </span>
+  )
+}
+
 export function RangeTabs({ value, onChange, options }) {
   return (
     <div className="range-tabs" role="group" aria-label="Time range">
@@ -95,12 +164,62 @@ export function RangeTabs({ value, onChange, options }) {
   )
 }
 
-export function Empty({ title, action }) {
+export function Empty({ title, description, action }) {
   return (
     <div className="empty">
-      <p style={{ margin: 0 }}>{title}</p>
+      <p className="empty-title">{title}</p>
+      {description ? <p className="empty-description">{description}</p> : null}
       {action}
     </div>
+  )
+}
+
+/**
+ * A screen with no data is nearly always a service that did not answer, not a farm with nothing
+ * on it. Saying which, and offering the retry, beats a bare "unavailable" line that leaves the
+ * operator with nothing to press.
+ */
+export function DataError({ what, onRetry }) {
+  return (
+    <section className="card">
+      <div className="empty">
+        <span className="empty-mark" aria-hidden="true">
+          <IconOffline />
+        </span>
+        <p className="empty-title">Could not load {what}</p>
+        <p className="empty-description">
+          The service did not respond. This retries on its own every few seconds.
+        </p>
+        {onRetry ? (
+          <button type="button" className="btn" onClick={onRetry}>
+            <IconRefresh />
+            Try again
+          </button>
+        ) : null}
+      </div>
+    </section>
+  )
+}
+
+/**
+ * Polled data looks identical whether it arrived a second ago or ten minutes ago, so the age of
+ * the reading is part of the reading.
+ */
+export function Freshness({ updatedAt, stale }) {
+  const [, force] = useState(0)
+
+  // The label is a relative time, so it has to re-render on its own between polls.
+  useEffect(() => {
+    const timer = setInterval(() => force((n) => n + 1), 15000)
+    return () => clearInterval(timer)
+  }, [])
+
+  if (!updatedAt) return null
+  return (
+    <span className={`freshness${stale ? ' freshness-stale' : ''}`}>
+      <span className="freshness-dot" aria-hidden="true" />
+      {stale ? 'Reconnecting, showing last known data' : `Updated ${relativeTime(updatedAt)}`}
+    </span>
   )
 }
 
@@ -109,20 +228,6 @@ export function Empty({ title, action }) {
  * when the real data arrives.
  */
 export function Loading({ rows = 4, variant = 'rows' }) {
-  if (variant === 'stats') {
-    return (
-      <div className="stat-strip" aria-hidden="true">
-        {Array.from({ length: 4 }, (_, i) => (
-          <div key={i} className="skeleton-stat">
-            <div className="skeleton" style={{ width: '55%', height: 12 }} />
-            <div className="skeleton" style={{ width: '40%', height: 28 }} />
-            <div className="skeleton" style={{ width: '70%', height: 11 }} />
-          </div>
-        ))}
-      </div>
-    )
-  }
-
   if (variant === 'cards') {
     return (
       <div className="crop-grid" aria-hidden="true">

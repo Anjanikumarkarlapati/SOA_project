@@ -33,7 +33,8 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
     /** Paths that must work without a token. */
     private static final List<String> PUBLIC_PATHS = List.of(
-            "/api/auth/login", "/api/auth/register", "/api/auth/refresh", "/actuator/health");
+            "/api/auth/login", "/api/auth/register", "/api/auth/refresh", "/api/auth/google",
+            "/actuator/health");
 
     private final SecretKey key;
     private final RevocationCache revocations;
