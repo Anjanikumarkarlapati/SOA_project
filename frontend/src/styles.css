@@ -1,60 +1,77 @@
-/* AgriTech design system - tokens per AGRITECH_UI_UX.md section 2. */
+/* AgriTech design system.
+   Restyled to the "Modern Product Launch" reference: bone/cream paper, deep forest green,
+   warm tan, a high-contrast serif for display type. Every surface reads a token, so the
+   light/dark split below is the only place a colour is decided. */
 
 :root {
-  --bg-base: #f7f8f6;
-  --bg-surface: #ffffff;
-  --bg-raised: #fbfcfa;
-  --text-primary: #1b1f1a;
-  --text-secondary: #5c6659;
-  --border: #e1e5dd;
-  --border-strong: #cfd6ca;
-  --accent: #2f6b3c;
-  --accent-hover: #275a32;
-  --accent-wash: #eaf1eb;
-  --accent-rgb: 47, 107, 60;
-  --glass-rgb: 255, 255, 255;
+  /* Paper, not white. The reference sits everything on warm bone. */
+  --bg-base: #f2efe6;
+  --bg-surface: #faf8f3;
+  --bg-raised: #ece8dc;
+  --text-primary: #1f2a1c;
+  --text-secondary: #5f6b59;
+  --border: #ddd8c9;
+  --border-strong: #c7c1ae;
 
-  --status-good: #2e7d32;
-  /* The brief specifies #B8860B, but that reads at 3.05:1 on this near-white surface and the
-     same brief requires WCAG AA on every status indicator. Same goldenrod hue, darkened to
-     clear 4.5:1; the swatch on a dark surface below keeps the brief's lighter value. */
-  --status-warning: #8f6708;
-  --status-critical: #b3261e;
-  --status-info: #3b6e91;
-  --status-muted: #646e62;
+  /* Deep forest green carries the brand; tan is the warm secondary from the reference. */
+  --accent: #33452f;
+  --accent-hover: #435a3d;
+  --accent-wash: #e2e5d5;
+  --accent-rgb: 51, 69, 47;
+  --tan: #c9b896;
+  --tan-wash: #e8dfc9;
+  --sage: #9aab8e;
+  --glass-rgb: 250, 248, 243;
 
-  --radius: 8px;
-  --sidebar-width: 232px;
-  --rail-width: 64px;
+  --status-good: #3f6b35;
+  /* The reference's goldenrod reads at ~3:1 on bone, and every status indicator here has to
+     clear WCAG AA. Same hue, darkened to 4.5:1; the dark theme keeps the lighter value. */
+  --status-warning: #8a6508;
+  --status-critical: #a83228;
+  --status-info: #3a6480;
+  --status-muted: #6b7566;
 
+  /* Soft, generous corners throughout; pills for nav and buttons. */
+  --radius: 14px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
+
+  --font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
   --font-ui: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'IBM Plex Mono', 'SF Mono', ui-monospace, monospace;
 
-  --shadow-popover: 0 4px 16px rgb(27 31 26 / 12%);
+  --shadow-popover: 0 18px 40px rgb(31 42 28 / 14%);
+  --shadow-nav: 0 6px 24px rgb(31 42 28 / 10%);
 }
 
 [data-theme='dark'] {
-  --bg-base: #141812;
-  --bg-surface: #1e241a;
-  --bg-raised: #242b20;
-  --text-primary: #edefea;
-  --text-secondary: #a3ab9e;
-  --border: #333c2d;
-  --border-strong: #46523f;
-  --accent: #5fa06d;
-  --accent-hover: #71b47f;
-  --accent-wash: #253022;
-  --accent-rgb: 95, 160, 109;
-  --glass-rgb: 30, 36, 26;
+  /* The reference's dark sections: deep forest, not neutral charcoal. */
+  --bg-base: #1c2619;
+  --bg-surface: #243020;
+  --bg-raised: #2c3927;
+  --text-primary: #eef0e6;
+  --text-secondary: #a9b5a1;
+  --border: #38472f;
+  --border-strong: #4b5c40;
 
-  /* Same hues, lifted for contrast against the dark surface (doc section 7). */
-  --status-good: #5cb860;
+  --accent: #c9b896;
+  --accent-hover: #d9cbaf;
+  --accent-wash: #33452f;
+  --accent-rgb: 201, 184, 150;
+  --tan: #c9b896;
+  --tan-wash: #3a4a33;
+  --sage: #9aab8e;
+  --glass-rgb: 36, 48, 32;
+
+  /* Same hues, lifted for contrast against the dark surface. */
+  --status-good: #7fc07a;
   --status-warning: #d9a520;
-  --status-critical: #e86a62;
-  --status-info: #6ba3c9;
-  --status-muted: #95a190;
+  --status-critical: #e8837a;
+  --status-info: #8ab6d4;
+  --status-muted: #9aa694;
 
-  --shadow-popover: 0 4px 16px rgb(0 0 0 / 45%);
+  --shadow-popover: 0 18px 40px rgb(0 0 0 / 45%);
+  --shadow-nav: 0 6px 24px rgb(0 0 0 / 35%);
 }
 
 * {
@@ -108,17 +125,27 @@ a:hover {
   color: var(--text-secondary);
 }
 
+/* Display type. The reference leads with a high-contrast serif at generous size and tight
+   leading; it is reserved for page and section headings so the data itself stays in Inter,
+   where tabular figures and small sizes hold up. */
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.08;
+}
+
 /* ---------- App shell ---------- */
 
 .shell {
   position: relative;
-  display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr;
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
-/* Same device as the login page, turned down: fixed so it never scrolls away, low-opacity so it
-   reads as atmosphere behind the glass chrome rather than competing with sensor readings. */
+/* Warm atmosphere behind the chrome: a tan and a green wash, low opacity, fixed so it never
+   scrolls away or competes with a sensor reading. */
 .app-blobs {
   position: fixed;
   inset: 0;
@@ -133,45 +160,44 @@ a:hover {
   position: absolute;
   border-radius: 50%;
   filter: blur(110px);
-  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.14), rgba(var(--accent-rgb), 0) 70%);
+  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.12), rgba(var(--accent-rgb), 0) 70%);
 }
 
 .app-blobs::before {
-  width: 640px;
-  height: 640px;
-  top: -260px;
-  left: -200px;
+  width: 720px;
+  height: 720px;
+  top: -300px;
+  left: -220px;
+  background: radial-gradient(circle, rgba(201, 184, 150, 0.4), rgba(201, 184, 150, 0) 70%);
 }
 
 .app-blobs::after {
-  width: 560px;
-  height: 560px;
-  bottom: -260px;
+  width: 620px;
+  height: 620px;
+  bottom: -280px;
   right: -180px;
-  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.1), rgba(var(--accent-rgb), 0) 70%);
 }
 
-.sidebar {
+/* The floating pill bar from the reference: brand at the left, destinations centred in a
+   single rounded capsule, account controls at the right. */
+.topnav {
   position: sticky;
   top: 0;
-  z-index: 1;
-  align-self: start;
-  height: 100vh;
+  z-index: 20;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 20px 12px;
-  background: rgba(var(--glass-rgb), 0.86);
+  align-items: center;
+  gap: 16px;
+  padding: 14px 24px;
+  background: rgba(var(--glass-rgb), 0.82);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border-right: 1px solid rgba(var(--glass-rgb), 0.4);
+  border-bottom: 1px solid var(--border);
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 8px 20px;
   color: var(--text-primary);
 }
 
@@ -181,13 +207,17 @@ a:hover {
 
 .brand-mark {
   flex: none;
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   display: grid;
   place-items: center;
-  border-radius: 6px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
-  color: #fff;
+  color: var(--bg-surface);
+}
+
+[data-theme='dark'] .brand-mark {
+  color: #1c2619;
 }
 
 .brand-text,
@@ -197,10 +227,11 @@ a:hover {
 }
 
 .brand-name {
-  font-size: 13px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 400;
   letter-spacing: -0.01em;
-  line-height: 1.25;
+  line-height: 1.15;
 }
 
 .brand-sub {
@@ -208,54 +239,65 @@ a:hover {
   color: var(--text-secondary);
 }
 
-/* Sign-out is a <button> among <a> nav items; strip the UA chrome so the row matches. */
-button.nav-item {
-  border: 0;
-  background: transparent;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  width: 100%;
+/* The capsule itself. */
+.nav-pill {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0 auto;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-nav);
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 0 10px;
-  border-radius: var(--radius);
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
   color: var(--text-secondary);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .nav-item:hover {
-  background: var(--bg-raised);
+  background: rgba(var(--glass-rgb), 0.7);
   color: var(--text-primary);
   text-decoration: none;
 }
 
+/* Active is a solid forest pill, the reference's primary button shape. */
 .nav-item.active {
-  background: var(--accent-wash);
-  color: var(--accent);
+  background: var(--accent);
+  color: var(--bg-surface);
 }
 
-.nav-spacer {
-  flex: 1;
+[data-theme='dark'] .nav-item.active {
+  color: #1c2619;
 }
 
-.sidebar-footer {
-  border-top: 1px solid var(--border);
-  padding-top: 12px;
-  display: grid;
-  gap: 4px;
+.nav-item.active:hover {
+  background: var(--accent-hover);
+}
+
+.topnav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .user-chip {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 10px;
+  padding: 4px 12px 4px 4px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
 }
 
 .avatar {
@@ -265,10 +307,14 @@ button.nav-item {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--accent-wash);
-  color: var(--accent);
+  background: var(--accent);
+  color: var(--bg-surface);
   font-size: 12px;
   font-weight: 600;
+}
+
+[data-theme='dark'] .avatar {
+  color: #1c2619;
 }
 
 .user-name {
@@ -280,50 +326,38 @@ button.nav-item {
 }
 
 .user-role {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 
 .main {
+  position: relative;
+  z-index: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
 }
 
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 24px;
-  background: rgba(var(--glass-rgb), 0.8);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border-bottom: 1px solid rgba(var(--glass-rgb), 0.4);
+/* Page heading sits in the content column now that the nav no longer carries it, and takes
+   the reference's oversized serif. */
+.page-head {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 36px 24px 8px;
 }
 
 .page-title {
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
+  font-size: 40px;
   margin: 0;
 }
 
 .page-subtitle {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
-  margin: 2px 0 0;
-}
-
-.topbar-actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  margin: 6px 0 0;
 }
 
 .content {
@@ -331,7 +365,7 @@ button.nav-item {
   width: 100%;
   max-width: 1440px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 16px 24px 48px;
 }
 
 /* ---------- Primitives ---------- */
@@ -339,29 +373,29 @@ button.nav-item {
 .card {
   position: relative;
   z-index: 1;
-  background: rgba(var(--glass-rgb), 0.86);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid rgba(var(--glass-rgb), 0.45);
-  border-radius: var(--radius);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
 }
 
 .card-head {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 18px 20px;
   border-bottom: 1px solid var(--border);
 }
 
 .card-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
 .card-body {
-  padding: 16px;
+  padding: 20px;
 }
 
 .section-label {
@@ -383,10 +417,10 @@ button.nav-item {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 36px;
-  padding: 0 14px;
+  min-height: 38px;
+  padding: 0 18px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
   background: var(--bg-surface);
   color: var(--text-primary);
   font-size: 13px;
@@ -432,7 +466,7 @@ button.nav-item {
 }
 
 [data-theme='dark'] .btn-primary {
-  color: #0f1410;
+  color: #1c2619;
 }
 
 .btn-danger {
@@ -450,9 +484,10 @@ button.nav-item {
 }
 
 .btn-icon {
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 40px;
+  min-height: 40px;
   padding: 0 8px;
+  border-radius: 50%;
 }
 
 .btn-quiet {
@@ -481,10 +516,10 @@ button.nav-item {
 .input,
 .select {
   width: 100%;
-  min-height: 40px;
-  padding: 0 12px;
+  min-height: 44px;
+  padding: 0 16px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  border-radius: var(--radius-pill);
   background: var(--bg-surface);
 }
 
@@ -867,55 +902,69 @@ table.data tr.row-offline td:not(.col-status) {
 /* ---------- Tabs ---------- */
 
 .tabs {
-  display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 16px;
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  margin-bottom: 20px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
 }
 
 .tab {
-  min-height: 40px;
-  padding: 0 14px;
+  min-height: 36px;
+  padding: 0 18px;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.tab:hover {
+  color: var(--text-primary);
 }
 
 .tab[aria-selected='true'] {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg-surface);
+}
+
+[data-theme='dark'] .tab[aria-selected='true'] {
+  color: #1c2619;
 }
 
 .range-tabs {
   display: inline-flex;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  overflow: hidden;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg-raised);
 }
 
 .range-tabs button {
-  min-height: 32px;
-  padding: 0 12px;
+  min-height: 30px;
+  padding: 0 14px;
   border: 0;
-  border-left: 1px solid var(--border);
-  background: var(--bg-surface);
+  border-radius: var(--radius-pill);
+  background: transparent;
   font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
 }
 
-.range-tabs button:first-child {
-  border-left: 0;
+.range-tabs button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--bg-surface);
 }
 
-.range-tabs button[aria-pressed='true'] {
-  background: var(--accent-wash);
-  color: var(--accent);
+[data-theme='dark'] .range-tabs button[aria-pressed='true'] {
+  color: #1c2619;
 }
 
 /* ---------- Toggle switch ---------- */
@@ -1066,11 +1115,11 @@ table.data tr.row-offline td:not(.col-status) {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 440px) minmax(0, 380px);
+  grid-template-columns: minmax(0, 1.16fr) minmax(0, 1fr);
   gap: 0;
   width: 100%;
   max-width: 860px;
-  border-radius: 24px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-popover);
   animation: auth-enter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -1088,11 +1137,9 @@ table.data tr.row-offline td:not(.col-status) {
 .auth-card {
   position: relative;
   isolation: isolate;
-  padding: 40px 36px;
-  background: rgba(var(--glass-rgb), 0.72);
-  backdrop-filter: blur(28px) saturate(160%);
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  border: 1px solid rgba(var(--glass-rgb), 0.4);
+  padding: 44px 40px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
 }
 
 .auth-card::before {
@@ -1116,8 +1163,7 @@ table.data tr.row-offline td:not(.col-status) {
     -webkit-backdrop-filter: none;
   }
 
-  .sidebar,
-  .topbar,
+  .topnav,
   .card,
   .stat-strip,
   table.data th {
@@ -1184,10 +1230,12 @@ table.data tr.row-offline td:not(.col-status) {
 }
 
 .auth-heading {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.08;
+  margin: 0 0 8px;
 }
 
 .auth-subheading {
@@ -1318,11 +1366,29 @@ table.data tr.row-offline td:not(.col-status) {
   isolation: isolate;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 28px;
   padding: 40px 32px;
-  background: linear-gradient(165deg, #2f6b3c, #1f4527);
-  color: #fff;
+  background: #2b3d26;
+  color: #f2efe6;
+}
+
+/* The landscape sits behind a forest scrim so the copy over it keeps its contrast. */
+.auth-visual-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.auth-visual::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(31, 42, 28, 0.25) 0%, rgba(31, 42, 28, 0.88) 65%);
 }
 
 .auth-visual-mark {
@@ -1330,17 +1396,18 @@ table.data tr.row-offline td:not(.col-status) {
   height: 52px;
   display: grid;
   place-items: center;
-  border-radius: 14px;
+  border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.16);
   border: 1px solid rgba(255, 255, 255, 0.28);
 }
 
 .auth-visual h2 {
   margin: 0;
-  font-size: 19px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 400;
   letter-spacing: -0.01em;
-  line-height: 1.35;
+  line-height: 1.12;
 }
 
 .auth-features {
@@ -1519,25 +1586,44 @@ table.data tr.row-offline td:not(.col-status) {
 /* ---------- Responsive (doc section 8) ---------- */
 
 @media (max-width: 1023px) {
-  .shell {
-    grid-template-columns: var(--rail-width) 1fr;
+  .topnav {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 16px;
   }
 
-  .sidebar {
-    padding: 16px 8px;
-    align-items: center;
+  /* The capsule takes its own row once brand and account controls stop fitting beside it. */
+  .nav-pill {
+    order: 3;
+    width: 100%;
+    margin: 0;
+    justify-content: space-between;
   }
 
-  .brand-text,
-  .nav-item span,
+  .nav-item {
+    flex: 1;
+    justify-content: center;
+    padding: 0 10px;
+  }
+
+  .topnav-actions {
+    margin-left: auto;
+  }
+
   .user-text {
     display: none;
   }
 
-  .nav-item,
   .user-chip {
-    justify-content: center;
-    padding: 0;
+    padding: 4px;
+  }
+
+  .page-head {
+    padding: 24px 16px 4px;
+  }
+
+  .page-title {
+    font-size: 32px;
   }
 
   .dashboard-grid {
@@ -1558,47 +1644,25 @@ table.data tr.row-offline td:not(.col-status) {
 }
 
 @media (max-width: 767px) {
-  .shell {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    position: fixed;
-    bottom: 0;
-    top: auto;
-    left: 0;
-    right: 0;
-    z-index: 10;
-    height: auto;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-around;
-    padding: 6px 8px;
-    border-right: 0;
-    border-top: 1px solid var(--border);
-  }
-
-  .brand,
-  .sidebar-footer .user-chip {
+  .brand-text {
     display: none;
   }
 
-  .nav-spacer {
+  /* Labels give way to glyphs before the capsule would wrap. */
+  .nav-item span {
     display: none;
   }
 
-  .sidebar-footer {
-    border-top: 0;
-    padding-top: 0;
+  .nav-item {
+    padding: 0;
   }
 
-  .main {
-    padding-bottom: 64px;
+  .content {
+    padding: 12px 16px 40px;
   }
 
-  .content,
-  .topbar {
-    padding: 16px;
+  .page-title {
+    font-size: 28px;
   }
 
   .stat-strip {

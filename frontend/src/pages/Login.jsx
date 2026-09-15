@@ -11,6 +11,7 @@ import {
   IconUserPlus,
 } from '../icons'
 import { useSession, useTheme } from '../session'
+import rollingHills from '../assets/rolling-hills.svg'
 
 // Single-farm demo (see the seeded pilot farm in sensor-service) - a self-serve signup does not
 // need to ask a new user to type an id they cannot know yet.
@@ -45,6 +46,7 @@ export default function Login() {
         </section>
 
         <aside className="auth-visual" aria-hidden="true">
+          <img className="auth-visual-photo" src={rollingHills} alt="" />
           <span className="auth-visual-mark">
             <IconLeaf width={26} height={26} />
           </span>

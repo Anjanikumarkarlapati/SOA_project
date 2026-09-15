@@ -17,7 +17,7 @@ const NAV = [
   { to: '/irrigation', label: 'Irrigation', Icon: IconValve },
 ]
 
-/** Titles live with the routes so the topbar stays a single source of truth. */
+/** Titles live with the routes so the header stays a single source of truth. */
 function pageHeading(pathname) {
   if (pathname.startsWith('/sensors/')) {
     return { title: pathname.split('/')[2], subtitle: 'Sensor device detail' }
@@ -37,6 +37,11 @@ function pageHeading(pathname) {
   }
 }
 
+/**
+ * The reference design leads with a floating, centred pill navigation rather than a fixed
+ * sidebar. With only four destinations that reads better here too, and it returns the full
+ * width to the tables and charts, which are the point of this product.
+ */
 export default function Layout() {
   const { session, signOut } = useSession()
   const [theme, toggleTheme] = useTheme()
@@ -51,7 +56,8 @@ export default function Layout() {
   return (
     <div className="shell">
       <div className="app-blobs" aria-hidden="true" />
-      <nav className="sidebar" aria-label="Primary">
+
+      <header className="topnav">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">
             <IconCrop width={18} height={18} />
@@ -62,21 +68,30 @@ export default function Layout() {
           </span>
         </div>
 
-        {NAV.map(({ to, label, Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+        <nav className="nav-pill" aria-label="Primary">
+          {NAV.map(({ to, label, Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+            >
+              <Icon />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="topnav-actions">
+          <button
+            type="button"
+            className="btn btn-quiet btn-icon"
+            onClick={toggleTheme}
+            aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
           >
-            <Icon />
-            <span>{label}</span>
-          </NavLink>
-        ))}
+            {theme === 'light' ? <IconMoon /> : <IconSun />}
+          </button>
 
-        <div className="nav-spacer" />
-
-        <div className="sidebar-footer">
           <div className="user-chip">
             <span className="avatar" aria-hidden="true">
               {initials}
@@ -86,29 +101,17 @@ export default function Layout() {
               <span className="user-role">{session.role}</span>
             </span>
           </div>
-          <button type="button" className="nav-item" onClick={signOut}>
+
+          <button type="button" className="btn btn-quiet btn-icon" onClick={signOut} aria-label="Sign out">
             <IconLogout />
-            <span>Sign out</span>
           </button>
         </div>
-      </nav>
+      </header>
 
       <div className="main">
-        <div className="topbar">
-          <div>
-            <h1 className="page-title">{title}</h1>
-            <p className="page-subtitle">{subtitle}</p>
-          </div>
-          <div className="topbar-actions">
-            <button
-              type="button"
-              className="btn btn-quiet btn-icon"
-              onClick={toggleTheme}
-              aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
-            >
-              {theme === 'light' ? <IconMoon /> : <IconSun />}
-            </button>
-          </div>
+        <div className="page-head">
+          <h1 className="page-title display">{title}</h1>
+          <p className="page-subtitle">{subtitle}</p>
         </div>
         <main className="content">
           <Outlet />

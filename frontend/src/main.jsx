@@ -5,6 +5,8 @@ import { BrowserRouter } from 'react-router-dom'
 // Self-hosted so the dashboard renders without a round trip to a font CDN. Field tablets on a
 // patchy connection get the interface immediately instead of a flash of fallback type.
 import '@fontsource-variable/inter'
+import '@fontsource/instrument-serif/400.css'
+import '@fontsource/instrument-serif/400-italic.css'
 import '@fontsource/ibm-plex-mono/400.css'
 import '@fontsource/ibm-plex-mono/500.css'
 import '@fontsource/ibm-plex-mono/600.css'
