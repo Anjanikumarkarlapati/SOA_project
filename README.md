@@ -38,7 +38,8 @@ operations dashboard.
 | `crop-service` | 8083 | Health scoring, optimal-range evaluation, recommendations, forecasts |
 | `irrigation-service` | 8084 | Schedules, valve control, moisture cut-out, emergency stop |
 | `common` | - | Shared error envelope and caller-identity helpers |
-| `frontend` | 5173 | React dashboard |
+| `web` | 3000 | Next.js dashboard (current) |
+| `frontend` | 5173 | Vite dashboard (legacy, kept until the swap is signed off) |
 
 **Security model.** The gateway is the only component that parses a JWT. It strips any
 client-supplied `X-User-*` headers and sets its own from the verified token, so a downstream
@@ -59,13 +60,17 @@ That builds every module and launches the six services in dependency order, wait
 report healthy. Then start the dashboard:
 
 ```bash
-npm install --prefix frontend
-npm run dev --prefix frontend
+npm install --prefix web
+npm run dev --prefix web
 ```
 
-- Dashboard: http://localhost:5173
+- Dashboard: http://localhost:3000
 - API gateway: http://localhost:8080
 - Eureka: http://localhost:8761
+
+The Vite app in `frontend/` still runs (`npm run dev --prefix frontend`, port 5173) and talks to
+the same gateway. It is kept only so the two can be compared side by side; delete it once the
+Next app is signed off.
 
 Other actions: `./scripts/stack.ps1 status`, `stop`, `restart`. Logs land in `.run/`.
 
@@ -182,6 +187,34 @@ optimal ceiling. A running zone that reaches that ceiling shuts itself off mid-r
 **Closed loop in the demo.** Opening a valve tells sensor-service which field is being watered, so
 simulated soil moisture climbs while the valve is open and the health score recovers. That path
 exists only for the simulator; real deployments learn it from the sensors.
+
+---
+
+## Frontend stack
+
+`web/` is Next.js 16 (App Router) + React 19 + Tailwind v4 + shadcn, replacing the Vite SPA.
+
+Everything is client-rendered behind the auth guard: the dashboard polls live telemetry, so there
+is nothing meaningful to server-render. Next earns its place here for file-based routing, route
+level code-splitting and `next/font`, not for SSR.
+
+| Concern | How it works |
+|---------|--------------|
+| API access | `next.config.ts` rewrites `/api/*` to the gateway, so the browser sees one origin and no CORS preflight. Override with `GATEWAY_URL`. |
+| Auth | JWT in `localStorage`, restored in an effect. `SessionProvider` exposes `ready` so a refresh does not bounce a signed-in user to `/login` mid-hydration. |
+| Theme | An inline script in `<head>` applies the stored theme before first paint, so dark-mode users get no white flash. |
+| Charts | Recharts is `dynamic(..., { ssr: false })` per screen, keeping it out of the login and shell bundles. |
+| Route params | Next 16 delivers `params` as a Promise; the `[cropId]` and `[deviceId]` pages await it. |
+
+Three components come from the VengeanceUI registry via `npx shadcn add`:
+`spotlight-navbar` (primary navigation), `gooey-search` (jump to a page or field), and
+`agent-bento-grid`, whose tile shape the dashboard's `BentoCard` is built on.
+
+The design tokens carried over verbatim and drive both our components and anything pulled from a
+registry, because `globals.css` maps shadcn's semantic variables (`--primary`, `--card`,
+`--border`) onto the AgriTech palette. The contrast audit was re-run after the port and matches
+the Vite app exactly: every foreground/background pair clears WCAG AA in both themes, worst case
+4.63:1.
 
 ---
 

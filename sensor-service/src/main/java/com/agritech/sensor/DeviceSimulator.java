@@ -34,6 +34,12 @@ public class DeviceSimulator implements CommandLineRunner {
             "CROP-FIELD-03", new double[]{28, 27.5, 6.2},
             "CROP-FIELD-04", new double[]{71, 19.8, 7.1});
 
+    /** Fraction of the gap to baseline closed per tick; a gentle exponential approach. */
+    private static final double REVERSION_RATE = 0.02;
+
+    /** Fastest the soil may dry per tick, so a soaked field eases down instead of snapping back. */
+    private static final double MAX_DRY_RATE = -0.15;
+
     /** Fields currently being watered, so the simulated soil actually responds to the valves. */
     private final Map<String, Instant> wateringUntil = new ConcurrentHashMap<>();
 
@@ -120,7 +126,17 @@ public class DeviceSimulator implements CommandLineRunner {
             double ph = last == null ? base[2] : last.getPh();
 
             Instant until = wateringUntil.get(d.getFieldId());
-            double drift = (until != null && until.isAfter(now)) ? 1.4 : -0.15;
+            boolean watering = until != null && until.isAfter(now);
+
+            // Watering pushes moisture up; otherwise it reverts toward this field's baseline.
+            // The previous constant -0.15 drift looked right for a few minutes but bottomed every
+            // field out after a few hours, so the whole farm eventually read CRITICAL and the
+            // seeded mix of states was lost. Reverting to the baseline keeps each field in the
+            // state it was seeded to demonstrate, while a watered field still visibly spikes and
+            // then eases back down.
+            double drift = watering
+                    ? 1.4
+                    : Math.max(MAX_DRY_RATE, (base[0] - moisture) * REVERSION_RATE);
 
             readings.save(new TelemetryReading(d.getDeviceId(), now,
                     clamp(moisture + noise(0.6) + drift, 0, 100),

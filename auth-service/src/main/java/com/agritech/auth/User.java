@@ -12,7 +12,8 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    /** Null for accounts that authenticate through an external provider (e.g. Google via Supabase). */
+    @Column
     private String passwordHash;
 
     /** ADMIN or FARMER (FR-2). */
@@ -32,6 +33,11 @@ public class User {
         this.role = role;
         this.farmId = farmId;
         this.displayName = displayName;
+    }
+
+    /** A provider-authenticated account (Google via Supabase): no local password. */
+    public static User forProvider(String email, String role, String farmId, String displayName) {
+        return new User(email, null, role, farmId, displayName);
     }
 
     public Long getId() { return id; }
