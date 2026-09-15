@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import farmland from '../assets/farmland.jpg'
 import {
   IconArrowRight,
-  IconCrop,
   IconEye,
   IconEyeSlash,
   IconGauge,
@@ -11,6 +11,7 @@ import {
   IconUserPlus,
 } from '../icons'
 import { useSession, useTheme } from '../session'
+import { supabaseEnabled, currentSupabaseToken } from '../supabase'
 
 // Single-farm demo (see the seeded pilot farm in sensor-service) - a self-serve signup does not
 // need to ask a new user to type an id they cannot know yet.
@@ -22,21 +23,12 @@ export default function Login() {
 
   return (
     <div className="auth-page">
-      <div className="auth-blobs" aria-hidden="true" />
+      <header className="auth-top">
+        <span className="brand">AgriTech</span>
+      </header>
+
       <div className="auth-shell">
         <section className="auth-card">
-          <div className="auth-brand">
-            <span className="brand-mark" aria-hidden="true">
-              <IconCrop width={18} height={18} />
-            </span>
-            <div>
-              <div className="brand-name" style={{ fontWeight: 600 }}>
-                AgriTech Sensing Solutions
-              </div>
-              <div className="brand-sub">Operations dashboard</div>
-            </div>
-          </div>
-
           {mode === 'signin' ? (
             <SignIn onCreateAccount={() => setMode('signup')} />
           ) : (
@@ -45,26 +37,25 @@ export default function Login() {
         </section>
 
         <aside className="auth-visual" aria-hidden="true">
-          <span className="auth-visual-mark">
-            <IconLeaf width={26} height={26} />
-          </span>
-          <h2>Real-time visibility across every field, sensor, and valve on the farm.</h2>
-          <div className="auth-features">
-            <Feature
-              icon={<IconGauge width={18} height={18} />}
-              title="Live crop health"
-              body="Soil moisture, temperature and pH scored against each crop's optimal range."
-            />
-            <Feature
-              icon={<IconLeaf width={18} height={18} />}
-              title="Automated irrigation"
-              body="Schedules that skip a run when the soil is already wet enough."
-            />
-            <Feature
-              icon={<IconShield width={18} height={18} />}
-              title="Role-based access"
-              body="Farmers see the data; administrators control the hardware."
-            />
+          <div className="auth-photo" style={{ '--auth-img': `url(${farmland})` }}>
+            <h2>Every field, sensor and valve on one screen.</h2>
+            <ul className="auth-features">
+              <Feature
+                icon={<IconGauge width={18} height={18} />}
+                title="Live crop health"
+                body="Soil moisture, temperature and pH scored against each crop's optimal range."
+              />
+              <Feature
+                icon={<IconLeaf width={18} height={18} />}
+                title="Automated irrigation"
+                body="Schedules that skip a run when the soil is already wet enough."
+              />
+              <Feature
+                icon={<IconShield width={18} height={18} />}
+                title="Role-based access"
+                body="Farmers see the data; administrators control the hardware."
+              />
+            </ul>
           </div>
         </aside>
       </div>
@@ -74,18 +65,18 @@ export default function Login() {
 
 function Feature({ icon, title, body }) {
   return (
-    <div className="auth-feature">
-      <span className="auth-feature-icon">{icon}</span>
+    <li className="auth-feature">
+      {icon}
       <div>
         <div className="auth-feature-title">{title}</div>
         <div className="auth-feature-body">{body}</div>
       </div>
-    </div>
+    </li>
   )
 }
 
 function SignIn({ onCreateAccount }) {
-  const { signIn } = useSession()
+  const { signIn, signInWithGoogle, exchangeSupabaseToken } = useSession()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -93,6 +84,40 @@ function SignIn({ onCreateAccount }) {
   const [fieldErrors, setFieldErrors] = useState({})
   const [authError, setAuthError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [googleBusy, setGoogleBusy] = useState(false)
+
+  // On return from the Google redirect, Supabase has restored its session; trade its token for
+  // our app JWT. Runs once on mount; a no-op when there is no Supabase session.
+  useEffect(() => {
+    if (!supabaseEnabled) return
+    let cancelled = false
+    ;(async () => {
+      const token = await currentSupabaseToken()
+      if (cancelled || !token) return
+      setGoogleBusy(true)
+      try {
+        await exchangeSupabaseToken(token)
+      } catch (error) {
+        setAuthError(error.message || 'Google sign-in failed')
+      } finally {
+        if (!cancelled) setGoogleBusy(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [exchangeSupabaseToken])
+
+  const google = async () => {
+    setAuthError('')
+    setGoogleBusy(true)
+    try {
+      await signInWithGoogle() // redirects away; control returns via the effect above
+    } catch (error) {
+      setAuthError(error.message || 'Could not start Google sign-in')
+      setGoogleBusy(false)
+    }
+  }
 
   const submit = async (event) => {
     event.preventDefault()
@@ -126,7 +151,7 @@ function SignIn({ onCreateAccount }) {
         </button>
       </div>
 
-      <h1 className="auth-heading">Welcome back</h1>
+      <h1 className="auth-heading">Welcome back.</h1>
       <p className="auth-subheading">Sign in to the operations dashboard.</p>
 
       <form onSubmit={submit} noValidate>
@@ -184,8 +209,27 @@ function SignIn({ onCreateAccount }) {
           {submitting ? 'Signing in' : 'Sign in'}
         </button>
 
+        {supabaseEnabled ? (
+          <>
+            <div className="auth-divider" role="separator">
+              <span>or</span>
+            </div>
+            <button
+              type="button"
+              className="btn btn-block auth-google"
+              onClick={google}
+              disabled={googleBusy || submitting}
+            >
+              {googleBusy ? <span className="spinner" /> : <GoogleMark />}
+              {googleBusy ? 'Connecting' : 'Continue with Google'}
+            </button>
+          </>
+        ) : null}
+
+        {/* Password reset is not built yet, so this says who to ask instead of dangling a link
+            that goes nowhere. */}
         <p className="auth-foot">
-          <a href="#forgot">Forgot password?</a>
+          Lost your password? Ask your farm administrator to reset it.
         </p>
       </form>
 
@@ -267,7 +311,7 @@ function SignUp({ onSignIn }) {
         </a>
       </p>
 
-      <h1 className="auth-heading">Create an account</h1>
+      <h1 className="auth-heading">Create your account.</h1>
       <p className="auth-subheading">Set up access to the operations dashboard.</p>
 
       <form onSubmit={submit} noValidate>
@@ -385,5 +429,18 @@ function SignUp({ onSignIn }) {
         </button>
       </form>
     </>
+  )
+}
+
+
+// Official Google 'G' brand mark. Decorative here - the button text names the action.
+function GoogleMark() {
+  return (
+    <svg width={16} height={16} viewBox="0 0 18 18" aria-hidden="true">
+      <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z" />
+      <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z" />
+      <path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z" />
+      <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.47.9 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" />
+    </svg>
   )
 }

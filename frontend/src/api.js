@@ -52,6 +52,7 @@ async function request(method, path, { body, token } = {}) {
 
 export const api = {
   login: (email, password) => request('POST', '/auth/login', { body: { email, password } }),
+  google: (accessToken) => request('POST', '/auth/google', { body: { accessToken } }),
   register: (body) => request('POST', '/auth/register', { body }),
   logout: (token) => request('POST', '/auth/logout', { body: {}, token }),
 

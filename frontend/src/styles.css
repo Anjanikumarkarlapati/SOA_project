@@ -1,18 +1,23 @@
-/* AgriTech design system - tokens per AGRITECH_UI_UX.md section 2. */
+/* AgriTech design system. Palette and type follow the "Area" Figma reference (Modern Product
+   Launch): a white page, true black ink, one olive for action and a sage block for atmosphere. */
 
 :root {
-  --bg-base: #f7f8f6;
+  --bg-base: #ffffff;
   --bg-surface: #ffffff;
-  --bg-raised: #fbfcfa;
-  --text-primary: #1b1f1a;
-  --text-secondary: #5c6659;
-  --border: #e1e5dd;
-  --border-strong: #cfd6ca;
-  --accent: #2f6b3c;
-  --accent-hover: #275a32;
-  --accent-wash: #eaf1eb;
-  --accent-rgb: 47, 107, 60;
-  --glass-rgb: 255, 255, 255;
+  --bg-raised: #f5f6f1;
+  --text-primary: #000000;
+  --text-secondary: #5a6152;
+  --border: #e6e8e0;
+  --border-strong: #d3d7c9;
+  /* The reference's CTA olive, sampled from its render. 7.5:1 against white either way round. */
+  --accent: #485c11;
+  --accent-hover: #3a4b0c;
+  --accent-wash: #eff2e4;
+  --accent-on-wash: var(--accent);
+  /* Text and icons sitting on an --accent fill. */
+  --on-accent: #ffffff;
+  /* The reference's backdrop green. Decorative only - white text on it fails AA. */
+  --sage: #8e9c78;
 
   --status-good: #2e7d32;
   /* The brief specifies #B8860B, but that reads at 3.05:1 on this near-white surface and the
@@ -23,29 +28,34 @@
   --status-info: #3b6e91;
   --status-muted: #646e62;
 
-  --radius: 8px;
-  --sidebar-width: 232px;
-  --rail-width: 64px;
+  --radius: 12px;
+  --radius-lg: 24px;
 
-  --font-ui: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'IBM Plex Mono', 'SF Mono', ui-monospace, monospace;
+  /* The reference's own faces, read out of its canvas file. */
+  --font-ui: 'DM Sans Variable', 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, 'SF Mono', monospace;
+  /* Headlines and headline figures only - never body, labels or table data. */
+  --font-display: 'Crimson Text', Georgia, 'Times New Roman', serif;
 
-  --shadow-popover: 0 4px 16px rgb(27 31 26 / 12%);
+  --shadow-popover: 0 12px 32px rgb(0 0 0 / 10%);
 }
 
 [data-theme='dark'] {
-  --bg-base: #141812;
-  --bg-surface: #1e241a;
-  --bg-raised: #242b20;
-  --text-primary: #edefea;
-  --text-secondary: #a3ab9e;
-  --border: #333c2d;
-  --border-strong: #46523f;
-  --accent: #5fa06d;
-  --accent-hover: #71b47f;
-  --accent-wash: #253022;
-  --accent-rgb: 95, 160, 109;
-  --glass-rgb: 30, 36, 26;
+  --bg-base: #0f110c;
+  --bg-surface: #171a13;
+  --bg-raised: #1f2319;
+  --text-primary: #f4f5ef;
+  --text-secondary: #a9b09c;
+  --border: #2b3024;
+  --border-strong: #3b4232;
+  /* The olive is too dark to read on a near-black ground, so dark mode lifts it and flips the
+     text that sits on an olive fill to dark. */
+  --accent: #b3c67f;
+  --accent-hover: #c3d493;
+  --accent-wash: #252b1a;
+  --accent-on-wash: var(--accent);
+  --on-accent: #10130b;
+  --sage: #3e4a30;
 
   /* Same hues, lifted for contrast against the dark surface (doc section 7). */
   --status-good: #5cb860;
@@ -54,7 +64,7 @@
   --status-info: #6ba3c9;
   --status-muted: #95a190;
 
-  --shadow-popover: 0 4px 16px rgb(0 0 0 / 45%);
+  --shadow-popover: 0 12px 32px rgb(0 0 0 / 50%);
 }
 
 * {
@@ -108,104 +118,66 @@ a:hover {
   color: var(--text-secondary);
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 /* ---------- App shell ---------- */
 
 .shell {
   position: relative;
-  display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr;
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
-/* Same device as the login page, turned down: fixed so it never scrolls away, low-opacity so it
-   reads as atmosphere behind the glass chrome rather than competing with sensor readings. */
-.app-blobs {
+/* Keyboard users land on the nav first and would otherwise tab the whole rail on every route. */
+.skip-link {
   position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  box-shadow: var(--shadow-popover);
+  transform: translateY(-200%);
 }
 
-.app-blobs::before,
-.app-blobs::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(110px);
-  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.14), rgba(var(--accent-rgb), 0) 70%);
+.skip-link:focus-visible {
+  transform: translateY(0);
+  text-decoration: none;
 }
 
-.app-blobs::before {
-  width: 640px;
-  height: 640px;
-  top: -260px;
-  left: -200px;
+.content:focus-visible {
+  outline: none;
 }
 
-.app-blobs::after {
-  width: 560px;
-  height: 560px;
-  bottom: -260px;
-  right: -180px;
-  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.1), rgba(var(--accent-rgb), 0) 70%);
-}
-
-.sidebar {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  align-self: start;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 20px 12px;
-  background: rgba(var(--glass-rgb), 0.86);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border-right: 1px solid rgba(var(--glass-rgb), 0.4);
-}
-
+/* The reference's wordmark: type alone, no mark, set tight. */
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 8px 20px;
+  flex: none;
+  justify-self: start;
   color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 1;
 }
 
 .brand:hover {
   text-decoration: none;
 }
 
-.brand-mark {
-  flex: none;
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border-radius: 6px;
-  background: var(--accent);
-  color: #fff;
-}
-
-.brand-text,
 .user-text {
   display: grid;
   min-width: 0;
-}
-
-.brand-name {
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.25;
-}
-
-.brand-sub {
-  font-size: 11px;
-  color: var(--text-secondary);
 }
 
 /* Sign-out is a <button> among <a> nav items; strip the UA chrome so the row matches. */
@@ -237,11 +209,7 @@ button.nav-item {
 
 .nav-item.active {
   background: var(--accent-wash);
-  color: var(--accent);
-}
-
-.nav-spacer {
-  flex: 1;
+  color: var(--accent-on-wash);
 }
 
 .sidebar-footer {
@@ -282,45 +250,67 @@ button.nav-item {
 .user-role {
   font-size: 11px;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
-.main {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
+/* One bar in three zones, laid out the way the reference does it: wordmark left, sections
+   centred, actions right. Solid white with no border - the whitespace does the separating. */
 .topbar {
   position: sticky;
   top: 0;
   z-index: 5;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 16px;
-  padding: 16px 24px;
-  background: rgba(var(--glass-rgb), 0.8);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border-bottom: 1px solid rgba(var(--glass-rgb), 0.4);
+  padding: 20px 40px;
+  background: var(--bg-base);
 }
 
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-links .nav-item {
+  padding: 0 14px;
+  border-radius: 999px;
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+/* The current section is underlined in olive rather than filled, so the bar keeps the
+   reference's plain-text rhythm and the one filled shape in it stays the account pill. */
+.nav-links .nav-item.active {
+  background: transparent;
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 8px;
+}
+
+/* Page titles take the reference's headline treatment: a large serif sentence. */
 .page-title {
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
   margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(40px, 5.4vw, 76px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
 }
 
 .page-subtitle {
-  font-size: 12px;
+  margin: 10px 0 0;
+  max-width: 60ch;
+  font-size: 15px;
   color: var(--text-secondary);
-  margin: 2px 0 0;
 }
 
 .topbar-actions {
-  margin-left: auto;
+  justify-self: end;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -329,48 +319,127 @@ button.nav-item {
 .content {
   flex: 1;
   width: 100%;
-  max-width: 1440px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 16px 40px 64px;
+}
+
+.page-head {
+  margin: 24px 0 36px;
+}
+
+/* ---------- Account menu ---------- */
+
+.account-menu {
+  position: relative;
+}
+
+/* The reference's olive pill CTA, given a job the app actually has: who you are, and signing out. */
+.account-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 5px 16px 5px 5px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+}
+
+.account-trigger:hover {
+  background: var(--accent-hover);
+}
+
+.account-trigger .avatar {
+  background: color-mix(in srgb, var(--on-accent) 16%, transparent);
+  color: var(--on-accent);
+}
+
+.account-name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.account-caret {
+  flex: none;
+  transition: transform 150ms ease;
+}
+
+.account-caret.open {
+  transform: rotate(90deg);
+}
+
+.account-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  min-width: 210px;
+  padding: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-popover);
+}
+
+.account-dropdown-head {
+  padding: 8px 10px 10px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ---------- Mobile navigation ---------- */
+
+/* Qualified with .btn because the .btn-icon display rule is declared later in this file and
+   would otherwise win on equal specificity and show the trigger at every width. */
+.btn.hamburger {
+  display: none;
+}
+
+.nav-drawer {
+  display: none;
+  gap: 2px;
+  padding: 8px 16px 16px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border);
+}
+
+.nav-drawer .nav-item {
+  min-height: 48px;
 }
 
 /* ---------- Primitives ---------- */
 
+/* Surfaces are hairline outlines on the white page - no glass, no shadow, the reference has none. */
 .card {
   position: relative;
-  z-index: 1;
-  background: rgba(var(--glass-rgb), 0.86);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid rgba(var(--glass-rgb), 0.45);
-  border-radius: var(--radius);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
 }
 
 .card-head {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border);
 }
 
 .card-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   margin: 0;
 }
 
 .card-body {
-  padding: 16px;
-}
-
-.section-label {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  margin: 0 0 8px;
+  padding: 20px;
 }
 
 .grid {
@@ -383,13 +452,14 @@ button.nav-item {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 36px;
-  padding: 0 14px;
+  min-height: 40px;
+  padding: 0 18px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  /* Every button is a pill, like the reference's CTA. */
+  border-radius: 999px;
   background: var(--bg-surface);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
 }
@@ -424,15 +494,11 @@ button.nav-item {
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-hover);
-}
-
-[data-theme='dark'] .btn-primary {
-  color: #0f1410;
 }
 
 .btn-danger {
@@ -449,10 +515,23 @@ button.nav-item {
   width: 100%;
 }
 
+/* Sized to sit inside a table row without changing the row's height. */
+.btn-sm {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.confirm-inline {
+  display: inline-flex;
+  gap: 4px;
+  white-space: nowrap;
+}
+
 .btn-icon {
   min-width: 44px;
   min-height: 44px;
-  padding: 0 8px;
+  padding: 0;
 }
 
 .btn-quiet {
@@ -481,8 +560,8 @@ button.nav-item {
 .input,
 .select {
   width: 100%;
-  min-height: 40px;
-  padding: 0 12px;
+  min-height: 44px;
+  padding: 0 14px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--bg-surface);
@@ -574,70 +653,512 @@ button.nav-item {
   color: var(--status-muted);
 }
 
-.badge {
-  display: inline-flex;
+/* ---------- Dashboard bento grid ----------
+   Four quiet tiles, two across, under the hero. Each is a header plus a headline figure over a
+   hairline panel holding the live visual. */
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+/* Data age and the manual refresh sit above the grid, not in the topbar, because the topbar is
+   shared by every route and only the polled screens have anything to say here. */
+.content-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.content-meta > :last-child {
+  margin-left: auto;
+}
+
+/* ---------- Dashboard hero ----------
+   The reference's signature composition: an analytics panel on a photograph, sitting over a sage
+   block that shows at its sides. The one bold element on the page; everything else stays quiet. */
+
+.hero-stage {
+  position: relative;
+  isolation: isolate;
+  margin: 8px 0 56px;
+  padding: 0 56px;
+}
+
+.hero-stage::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 40% 0 -28px;
+  border-radius: 32px;
+  background: var(--sage);
+}
+
+.hero-panel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  gap: 20px;
+  padding: 32px 40px 0;
+  border-radius: var(--radius-lg);
+  color: #fff;
+  background: var(--hero-img) center 72% / cover no-repeat #5b7383;
+}
+
+/* A dark scrim over the sky, heaviest across the top band where the small type sits. Measured
+   against the brightest cloud pixel under each text box (not an average): at 58% the breadcrumb
+   and time ticks fell to ~3.4-4.1:1, so the band holds 56%+ down to the ticks before easing off
+   over the hill, where only the stems sit. */
+.hero-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    180deg,
+    rgb(12 16 9 / 64%) 0%,
+    rgb(12 16 9 / 56%) 45%,
+    rgb(12 16 9 / 34%) 75%,
+    rgb(12 16 9 / 26%) 100%
+  );
+}
+
+.hero-panel :focus-visible {
+  outline-color: #fff;
+}
+
+.hero-crumbs {
+  display: flex;
   align-items: center;
   gap: 6px;
-  padding: 2px 8px;
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  margin: 0;
+  font-size: 13px;
+  color: rgb(255 255 255 / 92%);
 }
 
-/* ---------- Stat strip (flat, hairline-divided) ---------- */
-
- /* Tiles stay divided by hairlines internally (brief 4.2), now inside one glass card so the
-   dashboard's top strip matches every other surface instead of floating directly on the blobs. */
-.stat-strip {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  margin-bottom: 20px;
-  background: rgba(var(--glass-rgb), 0.86);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  border: 1px solid rgba(var(--glass-rgb), 0.45);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-.stat {
-  padding: 16px 20px;
-  border-left: 1px solid var(--border);
-}
-
-.stat:first-child {
-  border-left: 0;
-}
-
-.stat:first-child {
-  border-left: 0;
-}
-
-.stat-label {
-  font-size: 12px;
+.hero-crumbs-current {
+  color: #fff;
   font-weight: 500;
-  color: var(--text-secondary);
 }
 
-.stat-value {
-  margin-top: 6px;
-  font-family: var(--font-mono);
+.hero-head {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+}
+
+.hero-figure {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+}
+
+.hero-value {
+  font-family: var(--font-display);
+  font-size: clamp(64px, 8vw, 112px);
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+}
+
+.hero-label {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 2.6vw, 38px);
   line-height: 1.1;
 }
 
-.stat-meta {
-  margin-top: 4px;
+/* The reference's glass pill, as a real field filter. Dark glass rather than the reference's light
+   glass: light glass over bright sky put its label at 3.3:1. */
+.hero-filter {
+  position: relative;
+  margin-left: auto;
+}
+
+.hero-filter select {
+  appearance: none;
+  min-height: 44px;
+  padding: 0 42px 0 18px;
+  border: 1px solid rgb(255 255 255 / 40%);
+  border-radius: 999px;
+  background: rgb(12 16 9 / 34%);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.hero-filter select option {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.hero-filter svg {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%) rotate(90deg);
+  pointer-events: none;
+}
+
+.hero-rule {
+  height: 1px;
+  margin: 0;
+  border: 0;
+  background: rgb(255 255 255 / 35%);
+}
+
+.hero-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: -6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #fff;
+}
+
+.hero-empty {
+  margin: 0;
+  padding: 24px 0 40px;
+  font-size: 14px;
+  color: #fff;
+}
+
+/* Stem-and-cap chart, drawn from the reference: no axis lines, no grid, just a stem per hour. */
+.lollipops {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 260px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lollipop {
+  position: relative;
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  height: var(--h);
+  transform-origin: bottom;
+  /* The page's one orchestrated moment: the day's readings rise into place, left to right. */
+  animation: stem-rise 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--i) * 25ms);
+}
+
+.lollipop::before {
+  content: '';
+  width: 1.5px;
+  height: 100%;
+  background: rgb(255 255 255 / 85%);
+}
+
+.lollipop::after {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 2px;
+  background: #fff;
+}
+
+.lollipop-tip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  z-index: 1;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: #fff;
+  color: #000;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-50%);
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.lollipop:hover .lollipop-tip {
+  opacity: 1;
+}
+
+@keyframes stem-rise {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+.bento-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 24px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.bento-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.bento-head-text {
+  min-width: 0;
+}
+
+.bento-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.bento-description {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.bento-action {
+  flex: none;
+  margin-left: auto;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.bento-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bento-metric-value {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-size: 52px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+}
+
+.bento-metric-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.bento-visual {
+  position: relative;
+  flex: 1;
+  min-height: 168px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  container-type: inline-size;
+}
+
+/* A status label never wraps, so in a narrow tile it squeezes the field name into an ellipsis
+   ("Riverbend ...") and the operator loses the one word that identifies the row. The trigger is
+   the tile's own width, not the window's - the same tile is tight at 1280px and roomy at 1920px -
+   so this keys off the container. Worst case is a 113px name beside a 129px "Attention needed". */
+@container (max-width: 320px) {
+  .bento-row {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  .bento-row-main {
+    flex: 1 1 100%;
+    margin-right: 0;
+  }
+}
+
+.bento-empty {
+  margin: 0;
+  padding: 16px;
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.bento-list {
+  display: grid;
+  align-content: start;
+  height: 100%;
+}
+
+/* The alert feed is the only unbounded list in the row, so without a cap it stretched every
+   sibling tile to its height and left the short ones showing a few rows over a lot of nothing.
+   Capped, the row is sized by the tiles rather than by however many alerts are open. */
+.bento-list-scroll {
+  overflow-y: auto;
+  max-height: 320px;
+}
+
+.bento-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  color: inherit;
+  min-height: 44px;
+}
+
+.bento-row:last-child {
+  border-bottom: 0;
+}
+
+a.bento-row:hover {
+  background: var(--bg-raised);
+  text-decoration: none;
+}
+
+.bento-row-main {
+  display: grid;
+  min-width: 0;
+  margin-right: auto;
+}
+
+.bento-row-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bento-row-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bento-row-chevron {
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.bento-alert {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 10px;
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.bento-alert:last-child {
+  border-bottom: 0;
+}
+
+.bento-alert-message {
+  display: block;
+  margin: 2px 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+/* Sensor mix: one proportional bar plus the counts spelled out. */
+.sensor-mix {
+  display: grid;
+  gap: 12px;
+  padding: 12px 10px;
+  height: 100%;
+  align-content: start;
+}
+
+.sensor-mix-bar {
+  display: flex;
+  gap: 3px;
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.sensor-mix-segment {
+  border-radius: 999px;
+  min-width: 4px;
+}
+
+.sensor-mix-segment.tone-good {
+  background: var(--status-good);
+}
+
+.sensor-mix-segment.tone-warning {
+  background: var(--status-warning);
+}
+
+.sensor-mix-segment.tone-critical {
+  background: var(--status-critical);
+}
+
+.sensor-mix-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.sensor-mix-legend .mono {
+  margin-left: auto;
+  font-weight: 600;
+}
+
+@media (max-width: 767px) {
+  .bento-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bento-visual {
+    min-height: 150px;
+  }
+
+  .hero-stage {
+    padding: 0 12px;
+  }
+
+  .hero-panel {
+    padding: 24px 20px 0;
+    background-image: var(--hero-img-sm);
+  }
+
+  .hero-filter {
+    margin-left: 0;
+  }
+
+  .lollipops {
+    height: 180px;
+    gap: 2px;
+  }
+
+  .lollipop::after {
+    width: 6px;
+    height: 6px;
+    top: -3px;
+    margin-left: -3px;
+  }
 }
 
 /* ---------- Tables ---------- */
@@ -656,21 +1177,17 @@ table.data th {
   position: sticky;
   top: 0;
   text-align: left;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
-  background: rgba(var(--glass-rgb), 0.96);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  padding: 10px 12px;
+  background: var(--bg-surface);
+  padding: 12px 14px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 
 table.data td {
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
@@ -714,13 +1231,6 @@ table.data tr.row-offline td:not(.col-status) {
 
 /* ---------- Dashboard ---------- */
 
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
-  gap: 16px;
-  margin-top: 16px;
-}
-
 .field-row {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.2fr) auto;
@@ -749,70 +1259,6 @@ table.data tr.row-offline td:not(.col-status) {
   color: var(--text-secondary);
 }
 
-.alert-feed {
-  display: grid;
-  max-height: 460px;
-  overflow-y: auto;
-}
-
-.alert-item {
-  display: grid;
-  grid-template-columns: 20px 1fr;
-  gap: 10px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  animation: alert-enter 200ms ease both;
-}
-
-.alert-item:last-child {
-  border-bottom: 0;
-}
-
-@keyframes alert-enter {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-.alert-source {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.alert-message {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.alert-time {
-  font-size: 11px;
-  color: var(--text-secondary);
-  font-family: var(--font-mono);
-}
-
-.zone-rail {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  padding: 16px;
-}
-
-.zone-chip {
-  scroll-snap-align: start;
-  flex: 0 0 200px;
-  padding: 12px 14px;
-  border: 1px solid rgba(var(--glass-rgb), 0.5);
-  border-radius: var(--radius);
-  background: rgba(var(--glass-rgb), 0.5);
-}
-
-.zone-name {
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
 /* ---------- Crop cards ---------- */
 
 .crop-grid {
@@ -822,11 +1268,11 @@ table.data tr.row-offline td:not(.col-status) {
 }
 
 .crop-score {
-  font-family: var(--font-mono);
+  font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
-  font-size: 32px;
-  font-weight: 700;
-  line-height: 1;
+  font-size: 52px;
+  font-weight: 400;
+  line-height: 0.95;
   letter-spacing: -0.02em;
 }
 
@@ -893,7 +1339,7 @@ table.data tr.row-offline td:not(.col-status) {
 .range-tabs {
   display: inline-flex;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
+  border-radius: 999px;
   overflow: hidden;
 }
 
@@ -1013,147 +1459,53 @@ table.data tr.row-offline td:not(.col-status) {
 }
 
 /* ---------- Auth (login / create account) ----------
-   The rest of the product deliberately has "no gradients, no illustration" (brief 2.1) - this
-   is the one screen where that is relaxed on request. Glass surfaces still borrow the app's own
-   accent green rather than a generic AI-purple, so the front door still feels like this product. */
+   The dashboard hero's language at the front door: a white page, a large serif headline, and a
+   photograph panel sitting over the sage block. */
 
 .auth-page {
-  position: relative;
   min-height: 100vh;
-  overflow: hidden;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
+  flex-direction: column;
   background: var(--bg-base);
 }
 
-/* Soft blurred fields of colour behind the glass, all in the one accent hue so the page still
-   reads as a single palette (taste-skill color-consistency lock). */
-.auth-blobs {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.auth-blobs::before,
-.auth-blobs::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
-  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.32), rgba(var(--accent-rgb), 0) 70%);
-}
-
-.auth-blobs::before {
-  width: 620px;
-  height: 620px;
-  top: -220px;
-  left: -160px;
-}
-
-.auth-blobs::after {
-  width: 560px;
-  height: 560px;
-  bottom: -240px;
-  right: -160px;
-  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.22), rgba(var(--accent-rgb), 0) 70%);
+.auth-top {
+  display: flex;
+  align-items: center;
+  padding: 24px 40px;
 }
 
 .auth-shell {
-  position: relative;
-  z-index: 1;
+  flex: 1;
   display: grid;
-  grid-template-columns: minmax(0, 440px) minmax(0, 380px);
-  gap: 0;
-  width: 100%;
-  max-width: 860px;
-  border-radius: 24px;
-  overflow: hidden;
-  box-shadow: var(--shadow-popover);
-  animation: auth-enter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-@keyframes auth-enter {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-}
-
-/* The glass panel itself: translucent surface, blurred backdrop, a bright top-left highlight and
-   a hairline inner border so the edge reads as an actual pane, not a flat tint. */
-.auth-card {
-  position: relative;
-  isolation: isolate;
-  padding: 40px 36px;
-  background: rgba(var(--glass-rgb), 0.72);
-  backdrop-filter: blur(28px) saturate(160%);
-  -webkit-backdrop-filter: blur(28px) saturate(160%);
-  border: 1px solid rgba(var(--glass-rgb), 0.4);
-}
-
-.auth-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.35),
-    rgba(255, 255, 255, 0.05) 40%,
-    rgba(255, 255, 255, 0) 70%
-  );
-  pointer-events: none;
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .auth-card {
-    background: var(--bg-surface);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-
-  .sidebar,
-  .topbar,
-  .card,
-  .stat-strip,
-  table.data th {
-    background: var(--bg-surface);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-}
-
-.auth-brand {
-  display: flex;
+  grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
-  margin-bottom: 28px;
+  gap: 72px;
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 16px 40px 56px;
 }
 
-.auth-brand .brand-name {
-  font-size: 15px;
+.auth-card {
+  width: 100%;
 }
 
-/* The prompt this whole redesign was for: tell a first-time visitor to create an account before
-   they try to sign in, instead of leaving them to find it on their own. */
+/* Tells a first-time visitor to create an account before they try to sign in, instead of leaving
+   them to find it on their own. */
 .auth-switch-banner {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 14px;
-  margin-bottom: 24px;
-  border: 1px solid rgba(var(--accent-rgb), 0.28);
+  padding: 12px 16px;
+  margin-bottom: 32px;
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: rgba(var(--accent-rgb), 0.1);
 }
 
 .auth-switch-banner p {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-primary);
 }
 
@@ -1166,7 +1518,7 @@ table.data tr.row-offline td:not(.col-status) {
   border: 0;
   background: transparent;
   color: var(--accent);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   padding: 6px 4px;
@@ -1176,23 +1528,18 @@ table.data tr.row-offline td:not(.col-status) {
   text-decoration: underline;
 }
 
-/* The banner sits on translucent glass over a blurred, variable backdrop - the flat --accent
-   used everywhere else on solid surfaces measures under 4.7:1 here. Same hue, brightened, so it
-   holds AA with margin regardless of what the blurred blob layer looks like underneath. */
-[data-theme='dark'] .auth-switch-banner button {
-  color: #7cc48a;
-}
-
 .auth-heading {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  margin: 0 0 6px;
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: clamp(48px, 5vw, 68px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
 .auth-subheading {
-  margin: 0 0 24px;
-  font-size: 13px;
+  margin: 0 0 28px;
+  font-size: 15px;
   color: var(--text-secondary);
 }
 
@@ -1235,28 +1582,24 @@ table.data tr.row-offline td:not(.col-status) {
   padding: 4px;
   margin-bottom: 18px;
   border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: rgba(var(--glass-rgb), 0.5);
+  border-radius: 999px;
+  background: var(--bg-raised);
 }
 
 .auth-segment button {
-  min-height: 34px;
+  min-height: 36px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 999px;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
 }
 
 .auth-segment button[aria-pressed='true'] {
   background: var(--accent);
-  color: #fff;
-}
-
-[data-theme='dark'] .auth-segment button[aria-pressed='true'] {
-  color: #0f1410;
+  color: var(--on-accent);
 }
 
 .auth-submit {
@@ -1264,6 +1607,43 @@ table.data tr.row-offline td:not(.col-status) {
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.auth-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  font-weight: 500;
+}
+
+.auth-google:hover:not(:disabled) {
+  background: var(--accent-wash);
+}
+
+.auth-google:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .auth-foot {
@@ -1303,102 +1683,106 @@ table.data tr.row-offline td:not(.col-status) {
   font-size: 11px;
 }
 
-.hint-note {
-  margin: 12px 0 0;
-}
-
-/* Right-hand decorative pane: same glass family, a stronger tint than the form side so the two
-   halves read as one object, three real content rows (not a fake screenshot). */
-/* A fixed pair of dark greens, not the theme-swapped --accent - the dark-mode accent is
-   calibrated to be readable AS TEXT on a near-black surface, so it is too light to also serve as
-   a background for white text here. Solid stops (not alpha-over-page) so this reads the same in
-   both themes and the ratio holds regardless of what happens to sit behind the panel. */
+/* Photograph over the sage block, echoing the dashboard hero. The sage shows along the left and
+   bottom edges, the way it frames the device in the reference. Decorative, so aria-hidden. */
 .auth-visual {
   position: relative;
   isolation: isolate;
+  align-self: stretch;
+  display: flex;
+  padding: 0 0 32px 32px;
+}
+
+.auth-visual::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 34% 32px 0 0;
+  border-radius: 32px;
+  background: var(--sage);
+}
+
+.auth-photo {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  flex: 1;
+  min-height: 560px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
   gap: 28px;
-  padding: 40px 32px;
-  background: linear-gradient(165deg, #2f6b3c, #1f4527);
+  padding: 40px;
+  border-radius: var(--radius-lg);
   color: #fff;
+  background: var(--auth-img) center / cover no-repeat #2f4a2a;
 }
 
-.auth-visual-mark {
-  width: 52px;
-  height: 52px;
-  display: grid;
-  place-items: center;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.28);
+/* Heaviest at the bottom, where the copy sits, so white text holds AA over the farmland. */
+.auth-photo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    180deg,
+    rgb(8 12 8 / 10%) 0%,
+    rgb(8 12 8 / 50%) 45%,
+    rgb(8 12 8 / 82%) 100%
+  );
 }
 
-.auth-visual h2 {
+.auth-photo h2 {
   margin: 0;
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  line-height: 1.35;
+  max-width: 15ch;
+  font-family: var(--font-display);
+  font-size: clamp(36px, 3.6vw, 52px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.04;
+  text-wrap: balance;
 }
 
 .auth-features {
   display: grid;
-  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .auth-feature {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid rgb(255 255 255 / 25%);
 }
 
-.auth-feature-icon {
+.auth-feature:last-child {
+  padding-bottom: 0;
+}
+
+.auth-feature svg {
   flex: none;
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.14);
-  animation: auth-float 4.5s ease-in-out infinite;
-}
-
-.auth-feature:nth-child(2) .auth-feature-icon {
-  animation-delay: 0.4s;
-}
-
-.auth-feature:nth-child(3) .auth-feature-icon {
-  animation-delay: 0.8s;
-}
-
-@keyframes auth-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
+  margin-top: 2px;
 }
 
 .auth-feature-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .auth-feature-body {
   margin-top: 2px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
   line-height: 1.5;
+  color: rgb(255 255 255 / 88%);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 960px) {
   .auth-shell {
-    grid-template-columns: minmax(0, 440px);
-    max-width: 440px;
+    grid-template-columns: minmax(0, 480px);
+    justify-content: center;
   }
 
   .auth-visual {
@@ -1407,8 +1791,10 @@ table.data tr.row-offline td:not(.col-status) {
 }
 
 @media (max-width: 480px) {
-  .auth-card {
-    padding: 28px 22px;
+  .auth-top,
+  .auth-shell {
+    padding-left: 20px;
+    padding-right: 20px;
   }
 
   .auth-row {
@@ -1426,16 +1812,6 @@ table.data tr.row-offline td:not(.col-status) {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .auth-shell {
-    animation: none;
-  }
-
-  .auth-feature-icon {
-    animation: none;
-  }
-}
-
 /* ---------- Empty / loading states ---------- */
 
 .empty {
@@ -1447,6 +1823,55 @@ table.data tr.row-offline td:not(.col-status) {
   color: var(--text-secondary);
 }
 
+.empty-mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 2px;
+  border-radius: 50%;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.empty-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.empty-description {
+  margin: -4px 0 0;
+  max-width: 42ch;
+  text-wrap: pretty;
+}
+
+/* Live-vs-stale is real state on a polled console, not decoration. */
+.freshness {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.freshness-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--status-good);
+}
+
+.freshness-stale {
+  color: var(--status-warning);
+}
+
+.freshness-stale .freshness-dot {
+  background: var(--status-warning);
+}
+
 .skeleton {
   height: 14px;
   border-radius: 4px;
@@ -1456,17 +1881,6 @@ table.data tr.row-offline td:not(.col-status) {
 
 /* Placeholders take the shape of the thing that is loading, so the page does not reflow
    when data lands. */
-.skeleton-stat {
-  padding: 16px 20px;
-  border-left: 1px solid var(--border);
-  display: grid;
-  gap: 10px;
-}
-
-.skeleton-stat:first-child {
-  border-left: 0;
-}
-
 .skeleton-row {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1.2fr) 80px;
@@ -1518,106 +1932,54 @@ table.data tr.row-offline td:not(.col-status) {
 
 /* ---------- Responsive (doc section 8) ---------- */
 
+/* Navigation now has two states, not three: the full bar down to 768px, then the drawer. The old
+   icon-only rail belonged to the sidebar and went with it. */
 @media (max-width: 1023px) {
-  .shell {
-    grid-template-columns: var(--rail-width) 1fr;
+  .topbar,
+  .content {
+    padding-left: 24px;
+    padding-right: 24px;
   }
 
-  .sidebar {
-    padding: 16px 8px;
-    align-items: center;
-  }
-
-  .brand-text,
-  .nav-item span,
-  .user-text {
+  .account-name {
     display: none;
-  }
-
-  .nav-item,
-  .user-chip {
-    justify-content: center;
-    padding: 0;
-  }
-
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .stat-strip {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .stat:nth-child(3) {
-    border-left: 0;
-  }
-
-  .stat:nth-child(n + 3) {
-    border-top: 1px solid var(--border);
   }
 }
 
 @media (max-width: 767px) {
-  .shell {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    position: fixed;
-    bottom: 0;
-    top: auto;
-    left: 0;
-    right: 0;
-    z-index: 10;
-    height: auto;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-around;
-    padding: 6px 8px;
-    border-right: 0;
-    border-top: 1px solid var(--border);
-  }
-
-  .brand,
-  .sidebar-footer .user-chip {
+  /* Links and identity move into the drawer; the bar keeps only brand, theme and the trigger. */
+  .nav-links,
+  .account-menu {
     display: none;
   }
 
-  .nav-spacer {
-    display: none;
+  .btn.hamburger {
+    display: inline-flex;
   }
 
-  .sidebar-footer {
-    border-top: 0;
-    padding-top: 0;
+  .nav-drawer {
+    display: grid;
   }
 
-  .main {
-    padding-bottom: 64px;
-  }
-
-  .content,
+  /* The centred link column is gone, so the bar collapses to wordmark and actions. */
   .topbar {
-    padding: 16px;
+    grid-template-columns: 1fr auto;
+    padding: 14px 16px;
   }
 
-  .stat-strip {
-    grid-template-columns: 1fr;
+  .content {
+    padding: 8px 16px 40px;
   }
 
-  .stat {
-    border-left: 0;
-    border-top: 1px solid var(--border);
-  }
-
-  .stat:first-child {
-    border-top: 0;
+  .page-head {
+    margin: 16px 0 24px;
   }
 
   .crop-grid,
   .valve-grid {
     grid-template-columns: 1fr;
   }
+
 
   .field-row {
     grid-template-columns: 1fr auto;
@@ -1655,13 +2017,113 @@ table.data tr.row-offline td:not(.col-status) {
 
   .table-wrap.collapsible td::before {
     content: attr(data-label);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    font-size: 13px;
+    font-weight: 500;
     color: var(--text-secondary);
   }
 }
+
+.chatbot {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.chatbot-fab {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: var(--on-accent);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-popover);
+}
+
+.chatbot-fab:hover {
+  background: var(--accent-hover);
+}
+
+.chatbot-panel {
+  width: 320px;
+  max-width: calc(100vw - 48px);
+  height: 420px;
+  max-height: calc(100vh - 120px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-popover);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chatbot-head {
+  padding: 12px 14px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chatbot-head .btn {
+  color: var(--on-accent);
+}
+
+.chatbot-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chatbot-bubble {
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.chatbot-bubble-bot {
+  align-self: flex-start;
+  background: var(--accent-wash);
+  color: var(--text-primary);
+  border-bottom-left-radius: 2px;
+}
+
+.chatbot-bubble-user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: var(--on-accent);
+  border-bottom-right-radius: 2px;
+}
+
+.chatbot-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.chatbot-input-row .input {
+  flex: 1;
+}
+
+/* The launcher needed a 64px offset when a fixed bottom bar held the mobile navigation. The
+   drawer that replaced it sits in the flow under the top bar, so nothing covers the launcher and
+   the base placement holds at every width. */
 
 @media (prefers-reduced-motion: reduce) {
   *,

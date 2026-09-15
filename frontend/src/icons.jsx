@@ -14,6 +14,7 @@ import {
   BatteryLow,
   Broadcast,
   CaretRight,
+  ChatCircleDots,
   Circle,
   Drop,
   Eye,
@@ -21,7 +22,9 @@ import {
   Gauge,
   Info,
   Leaf,
+  List,
   Moon,
+  PaperPlaneRight,
   PencilSimple,
   Plant,
   Plus,
@@ -35,6 +38,7 @@ import {
   Warning,
   WarningOctagon,
   WifiSlash,
+  X,
 } from '@phosphor-icons/react'
 
 /** Interface glyphs sit on the 20px nav/action grid. */
@@ -76,6 +80,10 @@ export const IconEye = icon(Eye, STATUS)
 export const IconEyeSlash = icon(EyeSlash, STATUS)
 export const IconSignIn = icon(SignIn, UI)
 export const IconUserPlus = icon(UserPlus, UI)
+export const IconChat = icon(ChatCircleDots, UI)
+export const IconClose = icon(X, STATUS)
+export const IconSend = icon(PaperPlaneRight, STATUS)
+export const IconMenu = icon(List, UI)
 
 // Login page only - the one place the brief's "no illustration" rule is deliberately relaxed.
 export const IconLeaf = icon(Leaf, UI)

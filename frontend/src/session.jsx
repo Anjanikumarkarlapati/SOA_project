@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { api, clearSession, loadSession, saveSession } from './api'
+import { startGoogleSignIn, supabaseSignOut } from './supabase'
 
 const SessionContext = createContext(null)
 
@@ -21,11 +22,25 @@ export function SessionProvider({ children }) {
     return result
   }, [])
 
+  /** Starts the Google OAuth redirect via Supabase; the app JWT is minted on return. */
+  const signInWithGoogle = useCallback(async () => {
+    await startGoogleSignIn()
+  }, [])
+
+  /** After the Supabase redirect, trade its access token for our own app JWT. */
+  const exchangeSupabaseToken = useCallback(async (accessToken) => {
+    const result = await api.google(accessToken)
+    saveSession(result)
+    setSession(result)
+    return result
+  }, [])
+
   const signOut = useCallback(async () => {
     if (session?.token) {
       // Best effort - the local session goes either way.
       await api.logout(session.token).catch(() => {})
     }
+    await supabaseSignOut()
     clearSession()
     setSession(null)
   }, [session])
@@ -38,9 +53,11 @@ export function SessionProvider({ children }) {
       isAdmin: session?.role === 'ADMIN',
       signIn,
       signUp,
+      signInWithGoogle,
+      exchangeSupabaseToken,
       signOut,
     }),
-    [session, signIn, signUp, signOut],
+    [session, signIn, signUp, signInWithGoogle, exchangeSupabaseToken, signOut],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
@@ -52,9 +69,23 @@ export function useSession() {
   return context
 }
 
-/** Fetch-on-mount with polling, shared by every screen. */
+/**
+ * Fetch-on-mount with polling, shared by every screen.
+ *
+ * `updatedAt` and `refresh` exist because this is an operations console: a stale reading looks
+ * exactly like a fresh one, so screens need to be able to say when they last heard from the farm
+ * and let the operator ask again without reloading the page.
+ */
 export function usePolling(loader, deps, intervalMs = 15000) {
-  const [state, setState] = useState({ data: null, error: null, loading: true })
+  const [state, setState] = useState({
+    data: null,
+    error: null,
+    loading: true,
+    updatedAt: null,
+  })
+  const [reloadKey, setReloadKey] = useState(0)
+
+  const refresh = useCallback(() => setReloadKey((k) => k + 1), [])
 
   useEffect(() => {
     let cancelled = false
@@ -62,7 +93,7 @@ export function usePolling(loader, deps, intervalMs = 15000) {
     const run = async () => {
       try {
         const data = await loader()
-        if (!cancelled) setState({ data, error: null, loading: false })
+        if (!cancelled) setState({ data, error: null, loading: false, updatedAt: Date.now() })
       } catch (error) {
         if (!cancelled) setState((prev) => ({ ...prev, error, loading: false }))
       }
@@ -77,19 +108,33 @@ export function usePolling(loader, deps, intervalMs = 15000) {
       clearInterval(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps)
+  }, [...deps, reloadKey])
 
-  return state
+  return { ...state, refresh }
 }
 
 const THEME_KEY = 'agritech.theme'
 
+/**
+ * The pre-paint script in index.html has already resolved and applied the theme, so this reads
+ * back what it decided rather than guessing again. Falling back to the system preference means a
+ * tablet left in night mode opens dark instead of flashing a white screen at someone in a field
+ * at 5am.
+ */
 export function useTheme() {
-  const [theme, setTheme] = useState(() => localStorage.getItem(THEME_KEY) || 'light')
+  const [theme, setTheme] = useState(
+    () =>
+      document.documentElement.dataset.theme ||
+      localStorage.getItem(THEME_KEY) ||
+      (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+  )
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     localStorage.setItem(THEME_KEY, theme)
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute('content', theme === 'dark' ? '#0f110c' : '#ffffff')
   }, [theme])
 
   return [theme, () => setTheme((t) => (t === 'light' ? 'dark' : 'light'))]

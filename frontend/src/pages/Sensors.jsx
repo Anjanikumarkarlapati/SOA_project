@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
-import { Empty, Loading, Status, relativeTime } from '../components'
+import { ConfirmButton, DataError, Empty, Loading, Status, relativeTime } from '../components'
 import { IconChevron, IconPlus, IconTrash } from '../icons'
 import { usePolling, useSession } from '../session'
 
@@ -22,24 +22,38 @@ export default function Sensors() {
   const [notice, setNotice] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
 
-  const { data, loading } = usePolling(
-    () => api.sensors(token, { q: query, health, fieldId, page, size: 20 }),
-    [token, query, health, fieldId, page, reloadKey],
+  // Typing a device ID used to fire a request per keystroke. Hold the query for a beat so a
+  // search costs one call instead of one per character.
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 300)
+    return () => clearTimeout(timer)
+  }, [query])
+
+  // Notices clear themselves after a few seconds; the close button is there for sooner.
+  useEffect(() => {
+    if (!notice) return undefined
+    const timer = setTimeout(() => setNotice(null), 5000)
+    return () => clearTimeout(timer)
+  }, [notice])
+
+  const { data, loading, error, refresh } = usePolling(
+    () => api.sensors(token, { q: debouncedQuery, health, fieldId, page, size: 20 }),
+    [token, debouncedQuery, health, fieldId, page, reloadKey],
     15000,
   )
 
   const { data: crops } = usePolling(() => api.crops(token), [token], 0)
 
-  const refresh = () => setReloadKey((k) => k + 1)
+  const reload = () => setReloadKey((k) => k + 1)
 
   const deregister = async (deviceId) => {
-    if (!window.confirm(`Deregister ${deviceId}? Its history is removed with it.`)) return
     try {
       await api.deleteSensor(token, deviceId)
-      setNotice({ tone: '', text: `${deviceId} deregistered` })
-      refresh()
-    } catch (error) {
-      setNotice({ tone: 'toast-critical', text: error.message })
+      setNotice({ tone: '', text: `${deviceId} deregistered, along with its history` })
+      reload()
+    } catch (err) {
+      setNotice({ tone: 'toast-critical', text: err.message })
     }
   }
 
@@ -106,17 +120,24 @@ export default function Sensors() {
           onCreated={(deviceId) => {
             setShowForm(false)
             setNotice({ tone: '', text: `${deviceId} registered` })
-            refresh()
+            reload()
           }}
         />
       ) : null}
 
-      <section className="card">
+      {!data && error ? <DataError what="the device list" onRetry={refresh} /> : null}
+
+      <section className="card" hidden={Boolean(!data && error)}>
         {loading && !data ? (
           <Loading rows={6} />
         ) : !data || data.content.length === 0 ? (
           <Empty
             title="No sensors match this view"
+            description={
+              query || health || fieldId
+                ? 'Try clearing the search or filters above.'
+                : undefined
+            }
             action={
               isAdmin ? (
                 <button type="button" className="btn btn-primary" onClick={() => setShowForm(true)}>
@@ -172,14 +193,13 @@ export default function Sensors() {
                             <IconChevron />
                           </Link>
                           {isAdmin ? (
-                            <button
-                              type="button"
-                              className="btn btn-quiet btn-icon"
-                              aria-label={`Deregister ${device.deviceId}`}
-                              onClick={() => deregister(device.deviceId)}
+                            <ConfirmButton
+                              label={`Deregister ${device.deviceId}`}
+                              confirmLabel="Deregister"
+                              onConfirm={() => deregister(device.deviceId)}
                             >
                               <IconTrash />
-                            </button>
+                            </ConfirmButton>
                           ) : null}
                         </div>
                       </td>
@@ -220,7 +240,7 @@ export default function Sensors() {
       </section>
 
       {notice ? (
-        <div className={`toast ${notice.tone}`} role="status" onAnimationEnd={() => setNotice(null)}>
+        <div className={`toast ${notice.tone}`} role="status">
           {notice.text}
           <button
             type="button"
