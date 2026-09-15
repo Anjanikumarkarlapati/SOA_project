@@ -11,7 +11,7 @@ import {
   IconUserPlus,
 } from '../icons'
 import { useSession, useTheme } from '../session'
-import { supabaseEnabled, currentSupabaseToken } from '../supabase'
+import { supabaseEnabled, onSupabaseSignIn } from '../supabase'
 
 // Single-farm demo (see the seeded pilot farm in sensor-service) - a self-serve signup does not
 // need to ask a new user to type an id they cannot know yet.
@@ -86,26 +86,26 @@ function SignIn({ onCreateAccount }) {
   const [submitting, setSubmitting] = useState(false)
   const [googleBusy, setGoogleBusy] = useState(false)
 
-  // On return from the Google redirect, Supabase has restored its session; trade its token for
-  // our app JWT. Runs once on mount; a no-op when there is no Supabase session.
+  // On return from the Google redirect, Supabase restores its session and hands us an access
+  // token. It arrives asynchronously (in the URL hash), so we subscribe rather than poll once:
+  // the first token delivered is traded for our app JWT, exactly once.
   useEffect(() => {
     if (!supabaseEnabled) return
-    let cancelled = false
-    ;(async () => {
-      const token = await currentSupabaseToken()
-      if (cancelled || !token) return
+    let exchanged = false
+    const unsubscribe = onSupabaseSignIn(async (token) => {
+      if (exchanged) return
+      exchanged = true
       setGoogleBusy(true)
       try {
         await exchangeSupabaseToken(token)
       } catch (error) {
+        exchanged = false
         setAuthError(error.message || 'Google sign-in failed')
       } finally {
-        if (!cancelled) setGoogleBusy(false)
+        setGoogleBusy(false)
       }
-    })()
-    return () => {
-      cancelled = true
-    }
+    })
+    return unsubscribe
   }, [exchangeSupabaseToken])
 
   const google = async () => {

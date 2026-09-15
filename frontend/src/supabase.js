@@ -38,6 +38,37 @@ export async function currentSupabaseToken() {
   return data.session?.access_token ?? null
 }
 
+/**
+ * Delivers the Supabase access token once the implicit-flow redirect has been consumed. After
+ * Google bounces back, the token sits in the URL hash and supabase-js processes it on a later
+ * tick, so a one-shot getSession() on mount can run before the session exists and miss it. This
+ * checks the restored session now AND listens for the SIGNED_IN event, so the token is handed to
+ * the callback exactly once whenever it lands. Returns an unsubscribe function.
+ */
+export function onSupabaseSignIn(onToken) {
+  if (!supabaseEnabled) return () => {}
+  let active = true
+  let subscription
+
+  getClient().then((supabase) => {
+    if (!supabase || !active) return
+    // Session may already be restored by the time the client finishes loading.
+    supabase.auth.getSession().then(({ data }) => {
+      if (active && data.session?.access_token) onToken(data.session.access_token)
+    })
+    // Or it arrives a tick later when the hash is processed.
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (active && event === 'SIGNED_IN' && session?.access_token) onToken(session.access_token)
+    })
+    subscription = data?.subscription
+  })
+
+  return () => {
+    active = false
+    subscription?.unsubscribe?.()
+  }
+}
+
 /** Clears the Supabase session (our app JWT is separate and cleared on our own logout). */
 export async function supabaseSignOut() {
   const supabase = await getClient()
