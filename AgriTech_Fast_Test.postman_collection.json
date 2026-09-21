@@ -1,0 +1,308 @@
+{
+  "info": {
+    "name": "AgriTech Fast Test Collection",
+    "description": "Complete API testing collection for AgriTech IoT platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": {
+      "token": "{{token}}"
+    }
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login to get JWT token. Response will be saved to 'token' variable."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sensors",
+      "item": [
+        {
+          "name": "List Sensors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sensors",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sensors"]
+            }
+          }
+        },
+        {
+          "name": "Get Sensor Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sensors/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sensors", "summary"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Telemetry",
+      "item": [
+        {
+          "name": "Get Telemetry History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/telemetry/history?sensorId=SENSOR-001&startTime=2024-01-01T00:00:00Z&endTime=2024-01-31T23:59:59Z",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "telemetry", "history"],
+              "query": [
+                {
+                  "key": "sensorId",
+                  "value": "SENSOR-001"
+                },
+                {
+                  "key": "startTime",
+                  "value": "2024-01-01T00:00:00Z"
+                },
+                {
+                  "key": "endTime",
+                  "value": "2024-01-31T23:59:59Z"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ingest Telemetry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sensorId\": \"SENSOR-001\",\n  \"temperature\": 25.5,\n  \"humidity\": 65.0,\n  \"moisture\": 45.2,\n  \"timestamp\": \"2024-01-15T10:30:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/telemetry/ingest",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "telemetry", "ingest"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Crops",
+      "item": [
+        {
+          "name": "List Crops",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/crops",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crops"]
+            }
+          }
+        },
+        {
+          "name": "Analyze Crops",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/crops/analyze",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "crops", "analyze"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Valves",
+      "item": [
+        {
+          "name": "List Valves",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/valves",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "valves"]
+            }
+          }
+        },
+        {
+          "name": "Get Valve Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/valves/VALVE-FIELD-01/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "valves", "VALVE-FIELD-01", "status"]
+            }
+          }
+        },
+        {
+          "name": "Open Valve",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/valves/VALVE-FIELD-01/open?durationMinutes=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "valves", "VALVE-FIELD-01", "open"],
+              "query": [
+                {
+                  "key": "durationMinutes",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Close Valve",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/valves/VALVE-FIELD-01/close",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "valves", "VALVE-FIELD-01", "close"]
+            }
+          }
+        },
+        {
+          "name": "Emergency Stop",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/valves/emergency-stop?reason=drill",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "valves", "emergency-stop"],
+              "query": [
+                {
+                  "key": "reason",
+                  "value": "drill"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Valve Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/valves/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "valves", "summary"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Irrigation",
+      "item": [
+        {
+          "name": "List Schedules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/irrigation/schedules",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "irrigation", "schedules"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Actuator",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            }
+          }
+        },
+        {
+          "name": "Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "info"]
+            }
+          }
+        },
+        {
+          "name": "Root",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,9 @@
 server:
   port: 8080
+  # Custom error handling - disable default whitelabel error page
+  error:
+    whitelabel:
+      enabled: false
 
 spring:
   application:
@@ -61,7 +65,11 @@ management:
     web:
       exposure:
         include: health,info,gateway
+  endpoint:
+    health:
+      show-details: when-authorized
 
 logging:
   level:
     AUDIT: INFO
+    org.springframework.cloud.gateway: DEBUG
