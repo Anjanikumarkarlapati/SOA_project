@@ -4,11 +4,11 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import com.agritech.common.JwtSecret;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.UUID;
 
@@ -20,7 +20,7 @@ public class JwtService {
 
     public JwtService(@Value("${agritech.jwt.secret}") String secret,
                       @Value("${agritech.jwt.access-ttl-hours:24}") long accessTtlHours) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.key = Keys.hmacShaKeyFor(JwtSecret.bytes(secret));
         this.accessTtlMs = accessTtlHours * 3600_000L;
     }
 

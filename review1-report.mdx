@@ -533,7 +533,7 @@ have pre-answered all of them.
 | Stolen-but-valid token after logout | **Partly defended** | `jti` revocation list, but a window of up to 15 s exists by design. Name the window; do not hide it. |
 | `alg: none` / algorithm-confusion downgrade | **Defended by construction** | The parser is given a `SecretKey` and pins HS256 at signing time; it will not negotiate an algorithm |
 | Long-lived access token leakage | **Gap** | 24 h access TTL is long. Shorten to 15 min and rely on the existing refresh flow — this is a one-line config change with outsized marks. |
-| Weak / shared signing secret | **Gap** | `agritech-dev-secret-key-change-me-in-production-0123456789` is a default in *both* gateway and auth YAML. Fine for a demo, but you must say so and name the fix (env-var injection plus asymmetric keys plus rotation). |
+| Weak / shared signing secret | **Fixed** | A working HMAC default was committed in *both* gateway and auth YAML - effectively a published signing key. The default is gone; `AGRITECH_JWT_SECRET` is now required and both services refuse to start without it (`common/.../JwtSecret.java`). Remaining hardening: asymmetric keys and rotation. |
 | Header trust if a service is reachable directly | **Gap — and the most likely question** | Downstream services trust `X-User-Role` because they are assumed unreachable except via the gateway. Nothing in the repo enforces that. Fix: network policy, mTLS, or an internal HMAC on forwarded headers. |
 | No Spring Security filter chain | **Gap** | Only `spring-security-crypto` is on the classpath. Authorisation is header-string comparison, not `@PreAuthorize`. |
 | CORS wildcard with credentials | **Gap** | `allowedOriginPatterns: http://localhost:*` with `allowCredentials: true` is convenient for development and would be a finding in production. State it as a dev-only setting. |
@@ -545,7 +545,7 @@ have pre-answered all of them.
 | --- | --- | --- |
 | 1 | Drop access TTL from 24 h to 15 min; the refresh endpoint and `TokenStore` already exist | 1 config line |
 | 2 | Add route-level or method-level role enforcement in services — `@PreAuthorize("hasRole('ADMIN')")`, or at minimum a `RequireAdmin` interceptor — so authorisation does not depend on a header string | ~1 hour |
-| 3 | Remove the duplicated HMAC default; require `AGRITECH_JWT_SECRET` to be present and fail startup if absent | 15 min |
+| 3 | ~~Remove the duplicated HMAC default; require `AGRITECH_JWT_SECRET` to be present and fail startup if absent~~ — done | - |
 | 4 | Move `TokenStore` and the revocation set to Redis, closing both the 15 s window and the restart-logs-everyone-out limitation | 2–3 hours |
 | 5 | Add refresh-token rotation and reuse detection (a presented-then-used refresh token invalidates its family) | 2 hours |
 | 6 | Migrate HS256 → RS256/ES256 so the gateway can hold only a public key and cannot mint tokens | 2 hours — and it directly answers the "shared secret" objection |

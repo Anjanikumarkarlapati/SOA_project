@@ -40,8 +40,34 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     private final RevocationCache revocations;
 
     public JwtAuthFilter(@Value("${agritech.jwt.secret}") String secret, RevocationCache revocations) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.key = Keys.hmacShaKeyFor(requireSecret(secret));
         this.revocations = revocations;
+    }
+
+    /**
+     * Mirrors com.agritech.common.JwtSecret, which this module cannot import: `common` drags in
+     * spring-boot-starter-web, and a servlet stack on the classpath stops Spring Cloud Gateway
+     * (WebFlux) from starting. Deliberately duplicated rather than risk that.
+     *
+     * There is no default secret. One committed here would be a published signing key - anyone
+     * with the repository could mint a valid ADMIN token - so a missing value stops the gateway
+     * instead of letting it verify forged tokens.
+     */
+    private static byte[] requireSecret(String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "AGRITECH_JWT_SECRET is not set. The gateway and auth-service must share one "
+                            + "secret: auth-service signs tokens with it and the gateway verifies "
+                            + "them. Generate one and export it for both, e.g. "
+                            + "export AGRITECH_JWT_SECRET=$(openssl rand -base64 48)");
+        }
+        byte[] raw = secret.getBytes(StandardCharsets.UTF_8);
+        if (raw.length < 32) {
+            throw new IllegalStateException(
+                    "AGRITECH_JWT_SECRET is too short: HS256 needs at least 32 bytes, got "
+                            + raw.length + ". Try: openssl rand -base64 48");
+        }
+        return raw;
     }
 
     @Override

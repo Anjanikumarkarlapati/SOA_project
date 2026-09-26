@@ -2,6 +2,7 @@ package com.agritech.gateway;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -27,8 +28,9 @@ public class RevocationCache {
     private final AtomicReference<Set<String>> revoked = new AtomicReference<>(Set.of());
     private final WebClient authService;
 
-    public RevocationCache(WebClient.Builder builder) {
-        this.authService = builder.baseUrl("http://auth-service").build();
+    public RevocationCache(WebClient.Builder builder,
+                           @Value("${agritech.services.auth-url:http://auth-service}") String authUrl) {
+        this.authService = builder.baseUrl(authUrl.replaceAll("/+$", "")).build();
     }
 
     public boolean isRevoked(String jti) {

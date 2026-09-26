@@ -17,6 +17,12 @@ import { supabaseEnabled } from '../supabase'
 // need to ask a new user to type an id they cannot know yet.
 const FARM_ID = 'FARM-001'
 
+// The seeded accounts stay usable, but a deployed build should not print working credentials on
+// a public page. Shown in dev by default; set VITE_SHOW_DEMO_ACCOUNTS=true to force them on.
+const showDemoAccounts = import.meta.env.VITE_SHOW_DEMO_ACCOUNTS
+  ? import.meta.env.VITE_SHOW_DEMO_ACCOUNTS === 'true'
+  : import.meta.env.DEV
+
 export default function Login() {
   const [mode, setMode] = useState('signin')
   useTheme()
@@ -218,15 +224,17 @@ function SignIn({ onCreateAccount }) {
         </p>
       </form>
 
-      <div className="auth-hint">
-        <p className="hint-title">Demo accounts</p>
-        <dl className="hint-accounts">
-          <dt>Administrator</dt>
-          <dd className="mono">admin@agritech.io / admin1234</dd>
-          <dt>Farmer</dt>
-          <dd className="mono">farmer@agritech.io / farmer1234</dd>
-        </dl>
-      </div>
+      {showDemoAccounts ? (
+        <div className="auth-hint">
+          <p className="hint-title">Demo accounts</p>
+          <dl className="hint-accounts">
+            <dt>Administrator</dt>
+            <dd className="mono">admin@agritech.io / admin1234</dd>
+            <dt>Farmer</dt>
+            <dd className="mono">farmer@agritech.io / farmer1234</dd>
+          </dl>
+        </div>
+      ) : null}
     </>
   )
 }

@@ -10,30 +10,29 @@ spring:
         locator:
           enabled: false
       # PRD 7.1 routing table. lb:// targets are resolved through Eureka and round-robined
-      # across healthy instances (PRD 8.2).
+      # across healthy instances (PRD 8.2). Each target is overridable so a deployment without
+      # Eureka (see application-cloud.yml) can point at absolute service URLs instead.
       routes:
         - id: auth-service
-          uri: lb://auth-service
+          uri: ${AUTH_SERVICE_URI:lb://auth-service}
           predicates:
             - Path=/api/auth/**
         - id: sensor-service
-          uri: lb://sensor-service
+          uri: ${SENSOR_SERVICE_URI:lb://sensor-service}
           predicates:
             - Path=/api/sensors/**,/api/telemetry/**
         - id: crop-service
-          uri: lb://crop-service
+          uri: ${CROP_SERVICE_URI:lb://crop-service}
           predicates:
             - Path=/api/crops/**
         - id: irrigation-service
-          uri: lb://irrigation-service
+          uri: ${IRRIGATION_SERVICE_URI:lb://irrigation-service}
           predicates:
             - Path=/api/irrigation/**,/api/valves/**
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOriginPatterns:
-              - "http://localhost:*"
-              - "http://127.0.0.1:*"
+            allowedOriginPatterns: ${CORS_ALLOWED_ORIGINS:http://localhost:*,http://127.0.0.1:*}
             allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
             allowedHeaders: "*"
             exposedHeaders: [X-RateLimit-Limit, X-RateLimit-Remaining]
@@ -41,7 +40,10 @@ spring:
 
 agritech:
   jwt:
-    secret: ${AGRITECH_JWT_SECRET:agritech-dev-secret-key-change-me-in-production-0123456789}
+    # Required, with no fallback: a default here would be a published signing key. The gateway
+    # and auth-service must be given the same value. Generate one with:
+    #   export AGRITECH_JWT_SECRET=$(openssl rand -base64 48)
+    secret: ${AGRITECH_JWT_SECRET:}
     revocation-poll-ms: 15000
   rate-limit:
     # PRD 7.2

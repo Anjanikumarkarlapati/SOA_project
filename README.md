@@ -52,6 +52,18 @@ Eureka and never traverse the gateway.
 
 Requires JDK 21+ and Node 20+. No global Maven needed - the wrapper is committed.
 
+First, set the JWT signing secret. There is no default: auth-service signs tokens with it and the
+gateway verifies them, so a committed fallback would be a published signing key, and both
+services refuse to start without one.
+
+```bash
+export AGRITECH_JWT_SECRET=$(openssl rand -base64 48)
+```
+
+Google sign-in additionally needs `SUPABASE_URL` and `SUPABASE_ANON_KEY` exported for
+auth-service, and `frontend/.env` filled in from `frontend/.env.example`. Both are optional - the
+password login works without them, and the Google button hides itself when unconfigured.
+
 ```bash
 ./scripts/stack.ps1 start
 ```

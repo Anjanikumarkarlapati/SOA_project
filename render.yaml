@@ -1,0 +1,123 @@
+# Render blueprint for the AgriTech backend.
+#
+# The dashboard itself is not here - it deploys to Vercel (see vercel.json) and rewrites /api to
+# the gateway's URL.
+#
+# Eureka is deliberately absent. Render gives every service its own public hostname and no
+# private networking on the free tier, so a registry advertising container-internal IPs cannot
+# work. The 'cloud' Spring profile turns Eureka off and routes to the absolute URLs below.
+#
+# After the first deploy, set AUTH_SERVICE_URI and the other three to the real .onrender.com URLs
+# Render assigns (fromService only resolves for private services on paid plans).
+
+databases:
+  - name: agritech-db
+    databaseName: agritech
+    plan: free
+
+services:
+  - type: web
+    name: agritech-auth
+    runtime: docker
+    dockerfilePath: ./auth-service/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: cloud
+      - key: JDBC_DATABASE_URL
+        fromDatabase: { name: agritech-db, property: connectionString }
+      - key: DATABASE_USERNAME
+        fromDatabase: { name: agritech-db, property: user }
+      - key: DATABASE_PASSWORD
+        fromDatabase: { name: agritech-db, property: password }
+      # Must match the gateway's secret: the gateway verifies what this service signs.
+      - key: AGRITECH_JWT_SECRET
+        generateValue: true
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+
+  - type: web
+    name: agritech-sensor
+    runtime: docker
+    dockerfilePath: ./sensor-service/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: cloud
+      - key: JDBC_DATABASE_URL
+        fromDatabase: { name: agritech-db, property: connectionString }
+      - key: DATABASE_USERNAME
+        fromDatabase: { name: agritech-db, property: user }
+      - key: DATABASE_PASSWORD
+        fromDatabase: { name: agritech-db, property: password }
+
+  - type: web
+    name: agritech-crop
+    runtime: docker
+    dockerfilePath: ./crop-service/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: cloud
+      - key: JDBC_DATABASE_URL
+        fromDatabase: { name: agritech-db, property: connectionString }
+      - key: DATABASE_USERNAME
+        fromDatabase: { name: agritech-db, property: user }
+      - key: DATABASE_PASSWORD
+        fromDatabase: { name: agritech-db, property: password }
+      # Crop scoring reads telemetry straight from sensor-service (FR-9).
+      - key: AGRITECH_SERVICES_SENSOR_URL
+        sync: false
+
+  - type: web
+    name: agritech-irrigation
+    runtime: docker
+    dockerfilePath: ./irrigation-service/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: cloud
+      - key: JDBC_DATABASE_URL
+        fromDatabase: { name: agritech-db, property: connectionString }
+      - key: DATABASE_USERNAME
+        fromDatabase: { name: agritech-db, property: user }
+      - key: DATABASE_PASSWORD
+        fromDatabase: { name: agritech-db, property: password }
+
+  - type: web
+    name: agritech-gateway
+    runtime: docker
+    dockerfilePath: ./api-gateway/Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: cloud
+      # Same signing secret as auth-service - copy the generated value across.
+      - key: AGRITECH_JWT_SECRET
+        sync: false
+      # The four route targets, and the auth URL the revocation poll uses.
+      - key: AUTH_SERVICE_URI
+        sync: false
+      - key: SENSOR_SERVICE_URI
+        sync: false
+      - key: CROP_SERVICE_URI
+        sync: false
+      - key: IRRIGATION_SERVICE_URI
+        sync: false
+      - key: AGRITECH_SERVICES_AUTH_URL
+        sync: false
+      # The Vercel origin, so the browser is allowed to call this gateway.
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false

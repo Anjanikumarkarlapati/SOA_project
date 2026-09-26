@@ -16,8 +16,10 @@ spring:
 
 agritech:
   jwt:
-    # Override in every real environment: AGRITECH_JWT_SECRET
-    secret: ${AGRITECH_JWT_SECRET:agritech-dev-secret-key-change-me-in-production-0123456789}
+    # Required, with no fallback: a default here would be a published signing key. The gateway
+    # and auth-service must be given the same value. Generate one with:
+    #   export AGRITECH_JWT_SECRET=$(openssl rand -base64 48)
+    secret: ${AGRITECH_JWT_SECRET:}
     access-ttl-hours: 24
   supabase:
     # Supabase project settings (Dashboard -> Project Settings):

@@ -1,0 +1,21 @@
+server:
+  port: ${PORT:8080}
+
+# Cloud profile: no service registry, and a real database instead of in-memory H2.
+# Activate with SPRING_PROFILES_ACTIVE=cloud.
+spring:
+  datasource:
+    # Render supplies this; the JDBC form is postgresql://... rewritten to jdbc:postgresql://...
+    url: ${JDBC_DATABASE_URL}
+    driver-class-name: org.postgresql.Driver
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+# Each service is reachable at its own public hostname, so there is nothing to discover.
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false

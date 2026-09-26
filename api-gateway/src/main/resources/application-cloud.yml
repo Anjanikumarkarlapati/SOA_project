@@ -1,0 +1,10 @@
+server:
+  port: ${PORT:8080}
+
+# Cloud profile: no service registry. Every route target is an absolute URL supplied by the
+# platform, so AUTH_SERVICE_URI and friends must be set (see render.yaml).
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
