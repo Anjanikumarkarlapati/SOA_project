@@ -4,6 +4,7 @@ import { api } from '../api'
 import { DataError, Freshness, Loading, Status, formatDuration, relativeTime } from '../components'
 import { IconChevron, IconCritical, IconInfo, IconRefresh, IconWarning } from '../icons'
 import { usePolling, useSession } from '../session'
+import { useI18n } from '../i18n/react'
 import MoistureTrend from '../MoistureTrend'
 import hills from '../assets/hills.jpg'
 import hillsSmall from '../assets/hills-sm.jpg'
@@ -14,6 +15,7 @@ const SEVERITY_RANK = { CRITICAL: 3, WARNING: 2, INFO: 1 }
 
 export default function Dashboard() {
   const { token } = useSession()
+  const { t } = useI18n()
   const [fieldId, setFieldId] = useState('all')
 
   // Operational state: polled fast, because valve and alert state is what people watch.
@@ -65,7 +67,7 @@ export default function Dashboard() {
   )
 
   if (loading && !data) return <Loading variant="cards" rows={5} />
-  if (!data) return <DataError what="the dashboard" onRetry={refresh} />
+  if (!data) return <DataError what="what.dashboard" onRetry={refresh} />
 
   // The feed is assembled from each service's own events - no separate notification service.
   const offlineAlerts = data.devices
@@ -76,8 +78,8 @@ export default function Dashboard() {
       source: d.deviceId,
       message:
         d.health === 'OFFLINE'
-          ? `Device stopped reporting (last reading ${relativeTime(d.lastReadingAt)})`
-          : `Battery at ${Math.round(d.batteryPercent ?? 0)}% - schedule a replacement`,
+          ? t('dash.stopped', { t: relativeTime(d.lastReadingAt) })
+          : t('dash.battery', { n: Math.round(d.batteryPercent ?? 0) }),
       timestamp: d.lastReadingAt || new Date().toISOString(),
     }))
 
@@ -97,7 +99,7 @@ export default function Dashboard() {
         <Freshness updatedAt={updatedAt} stale={Boolean(error)} />
         <button type="button" className="btn btn-quiet btn-sm" onClick={refresh}>
           <IconRefresh />
-          Refresh
+          {t('dash.refresh')}
         </button>
       </div>
 
@@ -105,10 +107,10 @@ export default function Dashboard() {
 
       <div className="bento-grid">
         <BentoCard
-          title="Field health"
-          description="Every field scored against its own optimal envelope."
+          title={t('dash.fieldHealth')}
+          description={t('dash.fieldHealthDesc')}
           metric={`${data.crops.optimalPercent}%`}
-          metricLabel={`${data.crops.optimalFields} of ${data.crops.totalFields} fields optimal`}
+          metricLabel={t('dash.fieldsOptimal', { a: data.crops.optimalFields, b: data.crops.totalFields })}
         >
           <div className="bento-list">
             {data.cropList.map((crop) => (
@@ -125,23 +127,23 @@ export default function Dashboard() {
         </BentoCard>
 
         <BentoCard
-          title="Sensor network"
-          description="Devices reporting telemetry across the farm right now."
+          title={t('dash.sensorNet')}
+          description={t('dash.sensorNetDesc')}
           metric={`${data.sensors.online} / ${data.sensors.total}`}
-          metricLabel="devices online"
+          metricLabel={t('dash.devicesOnline')}
         >
           <SensorMix summary={data.sensors} />
         </BentoCard>
 
         <BentoCard
-          title="Alert feed"
-          description="Threshold breaches and device faults, newest first."
+          title={t('dash.alerts')}
+          description={t('dash.alertsDesc')}
           metric={String(openAlerts.length)}
-          metricLabel={openAlerts.length ? `highest severity: ${worst.toLowerCase()}` : 'all clear'}
+          metricLabel={openAlerts.length ? t('dash.highest', { s: t(`sev.${worst}`) }) : t('dash.allClear')}
           metricTone={openAlerts.length ? SEVERITY_TONE[worst] : undefined}
         >
           {feed.length === 0 ? (
-            <p className="bento-empty">No events in the last window.</p>
+            <p className="bento-empty">{t('dash.noEvents')}</p>
           ) : (
             <div className="bento-list bento-list-scroll">
               {feed.map((alert) => {
@@ -164,11 +166,11 @@ export default function Dashboard() {
         </BentoCard>
 
         <BentoCard
-          title="Irrigation zones"
-          description="Valve state per zone, with time left on any active run."
+          title={t('dash.zones')}
+          description={t('dash.zonesDesc')}
           metric={String(data.valves.running)}
-          metricLabel={`of ${data.valves.totalZones} zones running`}
-          action={{ to: '/irrigation', label: 'Manage' }}
+          metricLabel={t('dash.zonesRunning', { n: data.valves.totalZones })}
+          action={{ to: '/irrigation', label: t('dash.manage') }}
         >
           <div className="bento-list">
             {data.valveList.map((valve) => (
@@ -177,8 +179,8 @@ export default function Dashboard() {
                   <span className="bento-row-title">{valve.zoneName}</span>
                   <span className="bento-row-sub mono">
                     {valve.state === 'OPEN'
-                      ? `${formatDuration(valve.secondsRemaining) ?? '--:--'} left, ${valve.flowRateLpm} L/min`
-                      : `last change ${relativeTime(valve.lastChangedAt)}`}
+                      ? t('dash.left', { t: formatDuration(valve.secondsRemaining) ?? '--:--', f: valve.flowRateLpm })
+                      : t('dash.lastChange', { t: relativeTime(valve.lastChangedAt) })}
                   </span>
                 </span>
                 <Status value={valve.state} />
@@ -197,6 +199,7 @@ export default function Dashboard() {
  * a hairline, then the day's readings - all on a photograph over the sage block.
  */
 function MoistureHero({ fields, fieldId, onFieldChange }) {
+  const { t } = useI18n()
   const selected = fields?.find((field) => field.cropId === fieldId)
   const series = fields
     ? selected
@@ -212,27 +215,27 @@ function MoistureHero({ fields, fieldId, onFieldChange }) {
         style={{ '--hero-img': `url(${hills})`, '--hero-img-sm': `url(${hillsSmall})` }}
       >
         <p className="hero-crumbs">
-          Soil moisture
-          <IconChevron width={12} height={12} aria-hidden="true" />
-          <span className="hero-crumbs-current">{selected ? selected.name : 'All fields'}</span>
+          {t('hero.moisture')}
+          <IconChevron width={12} height={12} aria-hidden="true" className="flip-rtl" />
+          <span className="hero-crumbs-current">{selected ? selected.name : t('hero.allFields')}</span>
         </p>
 
         <div className="hero-head">
           <p className="hero-figure">
             <span className="hero-value">{latest == null ? '--' : `${latest}%`}</span>
             <span className="hero-label" id="hero-label">
-              {selected ? 'Current soil moisture' : 'Average soil moisture'}
+              {selected ? t('hero.current') : t('hero.average')}
             </span>
           </p>
 
           {fields && fields.length > 1 ? (
             <label className="hero-filter">
-              <span className="sr-only">Show field</span>
+              <span className="sr-only">{t('hero.showField')}</span>
               <select
                 value={selected ? fieldId : 'all'}
                 onChange={(event) => onFieldChange(event.target.value)}
               >
-                <option value="all">All fields ({fields.length})</option>
+                <option value="all">{t('hero.allFieldsN', { n: fields.length })}</option>
                 {fields.map((field) => (
                   <option key={field.cropId} value={field.cropId}>
                     {field.name}
@@ -249,7 +252,7 @@ function MoistureHero({ fields, fieldId, onFieldChange }) {
         {series ? (
           <MoistureTrend series={series} />
         ) : (
-          <p className="hero-empty">Loading the last 24 hours.</p>
+          <p className="hero-empty">{t('hero.loading')}</p>
         )}
       </div>
     </section>
@@ -292,11 +295,12 @@ function BentoCard({ title, description, metric, metricLabel, metricTone, action
 
 /** Proportional bar of online / low-battery / offline, with the counts spelled out beside it. */
 function SensorMix({ summary }) {
+  const { t } = useI18n()
   const total = Math.max(summary.total, 1)
   const segments = [
-    { key: 'ONLINE', label: 'Online', count: summary.online, tone: 'good' },
-    { key: 'LOW_BATTERY', label: 'Low battery', count: summary.lowBattery, tone: 'warning' },
-    { key: 'OFFLINE', label: 'Offline', count: summary.offline, tone: 'critical' },
+    { key: 'ONLINE', label: t('status.ONLINE'), count: summary.online, tone: 'good' },
+    { key: 'LOW_BATTERY', label: t('status.LOW_BATTERY'), count: summary.lowBattery, tone: 'warning' },
+    { key: 'OFFLINE', label: t('status.OFFLINE'), count: summary.offline, tone: 'critical' },
   ]
 
   return (

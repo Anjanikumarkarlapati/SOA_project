@@ -1,4 +1,5 @@
 import { clockTime } from './components'
+import { useI18n } from './i18n/react'
 
 /**
  * Soil moisture over the last 24 hours as a stem-and-cap chart, drawn the way the reference draws
@@ -8,8 +9,9 @@ import { clockTime } from './components'
  * keeps recharts out of the dashboard's bundle entirely.
  */
 export default function MoistureTrend({ series }) {
+  const { t } = useI18n()
   if (!series || series.length < 2) {
-    return <p className="hero-empty">Not enough telemetry yet to draw a trend.</p>
+    return <p className="hero-empty">{t('chart.notEnough')}</p>
   }
 
   const values = series.map((point) => point.soilMoisture)

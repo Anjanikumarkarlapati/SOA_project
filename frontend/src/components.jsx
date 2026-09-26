@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { IconCritical, IconGood, IconInfo, IconOffline, IconRefresh, IconWarning } from './icons'
+import { tr } from './i18n/core'
+import { useI18n } from './i18n/react'
 
 /**
  * The stylesheet collapses CSS transitions under prefers-reduced-motion, but the chart library
@@ -70,12 +72,14 @@ const STATUS_MAP = {
 }
 
 export function Status({ value, label, className = '' }) {
-  const entry = STATUS_MAP[value] || STATUS_MAP.NO_DATA
+  const { t } = useI18n()
+  const key = STATUS_MAP[value] ? value : 'NO_DATA'
+  const entry = STATUS_MAP[key]
   const { tone, Icon } = entry
   return (
     <span className={`status status-${tone} ${className}`}>
       <Icon />
-      {label ?? entry.label}
+      {label ?? t(`status.${key}`)}
     </span>
   )
 }
@@ -113,6 +117,7 @@ export function Toggle({ checked, onChange, label, name, disabled }) {
  * irrigation emergency stop already uses, pulled out so both sites share it.
  */
 export function ConfirmButton({ label, confirmLabel, onConfirm, children }) {
+  const { t } = useI18n()
   const [armed, setArmed] = useState(false)
 
   if (!armed) {
@@ -141,15 +146,16 @@ export function ConfirmButton({ label, confirmLabel, onConfirm, children }) {
         {confirmLabel}
       </button>
       <button type="button" className="btn btn-sm" onClick={() => setArmed(false)}>
-        Cancel
+        {t('common.cancel')}
       </button>
     </span>
   )
 }
 
 export function RangeTabs({ value, onChange, options }) {
+  const { t } = useI18n()
   return (
-    <div className="range-tabs" role="group" aria-label="Time range">
+    <div className="range-tabs" role="group" aria-label={t('common.timeRange')}>
       {options.map((option) => (
         <button
           key={option}
@@ -180,20 +186,19 @@ export function Empty({ title, description, action }) {
  * operator with nothing to press.
  */
 export function DataError({ what, onRetry }) {
+  const { t } = useI18n()
   return (
     <section className="card">
       <div className="empty">
         <span className="empty-mark" aria-hidden="true">
           <IconOffline />
         </span>
-        <p className="empty-title">Could not load {what}</p>
-        <p className="empty-description">
-          The service did not respond. This retries on its own every few seconds.
-        </p>
+        <p className="empty-title">{t('error.load', { what: t(what) })}</p>
+        <p className="empty-description">{t('error.loadBody')}</p>
         {onRetry ? (
           <button type="button" className="btn" onClick={onRetry}>
             <IconRefresh />
-            Try again
+            {t('error.retry')}
           </button>
         ) : null}
       </div>
@@ -206,6 +211,7 @@ export function DataError({ what, onRetry }) {
  * the reading is part of the reading.
  */
 export function Freshness({ updatedAt, stale }) {
+  const { t } = useI18n()
   const [, force] = useState(0)
 
   // The label is a relative time, so it has to re-render on its own between polls.
@@ -218,7 +224,7 @@ export function Freshness({ updatedAt, stale }) {
   return (
     <span className={`freshness${stale ? ' freshness-stale' : ''}`}>
       <span className="freshness-dot" aria-hidden="true" />
-      {stale ? 'Reconnecting, showing last known data' : `Updated ${relativeTime(updatedAt)}`}
+      {stale ? t('dash.stale') : t('dash.updated', { t: relativeTime(updatedAt) })}
     </span>
   )
 }
@@ -274,12 +280,12 @@ export function Loading({ rows = 4, variant = 'rows' }) {
 
 /** Relative timestamps keep the operational screens scannable. */
 export function relativeTime(iso) {
-  if (!iso) return 'never'
+  if (!iso) return tr('time.never')
   const seconds = Math.round((Date.now() - new Date(iso).getTime()) / 1000)
-  if (seconds < 60) return `${Math.max(seconds, 0)}s ago`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
-  return `${Math.floor(seconds / 86400)}d ago`
+  if (seconds < 60) return tr('time.s', { n: Math.max(seconds, 0) })
+  if (seconds < 3600) return tr('time.m', { n: Math.floor(seconds / 60) })
+  if (seconds < 86400) return tr('time.h', { n: Math.floor(seconds / 3600) })
+  return tr('time.d', { n: Math.floor(seconds / 86400) })
 }
 
 export function clockTime(iso) {

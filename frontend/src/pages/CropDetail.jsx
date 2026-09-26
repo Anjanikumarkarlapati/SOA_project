@@ -22,10 +22,12 @@ import {
   usePrefersReducedMotion,
 } from '../components'
 import { usePolling, useSession } from '../session'
+import { useI18n } from '../i18n/react'
 
 export default function CropDetail() {
   const { cropId } = useParams()
   const { token, isAdmin } = useSession()
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [range, setRange] = useState('7d')
   const reducedMotion = usePrefersReducedMotion()
@@ -43,7 +45,7 @@ export default function CropDetail() {
   )
 
   if (loading && !data) return <Loading variant="detail" />
-  if (error) return <Empty title={error.message} action={<Link to="/crops">Back to crops</Link>} />
+  if (error) return <Empty title={error.message} action={<Link to="/crops">{t('crop.back')}</Link>} />
   if (!data) return null
 
   const { crop, metrics } = data
@@ -71,7 +73,7 @@ export default function CropDetail() {
     <>
       <div className="toolbar">
         <Link to="/crops" className="btn">
-          Back to crops
+          {t('crop.back')}
         </Link>
         <div className="toolbar-right">
           <RangeTabs value={range} onChange={setRange} options={['24h', '7d', '30d', '90d']} />
@@ -96,42 +98,42 @@ export default function CropDetail() {
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}
         >
           <Metric
-            label="Soil moisture"
+            label={t('metric.moisture')}
             value={crop.soilMoisture == null ? '--' : `${crop.soilMoisture.toFixed(1)}%`}
-            hint={`optimal ${moistureMin}-${moistureMax}%`}
+            hint={t('crops.optimal', { range: `${moistureMin}-${moistureMax}%` })}
             tone={crop.moistureStatus}
           />
           <Metric
-            label="Soil temperature"
-            value={crop.soilTemperature == null ? '--' : `${crop.soilTemperature.toFixed(1)} C`}
-            hint={`optimal ${tempMin}-${tempMax} C`}
+            label={t('metric.temperature')}
+            value={crop.soilTemperature == null ? '--' : `${crop.soilTemperature.toFixed(1)} °C`}
+            hint={t('crops.optimal', { range: `${tempMin}-${tempMax} °C` })}
             tone={crop.temperatureStatus}
           />
           <Metric
-            label="Soil pH"
+            label={t('crop.ph')}
             value={crop.ph == null ? '--' : crop.ph.toFixed(1)}
-            hint={`optimal ${metrics.optimal.ph[0]}-${metrics.optimal.ph[1]}`}
+            hint={t('crops.optimal', { range: `${metrics.optimal.ph[0]}-${metrics.optimal.ph[1]}` })}
           />
           <Metric
-            label="Irrigation forecast"
+            label={t('crop.forecast')}
             value={
-              crop.hoursToIrrigation == null ? 'not needed' : `${crop.hoursToIrrigation}h`
+              crop.hoursToIrrigation == null ? t('crop.notNeeded') : `${crop.hoursToIrrigation}h`
             }
-            hint="until moisture leaves optimal"
+            hint={t('crop.until')}
           />
-          <Metric label="Area" value={`${crop.areaHectares} ha`} />
-          <Metric label="Planted" value={crop.plantedOn} />
-          <Metric label="Last evaluated" value={relativeTime(crop.lastUpdated)} />
+          <Metric label={t('crop.area')} value={t('unit.ha', { n: crop.areaHectares })} />
+          <Metric label={t('crop.planted')} value={crop.plantedOn} />
+          <Metric label={t('crop.evaluated')} value={relativeTime(crop.lastUpdated)} />
         </div>
       </section>
 
       <section className="card" style={{ marginBottom: 16 }}>
         <div className="card-head">
-          <h2 className="card-title">Health score trend</h2>
+          <h2 className="card-title">{t('crop.trend')}</h2>
         </div>
         <div className="card-body">
           {healthTrend.length < 2 ? (
-            <Empty title="Not enough history in this range yet" />
+            <Empty title={t('crop.noHistory')} />
           ) : (
             <div className="chart-box" style={{ height: 200 }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -152,7 +154,7 @@ export default function CropDetail() {
                   <Line
                     type="monotone"
                     dataKey="healthScore"
-                    name="Health score"
+                    name={t('crops.health')}
                     stroke={statusColor(crop.status)}
                     strokeWidth={1.75}
                     dot={false}
@@ -167,7 +169,7 @@ export default function CropDetail() {
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
         <BandChart
-          title="Soil moisture"
+          title={t('metric.moisture')}
           data={environment}
           floorKey="moistureFloor"
           bandKey="moistureBand"
@@ -176,18 +178,18 @@ export default function CropDetail() {
           domain={[0, 100]}
         />
         <BandChart
-          title="Soil temperature"
+          title={t('metric.temperature')}
           data={environment}
           floorKey="tempFloor"
           bandKey="tempBand"
           lineKey="temperature"
-          unit=" C"
+          unit=" °C"
         />
       </div>
 
       <section className="card" style={{ marginTop: 16 }}>
         <div className="card-head">
-          <h2 className="card-title">Recommendations</h2>
+          <h2 className="card-title">{t('crop.recommendations')}</h2>
           {isAdmin && crop.valveId ? (
             <button
               type="button"
@@ -195,14 +197,14 @@ export default function CropDetail() {
               style={{ marginLeft: 'auto' }}
               onClick={() => navigate('/irrigation')}
             >
-              Schedule irrigation
+              {t('crop.schedule')}
             </button>
           ) : null}
         </div>
         <div className="card-body">
           {crop.recommendations.length === 0 ? (
             <p className="muted" style={{ margin: 0 }}>
-              No advisories - this field is inside its optimal envelope.
+              {t('crop.noAdvisories')}
             </p>
           ) : (
             <ul className="recommendations">
@@ -227,17 +229,18 @@ const tooltipStyle = {
 
 function BandChart({ title, data, floorKey, bandKey, lineKey, unit, domain }) {
   const reducedMotion = usePrefersReducedMotion()
+  const { t } = useI18n()
   return (
     <section className="card">
       <div className="card-head">
         <h2 className="card-title">{title}</h2>
         <span className="muted" style={{ marginLeft: 'auto', fontSize: 12 }}>
-          shaded band = optimal range
+          {t('crop.band')}
         </span>
       </div>
       <div className="card-body">
         {data.length === 0 ? (
-          <Empty title="No telemetry in this range" />
+          <Empty title={t('crop.noTelemetry')} />
         ) : (
           <div className="chart-box" style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -263,7 +266,7 @@ function BandChart({ title, data, floorKey, bandKey, lineKey, unit, domain }) {
                   fill="transparent"
                   isAnimationActive={false}
                   legendType="none"
-                  name="optimal floor"
+                  name={t('crop.optimalFloor')}
                 />
                 <Area
                   type="monotone"
@@ -273,7 +276,7 @@ function BandChart({ title, data, floorKey, bandKey, lineKey, unit, domain }) {
                   fill="var(--accent)"
                   fillOpacity={0.12}
                   isAnimationActive={false}
-                  name="optimal range"
+                  name={t('crop.optimalRange')}
                 />
                 <Line
                   type="monotone"

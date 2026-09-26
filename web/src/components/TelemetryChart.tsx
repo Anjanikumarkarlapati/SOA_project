@@ -3,6 +3,7 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { clockTime } from '@/components/Status'
 import { usePrefersReducedMotion } from '@/lib/session'
+import { useI18n } from '@/lib/i18n/react'
 import type { Reading } from '@/lib/api'
 
 const tooltipStyle = {
@@ -16,6 +17,7 @@ const tooltipStyle = {
 /** Dual-axis moisture and temperature, per the brief's sensor detail spec. */
 export default function TelemetryChart({ readings }: { readings: Reading[] }) {
   const reducedMotion = usePrefersReducedMotion()
+  const { t } = useI18n()
 
   const data = readings.map((r) => ({
     time: clockTime(r.timestamp),
@@ -50,7 +52,7 @@ export default function TelemetryChart({ readings }: { readings: Reading[] }) {
           yAxisId="moisture"
           type="monotone"
           dataKey="moisture"
-          name="Soil moisture (%)"
+          name={t('metric.moistureUnit')}
           stroke="var(--brand-accent)"
           strokeWidth={1.75}
           dot={false}
@@ -60,7 +62,7 @@ export default function TelemetryChart({ readings }: { readings: Reading[] }) {
           yAxisId="temp"
           type="monotone"
           dataKey="temperature"
-          name="Soil temperature (C)"
+          name={t('metric.temperatureUnit')}
           stroke="var(--status-info)"
           strokeWidth={1.75}
           dot={false}

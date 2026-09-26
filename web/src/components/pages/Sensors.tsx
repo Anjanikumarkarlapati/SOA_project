@@ -7,12 +7,13 @@ import { IconButton, IconLink } from '@/components/IconButton'
 import { Status, relativeTime } from '@/components/Status'
 import { api, type Crop, type Sensor } from '@/lib/api'
 import { usePolling, useSession } from '@/lib/session'
+import { useI18n } from '@/lib/i18n/react'
 
 const HEALTH_FILTERS = [
-  { value: '', label: 'All statuses' },
-  { value: 'ONLINE', label: 'Online' },
-  { value: 'OFFLINE', label: 'Offline' },
-  { value: 'LOW_BATTERY', label: 'Low battery' },
+  { value: '', label: 'sensors.allStatuses' },
+  { value: 'ONLINE', label: 'status.ONLINE' },
+  { value: 'OFFLINE', label: 'status.OFFLINE' },
+  { value: 'LOW_BATTERY', label: 'status.LOW_BATTERY' },
 ]
 
 const control =
@@ -20,6 +21,7 @@ const control =
 
 export default function Sensors() {
   const { token, isAdmin } = useSession()
+  const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [health, setHealth] = useState('')
   const [fieldId, setFieldId] = useState('')
@@ -43,10 +45,10 @@ export default function Sensors() {
   const refresh = () => setReloadKey((k) => k + 1)
 
   const deregister = async (deviceId: string) => {
-    if (!token || !window.confirm(`Deregister ${deviceId}? Its history is removed with it.`)) return
+    if (!token || !window.confirm(t('sensors.confirmDeregister', { id: deviceId }))) return
     try {
       await api.deleteSensor(token, deviceId)
-      setNotice({ tone: '', text: `${deviceId} deregistered` })
+      setNotice({ tone: '', text: t('sensors.deregistered', { id: deviceId }) })
       refresh()
     } catch (error) {
       setNotice({ tone: 'critical', text: (error as Error).message })
@@ -56,15 +58,15 @@ export default function Sensors() {
   return (
     <>
       <header className="mb-5">
-        <h1 className="text-xl font-semibold tracking-tight">Sensor Management</h1>
-        <p className="mt-0.5 text-xs text-muted-foreground">Registered IoT devices across the farm</p>
+        <h1 className="text-xl font-semibold tracking-tight">{t('sensors.title')}</h1>
+        <p className="mt-0.5 text-xs text-muted-foreground">{t('sensors.sub')}</p>
       </header>
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <input
           type="search"
-          placeholder="Search device ID"
-          aria-label="Search by device ID"
+          placeholder={t('sensors.search')}
+          aria-label={t('sensors.searchAria')}
           className={`${control} min-w-40 flex-1 sm:flex-none`}
           value={query}
           onChange={(e) => {
@@ -73,7 +75,7 @@ export default function Sensors() {
           }}
         />
         <select
-          aria-label="Filter by status"
+          aria-label={t('sensors.filterStatus')}
           className={control}
           value={health}
           onChange={(e) => {
@@ -82,11 +84,11 @@ export default function Sensors() {
           }}
         >
           {HEALTH_FILTERS.map((f) => (
-            <option key={f.value} value={f.value}>{f.label}</option>
+            <option key={f.value} value={f.value}>{t(f.label)}</option>
           ))}
         </select>
         <select
-          aria-label="Filter by field"
+          aria-label={t('sensors.filterField')}
           className={control}
           value={fieldId}
           onChange={(e) => {
@@ -94,7 +96,7 @@ export default function Sensors() {
             setFieldId(e.target.value)
           }}
         >
-          <option value="">All fields</option>
+          <option value="">{t('sensors.allFields')}</option>
           {(crops ?? []).map((c: Crop) => (
             <option key={c.cropId} value={c.cropId}>{c.name}</option>
           ))}
@@ -107,7 +109,7 @@ export default function Sensors() {
             className="ml-auto inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-[13px] font-medium text-primary-foreground transition hover:bg-brand-hover active:translate-y-px"
           >
             <Plus size={16} />
-            Register device
+            {t('sensors.register')}
           </button>
         ) : null}
       </div>
@@ -118,7 +120,7 @@ export default function Sensors() {
           onCancel={() => setShowForm(false)}
           onCreated={(deviceId) => {
             setShowForm(false)
-            setNotice({ tone: '', text: `${deviceId} registered` })
+            setNotice({ tone: '', text: t('sensors.registered', { id: deviceId }) })
             refresh()
           }}
         />
@@ -132,7 +134,7 @@ export default function Sensors() {
             ))}
           </div>
         ) : !data || data.content.length === 0 ? (
-          <p className="p-12 text-center text-sm text-muted-foreground">No sensors match this view.</p>
+          <p className="p-12 text-center text-sm text-muted-foreground">{t('sensors.none')}.</p>
         ) : (
           <>
             {/* Table on desktop; each row becomes its own card under md. */}
@@ -140,12 +142,12 @@ export default function Sensors() {
               <table className="w-full border-collapse text-[13px] max-md:block">
                 <thead className="max-md:hidden">
                   <tr>
-                    {['Device ID', 'Type', 'Field', 'Status', 'Last reading', 'Battery', ''].map((h) => (
+                    {['sensors.deviceId', 'sensors.type', 'sensors.field', 'sensors.status', 'sensors.lastReading', 'sensors.battery', ''].map((h) => (
                       <th
                         key={h}
                         className="sticky top-0 whitespace-nowrap border-b border-border bg-[rgba(var(--glass-rgb),0.96)] px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur"
                       >
-                        {h}
+                        {h ? t(h) : ''}
                       </th>
                     ))}
                   </tr>
@@ -158,30 +160,30 @@ export default function Sensors() {
                         device.health === 'OFFLINE' ? 'max-md:opacity-80' : ''
                       }`}
                     >
-                      <Cell label="Device ID">
+                      <Cell label={t('sensors.deviceId')}>
                         <Link href={`/sensors/${device.deviceId}`} className="font-mono text-brand hover:underline">
                           {device.deviceId}
                         </Link>
                       </Cell>
-                      <Cell label="Type" muted={device.health === 'OFFLINE'}>{device.sensorType}</Cell>
-                      <Cell label="Field" muted={device.health === 'OFFLINE'}>{device.fieldId || '--'}</Cell>
-                      <Cell label="Status"><Status value={device.health} /></Cell>
-                      <Cell label="Last reading" muted={device.health === 'OFFLINE'}>
+                      <Cell label={t('sensors.type')} muted={device.health === 'OFFLINE'}>{device.sensorType}</Cell>
+                      <Cell label={t('sensors.field')} muted={device.health === 'OFFLINE'}>{device.fieldId || '--'}</Cell>
+                      <Cell label={t('sensors.status')}><Status value={device.health} /></Cell>
+                      <Cell label={t('sensors.lastReading')} muted={device.health === 'OFFLINE'}>
                         <span className="font-mono tabular">{relativeTime(device.lastReadingAt)}</span>
                       </Cell>
-                      <Cell label="Battery" muted={device.health === 'OFFLINE'}>
+                      <Cell label={t('sensors.battery')} muted={device.health === 'OFFLINE'}>
                         <span className="font-mono tabular">
                           {device.batteryPercent == null ? '--' : `${Math.round(device.batteryPercent)}%`}
                         </span>
                       </Cell>
-                      <Cell label="Actions">
+                      <Cell label={t('sensors.actions')}>
                         <span className="flex justify-end gap-1">
-                          <IconLink label={`View ${device.deviceId}`} href={`/sensors/${device.deviceId}`}>
+                          <IconLink label={t('sensors.view', { id: device.deviceId })} href={`/sensors/${device.deviceId}`}>
                             <CaretRight size={16} />
                           </IconLink>
                           {isAdmin ? (
                             <IconButton
-                              label={`Deregister ${device.deviceId}`}
+                              label={t('sensors.deregister', { id: device.deviceId })}
                               tone="danger"
                               onClick={() => deregister(device.deviceId)}
                             >
@@ -197,19 +199,19 @@ export default function Sensors() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2 border-t border-border p-3">
-              <span className="text-xs text-muted-foreground">{data.totalElements} devices</span>
+              <span className="text-xs text-muted-foreground">{t('sensors.devices', { n: data.totalElements })}</span>
               <div className="ml-auto flex items-center gap-2">
                 <PagerButton disabled={data.page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
-                  Previous
+                  {t('sensors.prev')}
                 </PagerButton>
                 <span className="self-center font-mono text-xs text-muted-foreground tabular">
-                  Page {data.page + 1} of {Math.max(data.totalPages, 1)}
+                  {t('sensors.page', { a: data.page + 1, b: Math.max(data.totalPages, 1) })}
                 </span>
                 <PagerButton
                   disabled={data.page + 1 >= data.totalPages}
                   onClick={() => setPage((p) => p + 1)}
                 >
-                  Next
+                  {t('sensors.next')}
                 </PagerButton>
               </div>
             </div>
@@ -226,7 +228,7 @@ export default function Sensors() {
         >
           {notice.text}
           <button type="button" onClick={() => setNotice(null)} className="ml-2 text-muted-foreground underline">
-            Dismiss
+            {t('common.dismiss')}
           </button>
         </div>
       ) : null}
@@ -281,6 +283,7 @@ function RegisterForm({
   onCreated: (deviceId: string) => void
 }) {
   const { token } = useSession()
+  const { t } = useI18n()
   const [form, setForm] = useState({
     deviceId: '',
     farmId: 'FARM-001',
@@ -316,7 +319,7 @@ function RegisterForm({
 
   return (
     <section className="glass mb-4 rounded-xl">
-      <h2 className="border-b border-border px-4 py-3.5 text-[15px] font-semibold">Register a device</h2>
+      <h2 className="border-b border-border px-4 py-3.5 text-[15px] font-semibold">{t('sensors.registerTitle')}</h2>
       <form onSubmit={submit} className="p-4">
         {error ? (
           <div role="alert" className="mb-4 rounded-lg border border-status-critical bg-status-critical/10 px-3 py-2.5 text-[13px] text-status-critical">
@@ -325,41 +328,41 @@ function RegisterForm({
         ) : null}
 
         <div className="mb-4 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
-          <Field label="Device ID" htmlFor="deviceId">
+          <Field label={t('sensors.deviceId')} htmlFor="deviceId">
             <input id="deviceId" required placeholder="SENSOR-FARM01-014" className={`${control} w-full font-mono`} value={form.deviceId} onChange={set('deviceId')} />
           </Field>
-          <Field label="Farm ID" htmlFor="farmId">
+          <Field label={t('sensors.farmId')} htmlFor="farmId">
             <input id="farmId" required className={`${control} w-full font-mono`} value={form.farmId} onChange={set('farmId')} />
           </Field>
-          <Field label="Sensor type" htmlFor="sensorType">
+          <Field label={t('sensors.sensorType')} htmlFor="sensorType">
             <select id="sensorType" className={`${control} w-full`} value={form.sensorType} onChange={set('sensorType')}>
               <option value="soil-moisture-temperature">soil-moisture-temperature</option>
               <option value="weather-station">weather-station</option>
               <option value="ph-probe">ph-probe</option>
             </select>
           </Field>
-          <Field label="Field assignment" htmlFor="fieldId">
+          <Field label={t('sensors.assign')} htmlFor="fieldId">
             <select id="fieldId" className={`${control} w-full`} value={form.fieldId} onChange={set('fieldId')}>
-              <option value="">Unassigned</option>
+              <option value="">{t('sensors.unassigned')}</option>
               {crops.map((c) => (
                 <option key={c.cropId} value={c.cropId}>{c.name} ({c.cropId})</option>
               ))}
             </select>
           </Field>
-          <Field label="Latitude" htmlFor="latitude">
+          <Field label={t('sensors.lat')} htmlFor="latitude">
             <input id="latitude" type="number" step="any" className={`${control} w-full font-mono`} value={form.latitude} onChange={set('latitude')} />
           </Field>
-          <Field label="Longitude" htmlFor="longitude">
+          <Field label={t('sensors.lon')} htmlFor="longitude">
             <input id="longitude" type="number" step="any" className={`${control} w-full font-mono`} value={form.longitude} onChange={set('longitude')} />
           </Field>
         </div>
 
         <div className="flex gap-2">
           <button type="submit" disabled={saving} className="inline-flex min-h-9 items-center rounded-lg bg-primary px-3.5 text-[13px] font-medium text-primary-foreground transition hover:bg-brand-hover active:translate-y-px disabled:opacity-55">
-            {saving ? 'Registering' : 'Register device'}
+            {saving ? t('sensors.registering') : t('sensors.register')}
           </button>
           <button type="button" onClick={onCancel} className="min-h-9 rounded-lg border border-hairline-strong bg-surface px-3.5 text-[13px] font-medium transition hover:bg-raised active:translate-y-px">
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </form>

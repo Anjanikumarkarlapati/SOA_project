@@ -13,6 +13,7 @@ import {
   YAxis,
 } from 'recharts'
 import type { SimPoint } from '@/lib/farm/simulator'
+import { useI18n } from '@/lib/i18n/react'
 import { usePrefersReducedMotion } from '@/lib/session'
 
 /**
@@ -31,8 +32,9 @@ export default function SimChart({
   target: number
 }) {
   const reducedMotion = usePrefersReducedMotion()
+  const { t } = useI18n()
   if (data.length < 2) {
-    return <p className="p-4 text-xs text-muted-foreground">Press play to start the simulated day.</p>
+    return <p className="p-4 text-xs text-muted-foreground">{t('chart.press')}</p>
   }
   // Zoomed to the band the controller works in, so a one-percent swing is visible.
   const values = data.map((d) => d.moisture)
@@ -55,17 +57,17 @@ export default function SimChart({
             fontFamily: 'var(--font-plex-mono)',
             fontSize: 12,
           }}
-          formatter={(value, name) => {
-            if (name === 'Valve open') return [Number(value) > bottom ? 'yes' : 'no', name]
-            return [name === 'Air temp' ? `${value} C` : `${value} ${unit}`, name]
+          formatter={(value, name, item) => {
+            if (item.dataKey === 'valve') return [Number(value) > bottom ? t('common.yes') : t('common.no'), name]
+            return [item.dataKey === 'temp' ? `${value} °C` : `${value} ${unit}`, name]
           }}
         />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Area yAxisId="m" type="step" dataKey="valve" name="Valve open" fill="var(--status-info)" fillOpacity={0.12} stroke="none" isAnimationActive={false} />
-        <ReferenceLine yAxisId="m" y={trigger} stroke="var(--status-warning)" strokeDasharray="4 4" label={{ value: 'irrigate below', fontSize: 10, fill: 'var(--status-warning)', position: 'insideBottomLeft' }} />
-        <ReferenceLine yAxisId="m" y={target} stroke="var(--status-good)" strokeDasharray="4 4" label={{ value: 'fill to', fontSize: 10, fill: 'var(--status-good)', position: 'insideTopLeft' }} />
-        <Line yAxisId="m" type="monotone" dataKey="moisture" name={unit === '%' ? 'Soil moisture' : 'Water depth'} stroke="var(--brand-accent)" strokeWidth={2} dot={false} isAnimationActive={!reducedMotion} />
-        <Line yAxisId="t" type="monotone" dataKey="temp" name="Air temp" stroke="var(--status-critical)" strokeWidth={1.5} dot={false} strokeDasharray="2 3" isAnimationActive={!reducedMotion} />
+        <Area yAxisId="m" type="step" dataKey="valve" name={t('chart.valveOpen')} fill="var(--status-info)" fillOpacity={0.12} stroke="none" isAnimationActive={false} />
+        <ReferenceLine yAxisId="m" y={trigger} stroke="var(--status-warning)" strokeDasharray="4 4" label={{ value: t('chart.below'), fontSize: 10, fill: 'var(--status-warning)', position: 'insideBottomLeft' }} />
+        <ReferenceLine yAxisId="m" y={target} stroke="var(--status-good)" strokeDasharray="4 4" label={{ value: t('chart.fill'), fontSize: 10, fill: 'var(--status-good)', position: 'insideTopLeft' }} />
+        <Line yAxisId="m" type="monotone" dataKey="moisture" name={unit === '%' ? t('metric.moisture') : t('chart.depth')} stroke="var(--brand-accent)" strokeWidth={2} dot={false} isAnimationActive={!reducedMotion} />
+        <Line yAxisId="t" type="monotone" dataKey="temp" name={t('chart.air')} stroke="var(--status-critical)" strokeWidth={1.5} dot={false} strokeDasharray="2 3" isAnimationActive={!reducedMotion} />
       </ComposedChart>
     </ResponsiveContainer>
   )

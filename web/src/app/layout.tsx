@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { IBM_Plex_Mono, Inter } from 'next/font/google'
 import { SessionProvider } from '@/lib/session'
+import { I18nProvider } from '@/lib/i18n/react'
 import './globals.css'
 
 // The brief names both faces: Inter for interface, IBM Plex Mono for telemetry values.
@@ -47,7 +48,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Skip to content
         </a>
-        <SessionProvider>{children}</SessionProvider>
+        <I18nProvider>
+          <SessionProvider>{children}</SessionProvider>
+        </I18nProvider>
       </body>
     </html>
   )

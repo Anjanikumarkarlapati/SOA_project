@@ -7,20 +7,27 @@ import { BentoCard } from '@/components/BentoCard'
 import { Status, formatDuration, relativeTime, statusTextClass } from '@/components/Status'
 import { api, type Alert, type Sensor } from '@/lib/api'
 import { usePolling, useSession } from '@/lib/session'
+import { useI18n } from '@/lib/i18n/react'
 
 // Recharts is large and only this one tile needs it, so the chart is client-only and
 // code-split; the tile paints its frame immediately and the plot arrives a beat later.
 const MoistureTrend = dynamic(() => import('@/components/MoistureTrend'), {
   ssr: false,
-  loading: () => <p className="p-4 text-xs text-muted-foreground">Loading trend...</p>,
+  loading: () => <LoadingTrend />,
 })
 
 const SEVERITY_ICON = { CRITICAL: WarningOctagon, WARNING: Warning, INFO: Info }
 const SEVERITY_TONE: Record<string, string> = { CRITICAL: 'critical', WARNING: 'warning', INFO: 'info' }
 const SEVERITY_RANK: Record<string, number> = { CRITICAL: 3, WARNING: 2, INFO: 1 }
 
+function LoadingTrend() {
+  const { t } = useI18n()
+  return <p className="p-4 text-xs text-muted-foreground">{t('chart.loadingTrend')}</p>
+}
+
 export default function Dashboard() {
   const { token } = useSession()
+  const { t } = useI18n()
 
   // Operational state: polled fast, because valve and alert state is what people watch.
   const { data, loading } = usePolling(
@@ -63,7 +70,7 @@ export default function Dashboard() {
   )
 
   if (loading && !data) return <BentoSkeleton />
-  if (!data) return <p className="p-8 text-center text-sm text-muted-foreground">Dashboard data is unavailable.</p>
+  if (!data) return <p className="p-8 text-center text-sm text-muted-foreground">{t('dash.unavailable')}</p>
 
   // The feed is assembled from each service's own events - no separate notification service.
   const offlineAlerts: Alert[] = data.devices
@@ -74,8 +81,8 @@ export default function Dashboard() {
       source: d.deviceId,
       message:
         d.health === 'OFFLINE'
-          ? `Device stopped reporting (last reading ${relativeTime(d.lastReadingAt)})`
-          : `Battery at ${Math.round(d.batteryPercent ?? 0)}% - schedule a replacement`,
+          ? t('dash.stopped', { t: relativeTime(d.lastReadingAt) })
+          : t('dash.battery', { n: Math.round(d.batteryPercent ?? 0) }),
       timestamp: d.lastReadingAt || new Date().toISOString(),
     }))
 
@@ -95,10 +102,10 @@ export default function Dashboard() {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
       <BentoCard
-        title="Field health"
-        description="Every field scored against its own optimal envelope."
+        title={t('dash.fieldHealth')}
+        description={t('dash.fieldHealthDesc')}
         metric={`${data.crops.optimalPercent}%`}
-        metricLabel={`${data.crops.optimalFields} of ${data.crops.totalFields} fields optimal`}
+        metricLabel={t('dash.fieldsOptimal', { a: data.crops.optimalFields, b: data.crops.totalFields })}
         index={0}
       >
         <div className="grid content-start">
@@ -120,25 +127,25 @@ export default function Dashboard() {
       </BentoCard>
 
       <BentoCard
-        title="Sensor network"
-        description="Devices reporting telemetry across the farm right now."
+        title={t('dash.sensorNet')}
+        description={t('dash.sensorNetDesc')}
         metric={`${data.sensors.online} / ${data.sensors.total}`}
-        metricLabel="devices online"
+        metricLabel={t('dash.devicesOnline')}
         index={1}
       >
         <SensorMix summary={data.sensors} />
       </BentoCard>
 
       <BentoCard
-        title="Alert feed"
-        description="Threshold breaches and device faults, newest first."
+        title={t('dash.alerts')}
+        description={t('dash.alertsDesc')}
         metric={String(openAlerts.length)}
-        metricLabel={openAlerts.length ? `highest severity: ${worst.toLowerCase()}` : 'all clear'}
+        metricLabel={openAlerts.length ? t('dash.highest', { s: t(`sev.${worst}`) }) : t('dash.allClear')}
         metricTone={openAlerts.length ? SEVERITY_TONE[worst] : undefined}
         index={2}
       >
         {feed.length === 0 ? (
-          <p className="p-4 text-xs text-muted-foreground">No events in the last window.</p>
+          <p className="p-4 text-xs text-muted-foreground">{t('dash.noEvents')}</p>
         ) : (
           <div className="grid max-h-full content-start overflow-y-auto">
             {feed.map((alert) => {
@@ -167,13 +174,13 @@ export default function Dashboard() {
 
       {/* The wide tile. On tablet it moves last so five tiles fill three rows with no hole. */}
       <BentoCard
-        title="Soil moisture, last 24 hours"
-        description="Farm-wide average across every reporting field."
+        title={t('dash.moisture24')}
+        description={t('dash.moisture24Desc')}
         metric={latestMoisture == null ? '--' : `${latestMoisture}%`}
         metricLabel={
           needingAttention
-            ? `${needingAttention} field${needingAttention > 1 ? 's' : ''} outside optimal`
-            : 'all fields inside optimal'
+            ? t('dash.outside', { n: needingAttention })
+            : t('dash.allInside')
         }
         metricTone={needingAttention ? 'warning' : undefined}
         index={3}
@@ -183,11 +190,11 @@ export default function Dashboard() {
       </BentoCard>
 
       <BentoCard
-        title="Irrigation zones"
-        description="Valve state per zone, with time left on any active run."
+        title={t('dash.zones')}
+        description={t('dash.zonesDesc')}
         metric={String(data.valves.running)}
-        metricLabel={`of ${data.valves.totalZones} zones running`}
-        action={{ href: '/irrigation', label: 'Manage' }}
+        metricLabel={t('dash.zonesRunning', { n: data.valves.totalZones })}
+        action={{ href: '/irrigation', label: t('dash.manage') }}
         index={4}
       >
         <div className="grid content-start">
@@ -200,8 +207,8 @@ export default function Dashboard() {
                 <span className="truncate text-[13px] font-semibold">{valve.zoneName}</span>
                 <span className="truncate font-mono text-[11px] text-muted-foreground tabular">
                   {valve.state === 'OPEN'
-                    ? `${formatDuration(valve.secondsRemaining) ?? '--:--'} left, ${valve.flowRateLpm} L/min`
-                    : `last change ${relativeTime(valve.lastChangedAt)}`}
+                    ? t('dash.left', { t: formatDuration(valve.secondsRemaining) ?? '--:--', f: valve.flowRateLpm })
+                    : t('dash.lastChange', { t: relativeTime(valve.lastChangedAt) })}
                 </span>
               </span>
               <Status value={valve.state} />

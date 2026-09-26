@@ -20,10 +20,12 @@ import {
   usePrefersReducedMotion,
 } from '../components'
 import { usePolling, useSession } from '../session'
+import { useI18n } from '../i18n/react'
 
 export default function SensorDetail() {
   const { deviceId } = useParams()
   const { token } = useSession()
+  const { t, lang } = useI18n()
   const [range, setRange] = useState('24h')
   const reducedMotion = usePrefersReducedMotion()
 
@@ -40,7 +42,7 @@ export default function SensorDetail() {
   )
 
   if (loading && !data) return <Loading variant="detail" />
-  if (error) return <Empty title={error.message} action={<Link to="/sensors">Back to sensors</Link>} />
+  if (error) return <Empty title={error.message} action={<Link to="/sensors">{t('sensor.back')}</Link>} />
   if (!data) return null
 
   const { device, readings } = data
@@ -54,7 +56,7 @@ export default function SensorDetail() {
     <>
       <div className="toolbar">
         <Link to="/sensors" className="btn">
-          Back to sensors
+          {t('sensor.back')}
         </Link>
         <div className="toolbar-right">
           <RangeTabs value={range} onChange={setRange} options={['24h', '7d', '30d']} />
@@ -72,17 +74,17 @@ export default function SensorDetail() {
           className="card-body grid"
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' }}
         >
-          <Meta label="Sensor type" value={device.sensorType} />
-          <Meta label="Farm" value={device.farmId} mono />
-          <Meta label="Field" value={device.fieldId || 'Unassigned'} mono />
+          <Meta label={t('sensors.sensorType')} value={device.sensorType} />
+          <Meta label={t('sensor.farm')} value={device.farmId} mono />
+          <Meta label={t('sensors.field')} value={device.fieldId || t('sensors.unassigned')} mono />
           <Meta
-            label="Battery"
+            label={t('sensors.battery')}
             value={device.batteryPercent == null ? '--' : `${Math.round(device.batteryPercent)}%`}
             mono
           />
-          <Meta label="Last reading" value={relativeTime(device.lastReadingAt)} mono />
+          <Meta label={t('sensors.lastReading')} value={relativeTime(device.lastReadingAt)} mono />
           <Meta
-            label="Location"
+            label={t('sensor.location')}
             value={`${device.location.latitude.toFixed(4)}, ${device.location.longitude.toFixed(4)}`}
             mono
           />
@@ -91,14 +93,14 @@ export default function SensorDetail() {
 
       <section className="card" style={{ marginBottom: 16 }}>
         <div className="card-head">
-          <h2 className="card-title">Telemetry history</h2>
+          <h2 className="card-title">{t('sensor.telemetry')}</h2>
           <span className="muted" style={{ marginLeft: 'auto', fontSize: 12 }}>
-            {readings.length} readings
+            {t('sensor.readingsN', { n: readings.length })}
           </span>
         </div>
         <div className="card-body">
           {chartData.length === 0 ? (
-            <Empty title="No readings in this range" />
+            <Empty title={t('sensor.noReadings')} />
           ) : (
             <div className="chart-box">
               <ResponsiveContainer width="100%" height="100%">
@@ -135,7 +137,7 @@ export default function SensorDetail() {
                     yAxisId="moisture"
                     type="monotone"
                     dataKey="moisture"
-                    name="Soil moisture (%)"
+                    name={t('metric.moistureUnit')}
                     stroke="var(--accent)"
                     strokeWidth={1.75}
                     dot={false}
@@ -145,7 +147,7 @@ export default function SensorDetail() {
                     yAxisId="temp"
                     type="monotone"
                     dataKey="temperature"
-                    name="Soil temperature (C)"
+                    name={t('metric.temperatureUnit')}
                     stroke="var(--status-info)"
                     strokeWidth={1.75}
                     dot={false}
@@ -160,24 +162,24 @@ export default function SensorDetail() {
 
       <section className="card">
         <div className="card-head">
-          <h2 className="card-title">Readings</h2>
+          <h2 className="card-title">{t('sensor.readings')}</h2>
         </div>
         <div className="table-wrap" style={{ maxHeight: 360, overflowY: 'auto' }}>
           <table className="data">
             <thead>
               <tr>
-                <th>Timestamp</th>
-                <th>Soil moisture</th>
-                <th>Soil temperature</th>
-                <th>pH</th>
+                <th>{t('sensor.timestamp')}</th>
+                <th>{t('metric.moisture')}</th>
+                <th>{t('metric.temperature')}</th>
+                <th>{t('metric.ph')}</th>
               </tr>
             </thead>
             <tbody>
               {[...readings].reverse().slice(0, 100).map((r) => (
                 <tr key={r.id}>
-                  <td className="mono">{new Date(r.timestamp).toLocaleString()}</td>
+                  <td className="mono">{new Date(r.timestamp).toLocaleString(lang.locale)}</td>
                   <td className="mono">{r.soilMoisture.toFixed(1)}%</td>
-                  <td className="mono">{r.soilTemperature.toFixed(1)} C</td>
+                  <td className="mono">{r.soilTemperature.toFixed(1)} °C</td>
                   <td className="mono">{r.ph.toFixed(1)}</td>
                 </tr>
               ))}

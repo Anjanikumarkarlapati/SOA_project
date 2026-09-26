@@ -1,4 +1,4 @@
-// Shared with web/src/lib/farm - keep the two copies in step.
+// Shared with web/src/lib/farm - edit it there and run node scripts/sync-shared.mjs.
 /*
  * Reference data for the India farm assistant: crops, locations, soils, irrigation methods
  * and the sensor catalogue. Everything the onboarding wizard offers and the automation engine
@@ -8,6 +8,8 @@
  * Indian season lengths. Climate normals are rounded IMD 1991-2020 monthly means for a
  * representative station in each zone - good enough to plan with, not a forecast.
  */
+
+import type { Msg } from '../i18n/core'
 
 export type CropGroup =
   | 'Cereals'
@@ -335,12 +337,12 @@ export type SensorPriority = 'Essential' | 'Recommended' | 'Optional'
 
 export interface SensorItem {
   id: string
-  name: string
-  measures: string
-  why: string
+  name: Msg
+  measures: Msg
+  why: Msg
+  placement: Msg
   /** Indicative Indian market price per unit, rupees. */
   unitPrice: number
   quantity: number
   priority: SensorPriority
-  placement: string
 }

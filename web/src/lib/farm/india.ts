@@ -8,6 +8,8 @@
  * representative station in each zone - good enough to plan with, not a forecast.
  */
 
+import type { Msg } from '../i18n/core'
+
 export type CropGroup =
   | 'Cereals'
   | 'Millets'
@@ -334,12 +336,12 @@ export type SensorPriority = 'Essential' | 'Recommended' | 'Optional'
 
 export interface SensorItem {
   id: string
-  name: string
-  measures: string
-  why: string
+  name: Msg
+  measures: Msg
+  why: Msg
+  placement: Msg
   /** Indicative Indian market price per unit, rupees. */
   unitPrice: number
   quantity: number
   priority: SensorPriority
-  placement: string
 }

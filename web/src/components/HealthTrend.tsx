@@ -3,6 +3,7 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { clockTime } from '@/components/Status'
 import { usePrefersReducedMotion } from '@/lib/session'
+import { useI18n } from '@/lib/i18n/react'
 
 export default function HealthTrend({
   trend,
@@ -12,6 +13,7 @@ export default function HealthTrend({
   color: string
 }) {
   const reducedMotion = usePrefersReducedMotion()
+  const { t } = useI18n()
   const data = trend.map((p) => ({ time: clockTime(p.timestamp), healthScore: p.healthScore }))
 
   return (
@@ -41,7 +43,7 @@ export default function HealthTrend({
         <Line
           type="monotone"
           dataKey="healthScore"
-          name="Health score"
+          name={t('crops.health')}
           stroke={color}
           strokeWidth={1.75}
           dot={false}

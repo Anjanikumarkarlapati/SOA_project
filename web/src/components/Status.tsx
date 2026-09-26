@@ -1,6 +1,8 @@
 'use client'
 
 import { Circle, Info, Warning, WarningOctagon, WifiSlash } from '@phosphor-icons/react'
+import { tr } from '@/lib/i18n/core'
+import { useI18n } from '@/lib/i18n/react'
 
 /**
  * Status is never colour alone: every state carries a shape and a text label
@@ -45,14 +47,16 @@ export function statusTextClass(value: string) {
 }
 
 export function Status({ value, label }: { value: string; label?: string }) {
-  const entry = STATUS_MAP[value as StatusKey] ?? STATUS_MAP.NO_DATA
+  const { t } = useI18n()
+  const key = (value in STATUS_MAP ? value : 'NO_DATA') as StatusKey
+  const entry = STATUS_MAP[key]
   const { Icon, fill } = entry
   return (
     <span
       className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[13px] font-medium ${statusTextClass(value)}`}
     >
       <Icon size={16} weight={fill ? 'fill' : 'regular'} className="flex-none" />
-      {label ?? entry.label}
+      {label ?? t(`status.${key}`)}
     </span>
   )
 }
@@ -60,12 +64,12 @@ export function Status({ value, label }: { value: string; label?: string }) {
 /* ---------- Formatting shared across screens ---------- */
 
 export function relativeTime(iso: string | null | undefined) {
-  if (!iso) return 'never'
+  if (!iso) return tr('time.never')
   const seconds = Math.round((Date.now() - new Date(iso).getTime()) / 1000)
-  if (seconds < 60) return `${Math.max(seconds, 0)}s ago`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
-  return `${Math.floor(seconds / 86400)}d ago`
+  if (seconds < 60) return tr('time.s', { n: Math.max(seconds, 0) })
+  if (seconds < 3600) return tr('time.m', { n: Math.floor(seconds / 60) })
+  if (seconds < 86400) return tr('time.h', { n: Math.floor(seconds / 3600) })
+  return tr('time.d', { n: Math.floor(seconds / 86400) })
 }
 
 export function clockTime(iso: string | null | undefined) {

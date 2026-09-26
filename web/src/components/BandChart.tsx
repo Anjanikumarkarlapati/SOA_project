@@ -3,6 +3,7 @@
 import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { clockTime } from '@/components/Status'
 import { usePrefersReducedMotion } from '@/lib/session'
+import { useI18n } from '@/lib/i18n/react'
 import type { CropMetrics } from '@/lib/api'
 
 /**
@@ -26,6 +27,7 @@ export default function BandChart({
   domain?: [number, number]
 }) {
   const reducedMotion = usePrefersReducedMotion()
+  const { t } = useI18n()
   const [min, max] = band
 
   const data = environment.map((p) => ({
@@ -39,11 +41,11 @@ export default function BandChart({
     <section className="glass rounded-xl">
       <div className="flex items-center gap-3 border-b border-border px-4 py-3.5">
         <h2 className="text-[15px] font-semibold">{title}</h2>
-        <span className="ml-auto text-xs text-muted-foreground">shaded band = optimal range</span>
+        <span className="ml-auto text-xs text-muted-foreground">{t('crop.band')}</span>
       </div>
       <div className="h-55 p-4">
         {data.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No telemetry in this range.</p>
+          <p className="text-xs text-muted-foreground">{t('crop.noTelemetry')}</p>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
@@ -75,7 +77,7 @@ export default function BandChart({
                 stroke="none"
                 fill="transparent"
                 isAnimationActive={false}
-                name="optimal floor"
+                name={t('crop.optimalFloor')}
               />
               <Area
                 type="monotone"
@@ -85,7 +87,7 @@ export default function BandChart({
                 fill="var(--brand-accent)"
                 fillOpacity={0.12}
                 isAnimationActive={false}
-                name="optimal range"
+                name={t('crop.optimalRange')}
               />
               <Line
                 type="monotone"

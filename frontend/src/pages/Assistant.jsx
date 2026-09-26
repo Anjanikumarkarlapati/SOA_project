@@ -18,7 +18,7 @@ import {
   IconWarning,
 } from '../icons'
 import { useSession } from '../session'
-import { CLIMATE, IRRIGATION } from '../farm/india'
+import { useI18n } from '../i18n/react'
 import {
   BAND_TONE,
   SCENARIOS,
@@ -43,18 +43,10 @@ import {
 import { PADDY_HIGH, PADDY_LOW, initialState, readings, step } from '../farm/simulator'
 
 /** Simulated minutes per real second. */
-const SPEEDS = [
-  { label: '10 min/s', value: 10 },
-  { label: '30 min/s', value: 30 },
-  { label: '1 h/s', value: 60 },
-  { label: '3 h/s', value: 180 },
-]
+const SPEEDS = [10, 30, 60, 180]
 const TICK_MS = 250
 
 const SCENARIO_ICON = { normal: IconSunSmall, heatwave: IconHeat, monsoon: IconRain, coldwave: IconCold }
-
-const dayName = (iso) =>
-  new Date(`${iso}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })
 
 export default function Assistant() {
   const navigate = useNavigate()
@@ -71,6 +63,7 @@ export default function Assistant() {
 
 function AssistantView({ profile }) {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const district = districtOf(profile)
   const [live, setLive] = useState(null)
   const [source, setSource] = useState('loading')
@@ -103,52 +96,61 @@ function AssistantView({ profile }) {
   }, [live, district, scenario, profile, model])
 
   if (!model) {
-    return <p className="empty">This farm profile is incomplete. Please run setup again.</p>
+    return <p className="empty">{t('as.incomplete')}</p>
   }
 
   return (
     <>
       <div className="toolbar farm-summary">
         <span className="muted">
-          {model.crop.name} ({model.crop.local}) · {profile.areaAcres} acres · {profile.district}, {profile.state} ·{' '}
-          {IRRIGATION[profile.irrigation].name.toLowerCase()} irrigation · {model.soil.name.toLowerCase()}
+          {t('as.summary', {
+            crop:
+              t(`crop.${model.crop.id}`) === model.crop.name
+                ? `${model.crop.name} (${model.crop.local})`
+                : t(`crop.${model.crop.id}`),
+            area: profile.areaAcres,
+            district: profile.district,
+            state: profile.state,
+            method: t(`method.${profile.irrigation}`),
+            soil: t(`soil.${model.soil.id}`),
+          })}
         </span>
         <div className="toolbar-right">
           <span className={`farm-pill farm-pill-${source === 'live' ? 'good' : 'info'}`} data-testid="weather-source">
-            {source === 'loading' ? 'Fetching weather' : source === 'live' ? 'Live forecast (Open-Meteo)' : 'IMD climate normals (offline)'}
+            {source === 'loading' ? t('as.fetching') : source === 'live' ? t('as.live') : t('as.normals')}
           </span>
           <button type="button" className="btn btn-sm" onClick={() => navigate('/onboarding')}>
             <IconEdit />
-            Edit farm
+            {t('as.edit')}
           </button>
         </div>
       </div>
 
-      <section className="card farm-controls" aria-label="Demo controls">
-        <span className="hint-title farm-controls-label">Demo</span>
+      <section className="card farm-controls" aria-label={t('as.controls')}>
+        <span className="hint-title farm-controls-label">{t('as.demo')}</span>
         <button type="button" className={`btn btn-sm${playing ? '' : ' btn-primary'}`} onClick={() => setPlaying((p) => !p)}>
           {playing ? <IconPause /> : <IconPlay />}
-          {playing ? 'Pause' : 'Play'}
+          {playing ? t('as.pause') : t('as.play')}
         </button>
         <button type="button" className="btn btn-sm" onClick={() => setRun((r) => r + 1)}>
           <IconRestart />
-          Restart day
+          {t('as.restart')}
         </button>
         <label className="farm-speed">
-          <span className="muted">Speed</span>
+          <span className="muted">{t('as.speed')}</span>
           <select className="select" value={speed} onChange={(e) => setSpeed(Number(e.target.value))}>
-            {SPEEDS.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
+            {SPEEDS.map((value) => (
+              <option key={value} value={value}>{t(`as.speed${value}`)}</option>
             ))}
           </select>
         </label>
-        <div className="farm-chips farm-scenarios" role="group" aria-label="Weather scenario">
-          {Object.keys(SCENARIOS).map((key) => {
+        <div className="farm-chips farm-scenarios" role="group" aria-label={t('as.scenario')}>
+          {SCENARIOS.map((key) => {
             const Icon = SCENARIO_ICON[key]
             return (
-              <button key={key} type="button" className="farm-chip" aria-pressed={scenario === key} title={SCENARIOS[key].hint} onClick={() => setScenario(key)}>
+              <button key={key} type="button" className="farm-chip" aria-pressed={scenario === key} data-scenario={key} title={t(`scen.${key}Hint`)} onClick={() => setScenario(key)}>
                 <Icon />
-                {SCENARIOS[key].label}
+                {t(`scen.${key}`)}
               </button>
             )
           })}
@@ -175,6 +177,7 @@ function AssistantView({ profile }) {
 
 /** The simulated field. Keyed by its parent, so a new scenario or a restart starts it fresh. */
 function FieldSim({ profile, model, plans, playing, speed, scenario, source }) {
+  const { t, tm, lang } = useI18n()
   const [sim, setSim] = useState(() => initialState(model, plans))
   const simRef = useRef(sim)
 
@@ -198,67 +201,93 @@ function FieldSim({ profile, model, plans, playing, speed, scenario, source }) {
   const flood = profile.irrigation === 'flood' ? floodInterval(model, plan) : null
   const low = ponded ? PADDY_LOW : model.trigger
   const high = ponded ? PADDY_HIGH : model.fieldCapacity
+  const dayName = (iso) =>
+    new Date(`${iso}T00:00:00`).toLocaleDateString(lang.locale, { weekday: 'short', day: 'numeric', month: 'short' })
+  const nextAction = () => {
+    if (plan.skipped) return t('as.noRun', { reason: plan.skipped })
+    const upcoming = plan.pulses.find((p, i) => !sim.handled.includes(i) && p.start * 60 > sim.minute)
+    return upcoming
+      ? t('as.nextRun', { t: formatHour(upcoming.start), l: formatLitres(upcoming.litres) })
+      : t('as.done')
+  }
 
   return (
     <>
       <div className="farm-tiles">
-        <Tile label={`Day ${sim.day + 1} of 7 · ${dayName(plan.date)}`}>
+        <Tile label={t('as.dayOf', { d: sim.day + 1, date: dayName(plan.date) })}>
           <div className="farm-figure-row">
             <span className="farm-hero" data-testid="sim-clock">{formatHour(sim.minute / 60)}</span>
-            <span className="muted">IST</span>
+            <span className="muted">{t('as.ist')}</span>
           </div>
           <div className="farm-tile-foot">
             <BandChip band={plan.band} />
             <span className="muted">
-              {plan.weather.tmin.toFixed(0)}-{plan.weather.tmax.toFixed(0)} °C · rain {plan.weather.rainMm.toFixed(0)} mm
+              {plan.weather.tmin.toFixed(0)}-{plan.weather.tmax.toFixed(0)} °C · {t('as.rain', { n: plan.weather.rainMm.toFixed(0) })}
             </span>
           </div>
         </Tile>
 
-        <Tile label="Water needed today">
+        <Tile label={t('as.water')}>
           <span className="farm-hero" data-testid="water-today">{plan.skipped ? '0 L' : formatLitres(plan.litres)}</span>
           <p className="muted farm-tile-foot">
             {plan.skipped
-              ? plan.skipped
-              : `${plan.grossMm.toFixed(1)} mm · pump ${formatMinutes(plan.pumpMinutes)} · Kc ${plan.kc.toFixed(2)} × ET0 ${plan.weather.et0.toFixed(1)} mm`}
+              ? tm(plan.skipped)
+              : t('as.waterDetail', {
+                  mm: plan.grossMm.toFixed(1),
+                  t: formatMinutes(plan.pumpMinutes),
+                  kc: plan.kc.toFixed(2),
+                  et0: plan.weather.et0.toFixed(1),
+                })}
           </p>
         </Tile>
 
-        <Tile label="Valve and pump">
+        <Tile label={t('as.valve')}>
           <span className={`status status-${sim.valveOpen ? 'good' : 'muted'} farm-valve`} data-testid="valve-state">
             <span className={`farm-dot${sim.valveOpen ? ' farm-dot-live' : ''}`} />
-            {sim.valveOpen ? 'OPEN - irrigating' : 'CLOSED'}
+            {sim.valveOpen ? t('as.open') : t('as.closed')}
           </span>
           <p className="muted farm-tile-foot">
             {sim.valveOpen
-              ? `${formatLitres(sim.pulseDelivered)} of ${formatLitres(sim.pulseTarget)} · zone ${Math.min(model.zones, 1 + Math.floor((sim.pulseDelivered / Math.max(1, sim.pulseTarget)) * model.zones))} of ${model.zones}`
-              : nextAction(plan, sim)}
+              ? t('as.progress', {
+                  a: formatLitres(sim.pulseDelivered),
+                  b: formatLitres(sim.pulseTarget),
+                  z: Math.min(model.zones, 1 + Math.floor((sim.pulseDelivered / Math.max(1, sim.pulseTarget)) * model.zones)),
+                  n: model.zones,
+                })
+              : nextAction()}
           </p>
         </Tile>
 
-        <Tile label="Water used">
+        <Tile label={t('as.used')}>
           <span className="farm-hero">{formatLitres(sim.usedToday)}</span>
-          <p className="muted farm-tile-foot">today · {formatLitres(sim.usedTotal)} since start</p>
+          <p className="muted farm-tile-foot">{t('as.usedDetail', { n: formatLitres(sim.usedTotal) })}</p>
         </Tile>
       </div>
 
-      <section className="card farm-section" aria-label="Live sensor readings">
+      <section className="card farm-section" aria-label={t('as.readings')}>
         <div className="card-head">
-          <h2 className="card-title">Live sensor readings</h2>
-          <span className="muted">simulated field</span>
+          <h2 className="card-title">{t('as.readings')}</h2>
+          <span className="muted">{t('as.simulated')}</span>
         </div>
         <div className="card-body">
           <div className="farm-readings">
-            <Reading icon={<IconDrop />} label={ponded ? 'Standing water' : 'Soil moisture'} value={`${read.level} ${unit}`} tone={read.level < low ? 'critical' : read.level >= high - 1 ? 'good' : 'info'} testId="reading-moisture" />
-            <Reading icon={<IconThermometer />} label="Air temperature" value={`${read.airTemp} °C`} tone={BAND_TONE[tempBand(read.airTemp)]} />
-            <Reading icon={<IconThermometer />} label="Soil temperature" value={`${read.soilTemp} °C`} tone="info" />
-            <Reading icon={<IconRain />} label="Humidity" value={`${read.humidity}%`} tone="info" />
-            <Reading icon={<IconFlow />} label="Flow meter" value={`${read.flow} L/min`} tone={read.flow ? 'good' : 'info'} />
+            <Reading icon={<IconDrop />} label={ponded ? t('as.standing') : t('metric.moisture')} value={`${read.level} ${unit}`} tone={read.level < low ? 'critical' : read.level >= high - 1 ? 'good' : 'info'} testId="reading-moisture" />
+            <Reading icon={<IconThermometer />} label={t('as.air')} value={`${read.airTemp} °C`} tone={BAND_TONE[tempBand(read.airTemp)]} />
+            <Reading icon={<IconThermometer />} label={t('metric.temperature')} value={`${read.soilTemp} °C`} tone="info" />
+            <Reading icon={<IconRain />} label={t('as.humidity')} value={`${read.humidity}%`} tone="info" />
+            <Reading icon={<IconFlow />} label={t('as.flow')} value={`${read.flow} L/min`} tone={read.flow ? 'good' : 'info'} />
           </div>
           <p className="muted farm-footnote">
             {ponded
-              ? `Paddy uses alternate wetting and drying: refill to ${PADDY_HIGH} mm when standing water drops below ${PADDY_LOW} mm.`
-              : `${model.soil.name}: field capacity ${model.fieldCapacity}%, wilting point ${model.wiltingPoint}%. ${model.crop.name} can use ${Math.round(model.crop.depletion * 100)}% of available water before stress, so the controller irrigates below ${model.trigger}%.`}
+              ? t('as.paddyNote', { hi: PADDY_HIGH, lo: PADDY_LOW })
+              : t('as.soilNote', {
+                  soil: t(`soil.${model.soil.id}`),
+                  fc: model.fieldCapacity,
+                  wp: model.wiltingPoint,
+                  crop: t(`crop.${model.crop.id}`),
+                  p: Math.round(model.crop.depletion * 100),
+                  tr: model.trigger,
+                })}
           </p>
         </div>
       </section>
@@ -266,25 +295,25 @@ function FieldSim({ profile, model, plans, playing, speed, scenario, source }) {
       <div className="farm-split">
         <section className="card">
           <div className="card-head">
-            <h2 className="card-title">Last 24 hours</h2>
+            <h2 className="card-title">{t('as.last24')}</h2>
           </div>
           <div className="card-body">
-            <p className="muted farm-footnote farm-footnote-top">Moisture falls with the afternoon heat; shaded bands are automatic irrigation runs.</p>
+            <p className="muted farm-footnote farm-footnote-top">{t('as.chartNote')}</p>
             <div className="chart-box">
               <SimChart data={sim.history} unit={unit} trigger={low} target={high} />
             </div>
           </div>
         </section>
 
-        <section className="card farm-log-card" aria-label="Automation log">
+        <section className="card farm-log-card" aria-label={t('as.log')}>
           <div className="card-head">
-            <h2 className="card-title">Automation log</h2>
+            <h2 className="card-title">{t('as.log')}</h2>
           </div>
           <ol className="farm-log" data-testid="automation-log">
             {sim.log.map((entry) => (
               <li key={entry.id}>
-                <span className="mono muted">D{entry.day + 1} {formatHour(entry.minute / 60)}</span>
-                <span className={entry.tone === 'info' ? '' : `status-${entry.tone}`}>{entry.text}</span>
+                <span className="mono muted">{t('as.dayShort', { n: entry.day + 1 })} {formatHour(entry.minute / 60)}</span>
+                <span className={entry.tone === 'info' ? '' : `status-${entry.tone}`}>{tm(entry.text)}</span>
               </li>
             ))}
           </ol>
@@ -292,42 +321,42 @@ function FieldSim({ profile, model, plans, playing, speed, scenario, source }) {
       </div>
 
       {plan.advisories.length || flood || plan.pumpMinutes > 480 ? (
-        <section className="farm-advisories" aria-label="Advisories">
+        <section className="farm-advisories" aria-label={t('as.advisories')}>
           {plan.advisories.map((a) => (
-            <Advisory key={a} tone="warning" text={a} />
+            <Advisory key={a.k} tone="warning" text={tm(a)} />
           ))}
           {flood ? (
             <Advisory
               tone="info"
               text={
                 ponded
-                  ? `Flood irrigation: keep ${PADDY_LOW}-${PADDY_HIGH} mm standing water; top up about ${formatLitres(flood.litresPerTurn)} a day in this weather.`
-                  : `Flood irrigation: give about ${formatLitres(flood.litresPerTurn)} every ${flood.everyDays} day${flood.everyDays > 1 ? 's' : ''} instead of daily - the root zone holds ${model.raw.toFixed(0)} mm of easy water.`
+                  ? t('as.floodPaddy', { lo: PADDY_LOW, hi: PADDY_HIGH, l: formatLitres(flood.litresPerTurn) })
+                  : t('as.flood', { l: formatLitres(flood.litresPerTurn), n: flood.everyDays, mm: model.raw.toFixed(0) })
               }
             />
           ) : null}
           {plan.pumpMinutes > 480 ? (
-            <Advisory tone="warning" text={`The pump needs ${formatMinutes(plan.pumpMinutes)} a day for this field. Consider drip irrigation or a larger pump, and run on the farm feeder's power hours.`} />
+            <Advisory tone="warning" text={t('as.pumpLong', { t: formatMinutes(plan.pumpMinutes) })} />
           ) : null}
         </section>
       ) : null}
 
-      <section className="card farm-section" aria-label="Hourly water plan">
+      <section className="card farm-section" aria-label={t('as.hourly')}>
         <div className="card-head">
           <div>
-            <h2 className="card-title">Today hour by hour</h2>
-            <p className="muted farm-card-sub">How much water the crop uses each hour at that hour&apos;s temperature, and when the automation replaces it.</p>
+            <h2 className="card-title">{t('as.hourly')}</h2>
+            <p className="muted farm-card-sub">{t('as.hourlyNote')}</p>
           </div>
         </div>
         <div className="table-wrap farm-table-scroll">
           <table className="data">
             <thead>
               <tr>
-                <th>Time</th>
-                <th>Air temp</th>
-                <th>Temp type</th>
-                <th>Crop use</th>
-                <th>Automation</th>
+                <th>{t('as.time')}</th>
+                <th>{t('as.airShort')}</th>
+                <th>{t('as.tempType')}</th>
+                <th>{t('as.cropUse')}</th>
+                <th>{t('as.automation')}</th>
               </tr>
             </thead>
             <tbody>
@@ -337,13 +366,13 @@ function FieldSim({ profile, model, plans, playing, speed, scenario, source }) {
         </div>
       </section>
 
-      <section className="card farm-section" aria-label="Seven day plan">
+      <section className="card farm-section" aria-label={t('as.week')}>
         <div className="card-head">
           <div>
-            <h2 className="card-title">7-day irrigation plan</h2>
+            <h2 className="card-title">{t('as.week')}</h2>
             <p className="muted farm-card-sub">
-              {source === 'live' ? 'From the live forecast for your coordinates.' : `From ${CLIMATE[model.district.zone].label.toLowerCase()} climate normals.`}
-              {scenario !== 'normal' ? ` Scenario applied: ${SCENARIOS[scenario].label.toLowerCase()}.` : ''}
+              {source === 'live' ? t('as.fromLive') : t('as.fromNormals', { zone: t(`zone.${model.district.zone}`) })}
+              {scenario !== 'normal' ? ` ${t('as.applied', { s: t(`scen.${scenario}`) })}` : ''}
             </p>
           </div>
         </div>
@@ -351,13 +380,13 @@ function FieldSim({ profile, model, plans, playing, speed, scenario, source }) {
           <table className="data">
             <thead>
               <tr>
-                <th>Day</th>
-                <th>Temp</th>
-                <th>Type</th>
-                <th>Rain</th>
-                <th>Crop use</th>
-                <th>Water to give</th>
-                <th>When</th>
+                <th>{t('as.day')}</th>
+                <th>{t('as.temp')}</th>
+                <th>{t('as.type')}</th>
+                <th>{t('as.rainCol')}</th>
+                <th>{t('as.cropUse')}</th>
+                <th>{t('as.give')}</th>
+                <th>{t('as.when')}</th>
               </tr>
             </thead>
             <tbody>
@@ -368,9 +397,9 @@ function FieldSim({ profile, model, plans, playing, speed, scenario, source }) {
                   <td><BandChip band={p.band} /></td>
                   <td className="mono">{p.weather.rainMm.toFixed(0)} mm</td>
                   <td className="mono">{p.etc.toFixed(1)} mm</td>
-                  <td className="mono"><strong>{p.skipped ? 'Skip' : formatLitres(p.litres)}</strong></td>
+                  <td className="mono"><strong>{p.skipped ? t('as.skip') : formatLitres(p.litres)}</strong></td>
                   <td className="muted">
-                    {p.skipped ? p.skipped : p.pulses.map((x) => `${formatHour(x.start)} (${formatMinutes(x.minutes)})`).join(', ')}
+                    {p.skipped ? tm(p.skipped) : p.pulses.map((x) => `${formatHour(x.start)} (${formatMinutes(x.minutes)})`).join(', ')}
                   </td>
                 </tr>
               ))}
@@ -379,22 +408,22 @@ function FieldSim({ profile, model, plans, playing, speed, scenario, source }) {
         </div>
       </section>
 
-      <section className="card farm-section" aria-label="Your sensor kit">
+      <section className="card farm-section" aria-label={t('as.kit')}>
         <div className="card-head">
           <IconChip />
-          <h2 className="card-title">Your sensor kit</h2>
+          <h2 className="card-title">{t('as.kit')}</h2>
           <span className="muted">
-            {model.zones} zone{model.zones > 1 ? 's' : ''} · essential {formatInr(budget.essential)} · full {formatInr(budget.full)}
+            {t('as.kitSummary', { n: model.zones, e: formatInr(budget.essential), f: formatInr(budget.full) })}
           </span>
         </div>
         <ul className="card-body farm-kit">
           {sensors.map((s) => (
             <li key={s.id} className="farm-panel">
               <div className="farm-sensor-head">
-                <span className="farm-option-title">{s.name}</span>
+                <span className="farm-option-title">{tm(s.name)}</span>
                 <span className="mono farm-sensor-qty">×{s.quantity}</span>
               </div>
-              <p className="muted">{s.priority} · {s.measures}</p>
+              <p className="muted">{t(`prio.${s.priority}`)} · {tm(s.measures)}</p>
             </li>
           ))}
         </ul>
@@ -403,31 +432,26 @@ function FieldSim({ profile, model, plans, playing, speed, scenario, source }) {
   )
 }
 
-function nextAction(plan, sim) {
-  if (plan.skipped) return `No run today - ${plan.skipped.toLowerCase()}`
-  const upcoming = plan.pulses.find((p, i) => !sim.handled.includes(i) && p.start * 60 > sim.minute)
-  return upcoming ? `Next run ${formatHour(upcoming.start)} · ${formatLitres(upcoming.litres)}` : "Today's runs are done - watching moisture"
-}
-
 function HourRows({ plan, currentHour, areaM2 }) {
+  const { t } = useI18n()
   const temps = hourlyTemps(plan.weather)
   const share = hourlyEtShare()
-  return temps.map((t, h) => {
+  return temps.map((temp, h) => {
     const pulse = plan.pulses.find((p) => Math.floor(p.start) === h)
     const useL = plan.etc * share[h] * areaM2
     return (
       <tr key={h} className={h === currentHour ? 'farm-row-current' : undefined} aria-current={h === currentHour ? 'time' : undefined}>
         <td className="mono">{formatHour(h)}</td>
-        <td className="mono">{t.toFixed(1)} °C</td>
-        <td><BandChip band={tempBand(t)} /></td>
+        <td className="mono">{temp.toFixed(1)} °C</td>
+        <td><BandChip band={tempBand(temp)} /></td>
         <td className="mono">{useL >= 1 ? formatLitres(useL) : '-'}</td>
         <td>
           {pulse ? (
-            <strong className="status-good">Irrigate {formatLitres(pulse.litres)} ({formatMinutes(pulse.minutes)})</strong>
-          ) : h >= 11 && h <= 16 && t >= 35 ? (
-            <span className="status-warning">No irrigation - peak heat</span>
+            <strong className="status-good">{t('as.irrigate', { l: formatLitres(pulse.litres), t: formatMinutes(pulse.minutes) })}</strong>
+          ) : h >= 11 && h <= 16 && temp >= 35 ? (
+            <span className="status-warning">{t('as.peakHeat')}</span>
           ) : (
-            <span className="muted">Monitor</span>
+            <span className="muted">{t('as.monitor')}</span>
           )}
         </td>
       </tr>
@@ -457,7 +481,8 @@ function Reading({ icon, label, value, tone, testId }) {
 }
 
 function BandChip({ band }) {
-  return <span className={`farm-pill farm-pill-${BAND_TONE[band]}`}>{band}</span>
+  const { t } = useI18n()
+  return <span className={`farm-pill farm-pill-${BAND_TONE[band]}`}>{t(`band.${band}`)}</span>
 }
 
 function Advisory({ tone, text }) {

@@ -16,13 +16,15 @@ import {
 import { useClickAway } from './components'
 import { useSession, useTheme } from './session'
 import ChatBot from './ChatBot'
+import { useI18n } from './i18n/react'
+import LanguageSwitcher from './i18n/LanguageSwitcher'
 
 const NAV = [
-  { to: '/', label: 'Dashboard', Icon: IconDashboard, end: true },
-  { to: '/sensors', label: 'Sensors', Icon: IconSensor },
-  { to: '/crops', label: 'Crops', Icon: IconCrop },
-  { to: '/irrigation', label: 'Irrigation', Icon: IconValve },
-  { to: '/assistant', label: 'Farm Assistant', Icon: IconAssistant },
+  { to: '/', label: 'nav.dashboard', Icon: IconDashboard, end: true },
+  { to: '/sensors', label: 'nav.sensors', Icon: IconSensor },
+  { to: '/crops', label: 'nav.crops', Icon: IconCrop },
+  { to: '/irrigation', label: 'nav.irrigation', Icon: IconValve },
+  { to: '/assistant', label: 'nav.assistant', Icon: IconAssistant },
 ]
 
 /** The offline demo has no backend, so only the browser-side assistant is reachable. */
@@ -33,23 +35,23 @@ function pageHeading(pathname) {
   // Detail pages keep the sentence headline; the ID is long and unbroken, so it goes underneath
   // instead of being set at headline size, where it wrapped mid-word on phones.
   if (pathname.startsWith('/sensors/')) {
-    return { title: 'One sensor, up close.', subtitle: decodeURIComponent(pathname.split('/')[2]) }
+    return { title: 'head.sensor', subtitle: decodeURIComponent(pathname.split('/')[2]), raw: true }
   }
   if (pathname.startsWith('/crops/')) {
-    return { title: 'One field, up close.', subtitle: decodeURIComponent(pathname.split('/')[2]) }
+    return { title: 'head.crop', subtitle: decodeURIComponent(pathname.split('/')[2]), raw: true }
   }
   switch (pathname) {
     // List pages get the reference's headline treatment: a short sentence, full stop included.
     case '/sensors':
-      return { title: 'Sensors across the farm.', subtitle: 'Registered IoT devices, their health and their last reading.' }
+      return { title: 'head.sensors', subtitle: 'head.sensorsSub' }
     case '/crops':
-      return { title: 'Crop health by field.', subtitle: 'Each field scored against its own optimal range.' }
+      return { title: 'head.crops', subtitle: 'head.cropsSub' }
     case '/assistant':
-      return { title: 'Water, on its own.', subtitle: 'How much your crop needs, hour by hour, from its stage, the temperature and the rain - and the valves that deliver it.' }
+      return { title: 'head.assistant', subtitle: 'head.assistantSub' }
     case '/irrigation':
-      return { title: 'Irrigation schedules and valves.', subtitle: 'Set when zones water, or open and close a valve by hand.' }
+      return { title: 'head.irrigation', subtitle: 'head.irrigationSub' }
     default:
-      return { title: 'Your farm at a glance.', subtitle: 'Soil moisture, field health, sensors, alerts and irrigation in one view.' }
+      return { title: 'head.dashboard', subtitle: 'head.dashboardSub' }
   }
 }
 
@@ -61,16 +63,17 @@ function initialsOf(session) {
     .join('')
 }
 
-/** The API sends roles as constants ("ADMIN"); people read them in sentence case. */
-function roleLabel(role) {
-  return role ? role.charAt(0) + role.slice(1).toLowerCase() : ''
+/** The API sends roles as constants ("ADMIN"); people read them as a translated word. */
+function roleLabel(role, t) {
+  return role ? t(`role.${role}`) : ''
 }
 
 export default function Layout() {
   const { session, isDemo, signOut } = useSession()
   const nav = isDemo ? DEMO_NAV : NAV
   const [theme, toggleTheme] = useTheme()
-  const { title, subtitle } = pageHeading(useLocation().pathname)
+  const { t } = useI18n()
+  const { title, subtitle, raw } = pageHeading(useLocation().pathname)
   const [menuOpen, setMenuOpen] = useState(false)
 
   const initials = initialsOf(session)
@@ -79,15 +82,15 @@ export default function Layout() {
   return (
     <div className="shell">
       <a className="skip-link" href="#main-content">
-        Skip to content
+        {t('shell.skip')}
       </a>
 
       <header className="topbar">
         <Link to="/" className="brand">
-          AgriTech
+          {t('app.brand')}
         </Link>
 
-        <nav className="nav-links" aria-label="Primary">
+        <nav className="nav-links" aria-label={t('nav.primary')}>
           {nav.map(({ to, label, end }) => (
             <NavLink
               key={to}
@@ -95,17 +98,19 @@ export default function Layout() {
               end={end}
               className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
             >
-              {label}
+              {t(label)}
             </NavLink>
           ))}
         </nav>
 
         <div className="topbar-actions">
+          <LanguageSwitcher />
+
           <button
             type="button"
             className="btn btn-quiet btn-icon"
             onClick={toggleTheme}
-            aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+            aria-label={theme === 'light' ? t('shell.dark') : t('shell.light')}
           >
             {theme === 'light' ? <IconMoon /> : <IconSun />}
           </button>
@@ -117,7 +122,7 @@ export default function Layout() {
             className="btn btn-quiet btn-icon hamburger"
             aria-expanded={menuOpen}
             aria-controls="nav-drawer"
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-label={menuOpen ? t('shell.closeMenu') : t('shell.openMenu')}
             onClick={() => setMenuOpen((v) => !v)}
           >
             {menuOpen ? <IconClose /> : <IconMenu />}
@@ -131,8 +136,8 @@ export default function Layout() {
 
       <main className="content" id="main-content" tabIndex={-1}>
         <div className="page-head">
-          <h1 className="page-title">{title}</h1>
-          <p className="page-subtitle">{subtitle}</p>
+          <h1 className="page-title">{t(title)}</h1>
+          <p className="page-subtitle">{raw ? subtitle : t(subtitle)}</p>
         </div>
         <Outlet />
       </main>
@@ -144,6 +149,7 @@ export default function Layout() {
 
 /** Identity and sign-out, collapsed into the bar so the nav stays a single line. */
 function AccountMenu({ session, signOut, initials }) {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const close = useCallback(() => setOpen(false), [])
   const ref = useClickAway(open, close)
@@ -169,11 +175,11 @@ function AccountMenu({ session, signOut, initials }) {
         <div id="account-panel" className="account-dropdown">
           <div className="account-dropdown-head">
             <div className="user-name">{session.displayName || session.email}</div>
-            <div className="user-role">{roleLabel(session.role)}</div>
+            <div className="user-role">{roleLabel(session.role, t)}</div>
           </div>
           <button type="button" className="nav-item" onClick={signOut}>
             <IconLogout />
-            <span>Sign out</span>
+            <span>{t('shell.signOut')}</span>
           </button>
         </div>
       ) : null}
@@ -187,10 +193,11 @@ function AccountMenu({ session, signOut, initials }) {
  * disclosure region, not a dialog, so it deliberately carries no role="dialog"/aria-modal.
  */
 function NavDrawer({ nav, session, signOut, initials, onNavigate }) {
+  const { t } = useI18n()
   const ref = useClickAway(true, onNavigate)
 
   return (
-    <nav id="nav-drawer" className="nav-drawer" aria-label="Menu" ref={ref}>
+    <nav id="nav-drawer" className="nav-drawer" aria-label={t('nav.menu')} ref={ref}>
       {nav.map(({ to, label, Icon, end }) => (
         <NavLink
           key={to}
@@ -200,7 +207,7 @@ function NavDrawer({ nav, session, signOut, initials, onNavigate }) {
           className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
         >
           <Icon />
-          <span>{label}</span>
+          <span>{t(label)}</span>
         </NavLink>
       ))}
 
@@ -211,7 +218,7 @@ function NavDrawer({ nav, session, signOut, initials, onNavigate }) {
           </span>
           <span className="user-text">
             <span className="user-name">{session.displayName || session.email}</span>
-            <span className="user-role">{roleLabel(session.role)}</span>
+            <span className="user-role">{roleLabel(session.role, t)}</span>
           </span>
         </div>
         <button
@@ -223,7 +230,7 @@ function NavDrawer({ nav, session, signOut, initials, onNavigate }) {
           }}
         >
           <IconLogout />
-          <span>Sign out</span>
+          <span>{t('shell.signOut')}</span>
         </button>
       </div>
     </nav>

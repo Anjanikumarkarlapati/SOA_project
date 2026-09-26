@@ -7,6 +7,7 @@ import { ArrowsClockwise } from '@phosphor-icons/react'
 import { Status, relativeTime, statusColor } from '@/components/Status'
 import { api, type Crop } from '@/lib/api'
 import { usePolling, useSession } from '@/lib/session'
+import { useI18n } from '@/lib/i18n/react'
 
 const Sparkline = dynamic(() => import('@/components/Sparkline'), { ssr: false })
 
@@ -14,6 +15,7 @@ type CropWithTrend = Crop & { trend: { timestamp: string; healthScore: number }[
 
 export default function Crops() {
   const { token } = useSession()
+  const { t } = useI18n()
   const [reloadKey, setReloadKey] = useState(0)
   const [analyzing, setAnalyzing] = useState(false)
 
@@ -49,13 +51,13 @@ export default function Crops() {
   return (
     <>
       <header className="mb-5">
-        <h1 className="text-xl font-semibold tracking-tight">Crop Monitoring</h1>
-        <p className="mt-0.5 text-xs text-muted-foreground">Environmental health by field</p>
+        <h1 className="text-xl font-semibold tracking-tight">{t('crops.title')}</h1>
+        <p className="mt-0.5 text-xs text-muted-foreground">{t('crops.sub')}</p>
       </header>
 
       <div className="mb-4 flex items-center gap-2">
         <span className="text-[13px] text-muted-foreground">
-          {data ? `${data.length} fields monitored` : 'Loading fields...'}
+          {data ? t('crops.monitored', { n: data.length }) : t('crops.loadingFields')}
         </span>
         <button
           type="button"
@@ -64,7 +66,7 @@ export default function Crops() {
           className="ml-auto inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline-strong bg-surface px-3.5 text-[13px] font-medium transition hover:bg-raised active:translate-y-px disabled:opacity-55"
         >
           <ArrowsClockwise size={16} />
-          {analyzing ? 'Analyzing' : 'Run analysis'}
+          {analyzing ? t('crops.analyzing') : t('crops.run')}
         </button>
       </div>
 
@@ -77,7 +79,7 @@ export default function Crops() {
           ))}
         </div>
       ) : !data || data.length === 0 ? (
-        <p className="p-12 text-center text-sm text-muted-foreground">No fields configured yet.</p>
+        <p className="p-12 text-center text-sm text-muted-foreground">{t('crops.none')}</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data.map((crop) => (
@@ -85,14 +87,14 @@ export default function Crops() {
               <div className="border-b border-border px-4 py-3.5">
                 <h2 className="text-[15px] font-semibold">{crop.name}</h2>
                 <p className="text-xs text-muted-foreground">
-                  {crop.cropType}, {crop.areaHectares} ha
+                  {crop.cropType}, {t('unit.ha', { n: crop.areaHectares })}
                 </p>
               </div>
 
               <div className="p-4">
                 <div className="flex items-end gap-4">
                   <div>
-                    <div className="text-xs font-medium text-muted-foreground">Health score</div>
+                    <div className="text-xs font-medium text-muted-foreground">{t('crops.health')}</div>
                     <div
                       className="font-mono text-[32px] font-bold leading-none tracking-tight tabular"
                       style={{ color: statusColor(crop.status) }}
@@ -108,25 +110,25 @@ export default function Crops() {
 
                 <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4">
                   <Metric
-                    label="Soil moisture"
+                    label={t('metric.moisture')}
                     value={crop.soilMoisture == null ? '--' : `${crop.soilMoisture.toFixed(1)}%`}
-                    hint={`optimal ${crop.optimal.moisture[0]}-${crop.optimal.moisture[1]}%`}
+                    hint={t('crops.optimal', { range: `${crop.optimal.moisture[0]}-${crop.optimal.moisture[1]}%` })}
                     tone={crop.moistureStatus}
                   />
                   <Metric
-                    label="Soil temperature"
-                    value={crop.soilTemperature == null ? '--' : `${crop.soilTemperature.toFixed(1)} C`}
-                    hint={`optimal ${crop.optimal.temperature[0]}-${crop.optimal.temperature[1]} C`}
+                    label={t('metric.temperature')}
+                    value={crop.soilTemperature == null ? '--' : `${crop.soilTemperature.toFixed(1)} °C`}
+                    hint={t('crops.optimal', { range: `${crop.optimal.temperature[0]}-${crop.optimal.temperature[1]} °C` })}
                     tone={crop.temperatureStatus}
                   />
                 </div>
 
                 <div className="mt-4 flex items-center gap-2 text-xs">
                   <span className="font-mono text-muted-foreground tabular">
-                    updated {relativeTime(crop.lastUpdated)}
+                    {t('crops.updated', { t: relativeTime(crop.lastUpdated) })}
                   </span>
                   <Link href={`/crops/${crop.cropId}`} className="ml-auto text-brand hover:underline">
-                    View details
+                    {t('crops.view')}
                   </Link>
                 </div>
               </div>
@@ -143,6 +145,7 @@ const CROP_TYPES = ['Maize', 'Wheat', 'Tomato', 'Soybean', 'Rice', 'Cotton', 'Su
 /** A farmer adds a field; the backend attaches a simulated sensor so readings appear right away. */
 function AddField({ onAdded }: { onAdded: () => void }) {
   const { token } = useSession()
+  const { t } = useI18n()
   const [form, setForm] = useState({ name: '', cropType: '', areaHectares: '' })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -164,7 +167,7 @@ function AddField({ onAdded }: { onAdded: () => void }) {
       setForm({ name: '', cropType: '', areaHectares: '' })
       onAdded()
     } catch (err) {
-      setError((err as Error).message || 'Could not add the field')
+      setError((err as Error).message || t('crops.addFailed'))
     } finally {
       setSaving(false)
     }
@@ -176,11 +179,11 @@ function AddField({ onAdded }: { onAdded: () => void }) {
   return (
     <form onSubmit={submit} className="glass mb-4 flex flex-wrap items-end gap-2 rounded-xl p-4">
       <label className="grid gap-1 text-xs font-medium text-muted-foreground">
-        Field name
+        {t('crops.fieldName')}
         <input required className={input} value={form.name} onChange={set('name')} placeholder="East Plot" />
       </label>
       <label className="grid gap-1 text-xs font-medium text-muted-foreground">
-        Crop type
+        {t('crops.cropType')}
         <input
           required
           list="crop-types"
@@ -196,7 +199,7 @@ function AddField({ onAdded }: { onAdded: () => void }) {
         </datalist>
       </label>
       <label className="grid gap-1 text-xs font-medium text-muted-foreground">
-        Area (ha)
+        {t('crops.area')}
         <input
           type="number"
           min="0.1"
@@ -211,7 +214,7 @@ function AddField({ onAdded }: { onAdded: () => void }) {
         disabled={saving}
         className="inline-flex min-h-9 items-center rounded-lg bg-brand px-3.5 text-[13px] font-medium text-white transition active:translate-y-px disabled:opacity-55"
       >
-        {saving ? 'Adding' : 'Add field'}
+        {saving ? t('crops.adding') : t('crops.add')}
       </button>
       {error ? (
         <p role="alert" className="w-full text-xs text-status-critical">

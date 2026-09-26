@@ -1,4 +1,4 @@
-// Shared with web/src/lib/farm - keep the two copies in step.
+// Shared with web/src/lib/farm - edit it there and run node scripts/sync-shared.mjs.
 /*
  * Demo-mode field simulator. Advances a virtual clock minute by minute: the crop draws water
  * out of the root zone with the day's evaporation curve, rain tops it up, and the automation
@@ -11,18 +11,19 @@ import {
   hourlyTemps,
   formatHour,
   formatLitres,
-  formatMinutes,
+  minutesMsg,
   type DayPlan,
   type FarmProfile,
   type FieldModel,
 } from './engine'
+import { msg, type Msg } from '../i18n/core'
 
 export interface LogEntry {
   id: number
   day: number
   minute: number
   tone: 'good' | 'info' | 'warning' | 'critical'
-  text: string
+  text: Msg
 }
 
 export interface SimPoint {
@@ -81,14 +82,16 @@ export function initialState(model: FieldModel, plans: DayPlan[], startMinute = 
         day: 0,
         minute: startMinute,
         tone: 'info',
-        text: `Automation armed for ${model.crop.name}. ${model.crop.ponded ? `Refill below ${PADDY_LOW} mm standing water` : `Irrigate below ${model.trigger}% soil moisture, fill to ${model.fieldCapacity}%`}.`,
+        text: model.crop.ponded
+          ? msg('log.armedPaddy', { crop: msg(`crop.${model.crop.id}`), lo: PADDY_LOW })
+          : msg('log.armed', { crop: msg(`crop.${model.crop.id}`), tr: model.trigger, fc: model.fieldCapacity }),
       },
     ],
     seq: 1,
   }
 }
 
-function push(state: SimState, tone: LogEntry['tone'], text: string) {
+function push(state: SimState, tone: LogEntry['tone'], text: Msg) {
   state.log = [{ id: state.seq++, day: state.day, minute: state.minute, tone, text }, ...state.log].slice(0, 80)
 }
 
@@ -116,7 +119,7 @@ export function step(prev: SimState, minutes: number, profile: FarmProfile, mode
 
     // 2. Rain falls as an afternoon shower, 14:00-18:00.
     if (plan.effectiveRain > 0 && h >= 14 && h < 18) {
-      if (s.minute === 14 * 60) push(s, 'info', `Rain started - ${plan.weather.rainMm.toFixed(0)} mm expected. Rain gauge reporting.`)
+      if (s.minute === 14 * 60) push(s, 'info', msg('log.rain', { n: plan.weather.rainMm.toFixed(0) }))
       s.level += toLevel(plan.effectiveRain / 240)
     }
 
@@ -126,7 +129,7 @@ export function step(prev: SimState, minutes: number, profile: FarmProfile, mode
       s.handled.push(index)
       const full = ponded ? s.level >= PADDY_HIGH - 5 : s.level >= model.fieldCapacity - 1
       if (full) {
-        push(s, 'good', `${formatHour(pulse.start)} run skipped - soil already at ${s.level.toFixed(1)}${ponded ? ' mm' : '%'}, no water wasted.`)
+        push(s, 'good', msg('log.skipped', { time: formatHour(pulse.start), level: `${s.level.toFixed(1)}${ponded ? ' mm' : '%'}` }))
         return
       }
       if (!s.valveOpen) {
@@ -134,7 +137,7 @@ export function step(prev: SimState, minutes: number, profile: FarmProfile, mode
         s.pulseIndex = index
         s.pulseTarget = pulse.litres
         s.pulseDelivered = 0
-        push(s, 'good', `Valve OPEN, pump ON - delivering ${formatLitres(pulse.litres)} (~${formatMinutes(pulse.minutes)}). ${pulse.reason}.`)
+        push(s, 'good', msg('log.open', { l: formatLitres(pulse.litres), t: minutesMsg(pulse.minutes), reason: pulse.reason }))
       }
     })
 
@@ -150,7 +153,9 @@ export function step(prev: SimState, minutes: number, profile: FarmProfile, mode
       push(
         s,
         'warning',
-        `${ponded ? `Standing water down to ${s.level.toFixed(0)} mm` : `Soil moisture ${s.level.toFixed(1)}% fell below ${model.trigger}%`} - automatic refill of ${formatLitres(litres)}.`,
+        ponded
+          ? msg('log.refillPaddy', { n: s.level.toFixed(0), l: formatLitres(litres) })
+          : msg('log.refill', { n: s.level.toFixed(1), tr: model.trigger, l: formatLitres(litres) }),
       )
     }
 
@@ -166,7 +171,10 @@ export function step(prev: SimState, minutes: number, profile: FarmProfile, mode
         push(
           s,
           'info',
-          `Valve CLOSED, pump OFF - ${formatLitres(s.pulseDelivered)} delivered${topped ? ' (moisture cut-out reached)' : ''}. Soil at ${s.level.toFixed(1)}${ponded ? ' mm' : '%'}.`,
+          msg(topped ? 'log.closeCut' : 'log.close', {
+            l: formatLitres(s.pulseDelivered),
+            level: `${s.level.toFixed(1)}${ponded ? ' mm' : '%'}`,
+          }),
         )
         s.pulseIndex = null
       }
@@ -193,7 +201,7 @@ export function step(prev: SimState, minutes: number, profile: FarmProfile, mode
     // 6. Clock.
     s.minute += 1
     if (s.minute >= 1440) {
-      push(s, 'info', `Day closed: ${formatLitres(s.usedToday)} used (plan was ${formatLitres(plan.skipped ? 0 : plan.litres)}).`)
+      push(s, 'info', msg('log.dayClosed', { used: formatLitres(s.usedToday), plan: formatLitres(plan.skipped ? 0 : plan.litres) }))
       s.minute = 0
       s.day = (s.day + 1) % plans.length
       s.usedToday = 0
@@ -203,8 +211,13 @@ export function step(prev: SimState, minutes: number, profile: FarmProfile, mode
         s,
         next.skipped ? 'good' : 'info',
         next.skipped
-          ? `New day: irrigation not needed - ${next.skipped}.`
-          : `New day: ${next.band.toLowerCase()} (${next.weather.tmax.toFixed(0)} C). Plan ${formatLitres(next.litres)} in ${next.pulses.length} run${next.pulses.length > 1 ? 's' : ''}.`,
+          ? msg('log.newDaySkip', { reason: next.skipped })
+          : msg('log.newDay', {
+              band: msg(`band.${next.band}`),
+              t: next.weather.tmax.toFixed(0),
+              l: formatLitres(next.litres),
+              n: next.pulses.length,
+            }),
       )
     }
   }

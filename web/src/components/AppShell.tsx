@@ -8,17 +8,20 @@ import { SpotlightNavbar, type NavItem } from '@/components/ui/spotlight-navbar'
 import { GooeySearch } from '@/components/ui/gooey-search'
 import { useSession, useTheme } from '@/lib/session'
 import { loadProfile } from '@/lib/farm/engine'
+import { useI18n } from '@/lib/i18n/react'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
+/** Labels are translation keys; the shell translates them for the active language. */
 const NAV: NavItem[] = [
-  { label: 'Dashboard', href: '/' },
-  { label: 'Sensors', href: '/sensors' },
-  { label: 'Crops', href: '/crops' },
-  { label: 'Irrigation', href: '/irrigation' },
-  { label: 'Farm Assistant', href: '/assistant' },
+  { label: 'nav.dashboard', href: '/' },
+  { label: 'nav.sensors', href: '/sensors' },
+  { label: 'nav.crops', href: '/crops' },
+  { label: 'nav.irrigation', href: '/irrigation' },
+  { label: 'nav.assistant', href: '/assistant' },
 ]
 
 /** The offline demo has no backend, so only the browser-side assistant is reachable. */
-const DEMO_NAV: NavItem[] = [{ label: 'Farm Assistant', href: '/assistant' }]
+const DEMO_NAV: NavItem[] = [{ label: 'nav.assistant', href: '/assistant' }]
 
 /**
  * Everything a signed-in user sees sits inside this shell: brand, spotlight navigation,
@@ -29,7 +32,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { session, ready, isDemo, signOut } = useSession()
   const [theme, toggleTheme] = useTheme()
-  const nav = isDemo ? DEMO_NAV : NAV
+  const { t } = useI18n()
+  const nav = useMemo(
+    () => (isDemo ? DEMO_NAV : NAV).map((item) => ({ ...item, label: t(item.label) })),
+    [isDemo, t],
+  )
 
   // Route guard. Waits for `ready` so a hard refresh does not bounce a signed-in user to
   // the login screen before localStorage has been read.
@@ -55,43 +62,33 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [pathname, nav])
 
   // What the search box can take you to. Pages first, then the crop fields by name.
-  const searchTargets = useMemo(
-    () => [
-      'Dashboard',
-      'Sensors',
-      'Crops',
-      'Irrigation schedules',
-      'Manual valve control',
-      'Farm Assistant',
-      'North Field',
-      'River Paddock',
-      'South Terrace',
-      'West Block',
-    ],
-    [],
+  const searchRoutes = useMemo(
+    () =>
+      new Map<string, string>([
+        [t('nav.dashboard'), '/'],
+        [t('nav.sensors'), '/sensors'],
+        [t('nav.crops'), '/crops'],
+        [t('nav.schedules'), '/irrigation'],
+        [t('nav.manual'), '/irrigation'],
+        [t('nav.assistant'), '/assistant'],
+        ['North Field', '/crops/CROP-FIELD-01'],
+        ['River Paddock', '/crops/CROP-FIELD-02'],
+        ['South Terrace', '/crops/CROP-FIELD-03'],
+        ['West Block', '/crops/CROP-FIELD-04'],
+      ]),
+    [t],
   )
+  const searchTargets = useMemo(() => [...searchRoutes.keys()], [searchRoutes])
 
   const goToResult = (item: string) => {
-    const routes: Record<string, string> = {
-      Dashboard: '/',
-      Sensors: '/sensors',
-      Crops: '/crops',
-      'Irrigation schedules': '/irrigation',
-      'Manual valve control': '/irrigation',
-      'Farm Assistant': '/assistant',
-      'North Field': '/crops/CROP-FIELD-01',
-      'River Paddock': '/crops/CROP-FIELD-02',
-      'South Terrace': '/crops/CROP-FIELD-03',
-      'West Block': '/crops/CROP-FIELD-04',
-    }
-    const target = routes[item]
+    const target = searchRoutes.get(item)
     if (target) router.push(target)
   }
 
   if (!ready || !session) {
     return (
       <div className="grid min-h-dvh place-items-center text-sm text-muted-foreground">
-        Loading workspace...
+        {t('shell.loading')}
       </div>
     )
   }
@@ -121,13 +118,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <Plant size={18} />
             </span>
             <span className="hidden text-left leading-tight sm:block">
-              <span className="block text-[13px] font-semibold tracking-tight">AgriTech</span>
-              <span className="block text-[11px] text-muted-foreground">Sensing Solutions</span>
+              <span className="block text-[13px] font-semibold tracking-tight">{t('app.brand')}</span>
+              <span className="block text-[11px] text-muted-foreground">{t('app.brandSub')}</span>
             </span>
           </button>
 
           {/* Spotlight navigation - the highlight tracks the active route. */}
-          <nav className="hidden h-full min-w-0 flex-1 justify-center md:flex" aria-label="Primary">
+          <nav className="hidden h-full min-w-0 flex-1 justify-center md:flex" aria-label={t('nav.primary')}>
             <SpotlightNavbar
               className="h-full items-center pt-0"
               items={nav}
@@ -140,14 +137,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <GooeySearch
               items={searchTargets}
               onSelect={goToResult}
-              buttonLabel="Search"
-              placeholder="Find a page or field..."
+              buttonLabel={t('shell.search')}
+              placeholder={t('shell.searchPlaceholder')}
               maxResults={5}
               debounceMs={200}
             />
 
+            <LanguageSwitcher />
+
             <IconButton
-              label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+              label={theme === 'light' ? t('shell.dark') : t('shell.light')}
               onClick={toggleTheme}
             >
               {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
@@ -155,19 +154,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
             <span
               className="grid size-8 place-items-center rounded-full bg-brand-wash text-[12px] font-semibold text-brand"
-              title={`${session.displayName} (${session.role})`}
+              title={`${session.displayName} (${t(`role.${session.role}`)})`}
             >
               {initials}
             </span>
 
-            <IconButton label="Sign out" onClick={signOut}>
+            <IconButton label={t('shell.signOut')} onClick={signOut}>
               <SignOut size={20} />
             </IconButton>
           </div>
         </div>
 
         {/* Under md the spotlight bar moves to its own row so it never squeezes the header. */}
-        <nav className="flex h-12 justify-center border-t border-border md:hidden" aria-label="Primary">
+        <nav className="flex h-12 justify-center border-t border-border md:hidden" aria-label={t('nav.primary')}>
           <SpotlightNavbar
             className="h-full items-center pt-0"
             items={nav}

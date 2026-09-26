@@ -7,6 +7,7 @@ import { Status, formatDuration, relativeTime } from '@/components/Status'
 import { Field } from '@/components/pages/Sensors'
 import { api, type Crop, type Schedule, type Valve } from '@/lib/api'
 import { usePolling, useSession } from '@/lib/session'
+import { useI18n } from '@/lib/i18n/react'
 
 const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
 
@@ -18,16 +19,17 @@ const plainBtn =
   'inline-flex min-h-9 items-center rounded-lg border border-hairline-strong bg-surface px-3.5 text-[13px] font-medium transition hover:bg-raised active:translate-y-px'
 
 export default function Irrigation() {
+  const { t } = useI18n()
   const [tab, setTab] = useState<'schedules' | 'manual'>('schedules')
 
   return (
     <>
       <header className="mb-5">
-        <h1 className="text-xl font-semibold tracking-tight">Irrigation Control</h1>
-        <p className="mt-0.5 text-xs text-muted-foreground">Schedules and manual valve override</p>
+        <h1 className="text-xl font-semibold tracking-tight">{t('irr.title')}</h1>
+        <p className="mt-0.5 text-xs text-muted-foreground">{t('irr.sub')}</p>
       </header>
 
-      <div role="tablist" aria-label="Irrigation views" className="mb-4 flex gap-1 border-b border-border">
+      <div role="tablist" aria-label={t('irr.views')} className="mb-4 flex gap-1 border-b border-border">
         {(['schedules', 'manual'] as const).map((key) => (
           <button
             key={key}
@@ -40,7 +42,7 @@ export default function Irrigation() {
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
-            {key === 'schedules' ? 'Schedules' : 'Manual Control'}
+            {key === 'schedules' ? t('irr.schedules') : t('irr.manual')}
           </button>
         ))}
       </div>
@@ -52,6 +54,7 @@ export default function Irrigation() {
 
 function Schedules() {
   const { token, isAdmin } = useSession()
+  const { t } = useI18n()
   const [reloadKey, setReloadKey] = useState(0)
   const [editing, setEditing] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -83,7 +86,7 @@ function Schedules() {
   }
 
   if (loading && !data) return <div className="glass h-64 animate-pulse rounded-xl" />
-  if (!data) return <p className="p-12 text-center text-sm text-muted-foreground">Schedules are unavailable.</p>
+  if (!data) return <p className="p-12 text-center text-sm text-muted-foreground">{t('irr.unavailable')}</p>
 
   return (
     <>
@@ -95,12 +98,12 @@ function Schedules() {
 
       <div className="mb-4 flex items-center gap-2">
         <span className="text-[13px] text-muted-foreground">
-          {data.schedules.filter((s) => s.active).length} of {data.schedules.length} schedules active
+          {t('irr.active', { a: data.schedules.filter((s) => s.active).length, b: data.schedules.length })}
         </span>
         {isAdmin ? (
           <button type="button" onClick={() => setEditing(editing === 'new' ? null : 'new')} className={`ml-auto ${primaryBtn}`}>
             <Plus size={16} />
-            New schedule
+            {t('irr.new')}
           </button>
         ) : null}
       </div>
@@ -119,7 +122,7 @@ function Schedules() {
 
       {data.schedules.length === 0 ? (
         <section className="glass rounded-xl p-12 text-center text-sm text-muted-foreground">
-          No irrigation schedules yet.
+          {t('irr.none')}
         </section>
       ) : (
         <section className="glass overflow-hidden rounded-xl">
@@ -148,7 +151,7 @@ function Schedules() {
                   <Toggle
                     checked={schedule.active}
                     disabled={!isAdmin}
-                    name={`${schedule.scheduleId} active`}
+                    name={t('irr.activeLabel', { id: schedule.scheduleId })}
                     onChange={(next) => act(() => api.toggleSchedule(token!, schedule.scheduleId, next))}
                   />
                   <div className="min-w-0">
@@ -160,16 +163,16 @@ function Schedules() {
                   {isAdmin ? (
                     <div className="ml-auto flex flex-none gap-1">
                       <IconButton
-                        label={`Edit ${schedule.scheduleId}`}
+                        label={t('irr.edit', { id: schedule.scheduleId })}
                         onClick={() => setEditing(schedule.scheduleId)}
                       >
                         <PencilSimple size={16} />
                       </IconButton>
                       <IconButton
-                        label={`Delete ${schedule.scheduleId}`}
+                        label={t('irr.delete', { id: schedule.scheduleId })}
                         tone="danger"
                         onClick={() => {
-                          if (window.confirm(`Delete ${schedule.scheduleId}?`)) {
+                          if (window.confirm(t('irr.confirmDelete', { id: schedule.scheduleId }))) {
                             act(() => api.deleteSchedule(token!, schedule.scheduleId))
                           }
                         }}
@@ -183,14 +186,14 @@ function Schedules() {
                 <div className="flex flex-wrap gap-x-4 gap-y-1 pl-[52px] text-xs text-muted-foreground">
                   <span>
                     {schedule.recurrence === 'WEEKLY'
-                      ? schedule.daysOfWeek.map((d) => d.slice(0, 3)).join(', ')
-                      : 'Every day'}
+                      ? schedule.daysOfWeek.map((d) => t(`day.${d}`)).join(', ')
+                      : t('irr.everyDay')}
                   </span>
                   <span className="font-mono tabular">
-                    {schedule.startTime.slice(0, 5)} for {schedule.durationMinutes} min
+                    {t('irr.for', { time: schedule.startTime.slice(0, 5), n: schedule.durationMinutes })}
                   </span>
                   <span className="font-mono tabular">
-                    {schedule.lastRunAt ? `last run ${relativeTime(schedule.lastRunAt)}` : 'never run'}
+                    {schedule.lastRunAt ? t('irr.lastRun', { t: relativeTime(schedule.lastRunAt) }) : t('irr.neverRun')}
                   </span>
                 </div>
               </div>
@@ -216,6 +219,7 @@ function ScheduleForm({
   onSaved: () => void
 }) {
   const { token } = useSession()
+  const { t } = useI18n()
   const [form, setForm] = useState({
     valveId: schedule?.valveId || valves[0]?.valveId || '',
     cropId: schedule?.cropId || crops[0]?.cropId || '',
@@ -271,30 +275,30 @@ function ScheduleForm({
       ) : null}
 
       <div className="mb-3.5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Zone" htmlFor="valveId">
+        <Field label={t('irr.zone')} htmlFor="valveId">
           <select id="valveId" className={control} value={form.valveId} onChange={(e) => setForm((f) => ({ ...f, valveId: e.target.value }))}>
             {valves.map((v) => (
               <option key={v.valveId} value={v.valveId}>{v.zoneName} ({v.valveId})</option>
             ))}
           </select>
         </Field>
-        <Field label="Recurrence" htmlFor="recurrence">
+        <Field label={t('irr.recurrence')} htmlFor="recurrence">
           <select id="recurrence" className={control} value={form.recurrence} onChange={(e) => setForm((f) => ({ ...f, recurrence: e.target.value as 'DAILY' | 'WEEKLY' }))}>
-            <option value="DAILY">Daily</option>
-            <option value="WEEKLY">Weekly</option>
+            <option value="DAILY">{t('irr.daily')}</option>
+            <option value="WEEKLY">{t('irr.weekly')}</option>
           </select>
         </Field>
-        <Field label="Start time" htmlFor="startTime">
+        <Field label={t('irr.start')} htmlFor="startTime">
           <input id="startTime" type="time" required className={`${control} font-mono`} value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} />
         </Field>
-        <Field label="Duration (minutes)" htmlFor="duration">
+        <Field label={t('irr.duration')} htmlFor="duration">
           <input id="duration" type="number" min="1" max="240" required className={`${control} font-mono`} value={form.durationMinutes} onChange={(e) => setForm((f) => ({ ...f, durationMinutes: Number(e.target.value) }))} />
         </Field>
       </div>
 
       {form.recurrence === 'WEEKLY' ? (
         <fieldset className="mb-3.5">
-          <legend className="mb-1.5 text-xs font-medium text-muted-foreground">Days</legend>
+          <legend className="mb-1.5 text-xs font-medium text-muted-foreground">{t('irr.days')}</legend>
           <div className="flex flex-wrap gap-1.5">
             {DAYS.map((day) => (
               <button
@@ -308,7 +312,7 @@ function ScheduleForm({
                     : 'border-hairline-strong bg-surface hover:bg-raised'
                 }`}
               >
-                {day.slice(0, 3)}
+                {t(`day.${day}`)}
               </button>
             ))}
           </div>
@@ -318,17 +322,17 @@ function ScheduleForm({
       <div className="mb-3.5">
         <Toggle
           checked={form.skipIfMoist}
-          name="Skip when already moist"
-          label="Skip the run when the field is already at or above optimal moisture"
+          name={t('irr.skipName')}
+          label={t('irr.skipLabel')}
           onChange={(next) => setForm((f) => ({ ...f, skipIfMoist: next }))}
         />
       </div>
 
       <div className="flex gap-2">
         <button type="submit" disabled={saving} className={primaryBtn}>
-          {saving ? 'Saving' : schedule ? 'Save changes' : 'Create schedule'}
+          {saving ? t('irr.saving') : schedule ? t('irr.save') : t('irr.create')}
         </button>
-        <button type="button" onClick={onCancel} className={plainBtn}>Cancel</button>
+        <button type="button" onClick={onCancel} className={plainBtn}>{t('common.cancel')}</button>
       </div>
     </form>
   )
@@ -336,6 +340,7 @@ function ScheduleForm({
 
 function ManualControl() {
   const { token, isAdmin } = useSession()
+  const { t } = useI18n()
   const [reloadKey, setReloadKey] = useState(0)
   const [pending, setPending] = useState<Record<string, boolean>>({})
   const [optimistic, setOptimistic] = useState<Record<string, string>>({})
@@ -363,7 +368,7 @@ function ManualControl() {
       setError(
         e.status === 409
           ? `${valve.zoneName}: ${e.message}`
-          : `${valve.zoneName}: valve did not respond - try again`,
+          : t('irr.noRespond', { zone: valve.zoneName }),
       )
     } finally {
       setPending((p) => {
@@ -392,7 +397,7 @@ function ManualControl() {
   }
 
   if (loading && !data) return <div className="glass h-64 animate-pulse rounded-xl" />
-  if (!data) return <p className="p-12 text-center text-sm text-muted-foreground">Valve states are unavailable.</p>
+  if (!data) return <p className="p-12 text-center text-sm text-muted-foreground">{t('irr.valvesUnavailable')}</p>
 
   return (
     <>
@@ -407,20 +412,20 @@ function ManualControl() {
           {confirmStop ? (
             <>
               <span className="text-xs text-muted-foreground">
-                This closes every valve on the farm immediately. Continue?
+                {t('irr.confirmStop')}
               </span>
               <button type="button" onClick={emergencyStop} className="inline-flex min-h-9 items-center rounded-lg border border-status-critical bg-transparent px-3.5 text-[13px] font-medium text-status-critical transition hover:bg-status-critical/10 active:translate-y-px">
-                Yes, close all valves
+                {t('irr.yesClose')}
               </button>
-              <button type="button" onClick={() => setConfirmStop(false)} className={plainBtn}>Cancel</button>
+              <button type="button" onClick={() => setConfirmStop(false)} className={plainBtn}>{t('common.cancel')}</button>
             </>
           ) : (
             <>
               <button type="button" onClick={() => setConfirmStop(true)} className="inline-flex min-h-9 items-center rounded-lg border border-status-critical bg-transparent px-3.5 text-[13px] font-medium text-status-critical transition hover:bg-status-critical/10 active:translate-y-px">
-                Close all valves
+                {t('irr.closeAll')}
               </button>
               <span className="text-xs text-muted-foreground">
-                Farm-wide emergency stop. Asks for confirmation before it runs.
+                {t('irr.stopHint')}
               </span>
             </>
           )}
@@ -445,22 +450,24 @@ function ManualControl() {
                 <Toggle
                   checked={isOpen}
                   disabled={!isAdmin || pending[valve.valveId]}
-                  name={`${valve.zoneName} valve`}
-                  label={isOpen ? 'Open' : 'Closed'}
+                  name={t('irr.valveName', { zone: valve.zoneName })}
+                  label={isOpen ? t('status.OPEN') : t('status.CLOSED')}
                   onChange={(next) => setValve(valve, next)}
                 />
                 <div className="mt-3 grid gap-1">
                   {pending[valve.valveId] ? (
-                    <span className="text-xs text-muted-foreground">syncing with the device...</span>
+                    <span className="text-xs text-muted-foreground">{t('irr.syncing')}...</span>
                   ) : null}
                   <span className="font-mono text-[11px] text-muted-foreground tabular">
                     {isOpen
-                      ? `${valve.flowRateLpm} L/min${remaining ? `, ${remaining} remaining` : ''}`
-                      : `rated ${valve.ratedFlowLpm} L/min`}
+                      ? remaining
+                        ? t('irr.flowRemaining', { f: valve.flowRateLpm, t: remaining })
+                        : t('irr.flow', { f: valve.flowRateLpm })
+                      : t('irr.rated', { f: valve.ratedFlowLpm })}
                   </span>
                   <span className="font-mono text-[11px] text-muted-foreground tabular">
-                    last change {relativeTime(valve.lastChangedAt)}
-                    {valve.runningScheduleId ? ` by ${valve.runningScheduleId}` : ''}
+                    {t('irr.lastChange', { t: relativeTime(valve.lastChangedAt) })}
+                    {valve.runningScheduleId ? ` ${t('irr.by', { id: valve.runningScheduleId })}` : ''}
                   </span>
                 </div>
               </div>

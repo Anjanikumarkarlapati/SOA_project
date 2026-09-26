@@ -46,13 +46,15 @@ import {
   type FarmProfile,
 } from '@/lib/farm/engine'
 import { isDemoSession } from '@/lib/farm/demo'
+import { useI18n } from '@/lib/i18n/react'
+import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 
 const STEPS = [
-  { key: 'crop', label: 'Crop', Icon: Plant },
-  { key: 'location', label: 'Location', Icon: MapPin },
-  { key: 'field', label: 'Field', Icon: Ruler },
-  { key: 'sensors', label: 'Sensors', Icon: Cpu },
-  { key: 'automate', label: 'Automate', Icon: Robot },
+  { key: 'crop', Icon: Plant },
+  { key: 'location', Icon: MapPin },
+  { key: 'field', Icon: Ruler },
+  { key: 'sensors', Icon: Cpu },
+  { key: 'automate', Icon: Robot },
 ] as const
 
 /** The soil a zone mostly has, so the field step starts from a sensible guess. */
@@ -98,6 +100,7 @@ const isoDaysAgo = (days: number) => {
 export default function Onboarding() {
   const router = useRouter()
   const { session, ready, token } = useSession()
+  const { t } = useI18n()
   const [step, setStep] = useState(0)
   const [saving, setSaving] = useState(false)
 
@@ -155,7 +158,7 @@ export default function Onboarding() {
   }
 
   if (!ready || !session) {
-    return <div className="grid min-h-dvh place-items-center text-sm text-muted-foreground">Loading...</div>
+    return <div className="grid min-h-dvh place-items-center text-sm text-muted-foreground">{t('common.loading')}</div>
   }
 
   return (
@@ -166,22 +169,22 @@ export default function Onboarding() {
       </div>
 
       <main id="main" className="relative z-10 mx-auto w-full max-w-[920px] px-4 py-8 sm:px-6">
-        <div className="mb-6 flex items-center gap-2.5">
+        <div className="mb-6 flex flex-wrap items-center gap-2.5">
           <span className="grid size-9 place-items-center rounded-md bg-brand text-white">
             <Plant size={20} />
           </span>
           <div>
             <h1 className="text-lg font-semibold leading-tight tracking-tight">
-              Namaste{farmerName ? `, ${farmerName.split(' ')[0]}` : ''}! Let&apos;s set up your farm
+              {farmerName ? t('ob.greeting', { name: farmerName.split(' ')[0] }) : t('ob.greetingNoName')}{' '}
+              {t('ob.title')}
             </h1>
-            <p className="text-xs text-muted-foreground">
-              Five quick steps. The assistant then works out how much water your crop needs, and when.
-            </p>
+            <p className="text-xs text-muted-foreground">{t('ob.sub')}</p>
           </div>
+          <LanguageSwitcher className="ms-auto" />
         </div>
 
-        <ol className="mb-6 grid grid-cols-5 gap-1.5" aria-label="Setup progress">
-          {STEPS.map(({ key, label: text, Icon }, i) => (
+        <ol className="mb-6 grid grid-cols-5 gap-1.5" aria-label={t('ob.progress')}>
+          {STEPS.map(({ key, Icon }, i) => (
             <li key={key}>
               <button
                 type="button"
@@ -197,7 +200,7 @@ export default function Onboarding() {
                 }`}
               >
                 {i < step ? <CheckCircle size={16} weight="fill" className="text-status-good" /> : <Icon size={16} />}
-                {text}
+                {t(`ob.step.${key}`)}
               </button>
             </li>
           ))}
@@ -213,22 +216,22 @@ export default function Onboarding() {
           <div className="mt-7 flex items-center gap-2 border-t border-border pt-5">
             {step > 0 ? (
               <button type="button" className={plainBtn} onClick={() => setStep(step - 1)}>
-                <ArrowLeft size={16} />
-                Back
+                <ArrowLeft size={16} className="rtl:rotate-180" />
+                {t('common.back')}
               </button>
             ) : null}
             <span className="ml-auto text-xs text-muted-foreground">
-              Step {step + 1} of {STEPS.length}
+              {t('ob.stepOf', { a: step + 1, b: STEPS.length })}
             </span>
             {step < STEPS.length - 1 ? (
               <button type="button" className={primaryBtn} disabled={!canNext} onClick={() => setStep(step + 1)}>
-                Continue
-                <ArrowRight size={16} />
+                {t('ob.continue')}
+                <ArrowRight size={16} className="rtl:rotate-180" />
               </button>
             ) : (
               <button type="button" className={primaryBtn} disabled={saving} onClick={finish}>
                 <Robot size={16} />
-                {saving ? 'Starting' : 'Start automation'}
+                {saving ? t('ob.starting') : t('ob.start')}
               </button>
             )}
           </div>
@@ -252,6 +255,7 @@ function StepHeader({ title, body }: { title: string; body: string }) {
 /* ---------- 1. Crop ---------- */
 
 function CropStep({ draft, set }: StepProps) {
+  const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [group, setGroup] = useState<CropGroup | 'All'>('All')
 
@@ -260,31 +264,35 @@ function CropStep({ draft, set }: StepProps) {
     return CROPS.filter(
       (c) =>
         (group === 'All' || c.group === group) &&
-        (!q || c.name.toLowerCase().includes(q) || c.local.includes(q) || c.id.includes(q)),
+        (!q ||
+          c.name.toLowerCase().includes(q) ||
+          c.local.includes(q) ||
+          c.id.includes(q) ||
+          t(`crop.${c.id}`).toLowerCase().includes(q)),
     )
-  }, [query, group])
+  }, [query, group, t])
 
   return (
     <>
       <StepHeader
-        title="Which crop are you growing?"
-        body={`Pick from ${CROPS.length} crops grown across India. Water need, sensors and alerts are all tuned to it.`}
+        title={t('ob.crop.title')}
+        body={t('ob.crop.body', { n: CROPS.length })}
       />
 
       <div className="mb-3 grid gap-2 sm:grid-cols-[1fr_auto]">
         <label className="relative">
-          <span className="sr-only">Search crops</span>
+          <span className="sr-only">{t('ob.crop.search')}</span>
           <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             className={`${control} pl-9`}
-            placeholder="Search - e.g. wheat, धान, cotton"
+            placeholder={t('ob.crop.placeholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label="Crop group">
+      <div className="mb-4 flex flex-wrap gap-1.5" role="group" aria-label={t('ob.crop.group')}>
         {(['All', ...CROP_GROUPS] as const).map((g) => (
           <button
             key={g}
@@ -295,12 +303,12 @@ function CropStep({ draft, set }: StepProps) {
               group === g ? 'border-brand bg-primary text-primary-foreground' : 'border-border bg-surface hover:bg-raised'
             }`}
           >
-            {g}
+            {g === 'All' ? t('ob.crop.all') : t(`group.${g}`)}
           </button>
         ))}
       </div>
 
-      <div className="grid max-h-[420px] grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3 lg:grid-cols-4" role="radiogroup" aria-label="Crop">
+      <div className="grid max-h-[420px] grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3 lg:grid-cols-4" role="radiogroup" aria-label={t('ob.step.crop')}>
         {shown.map((crop) => {
           const selected = draft.cropId === crop.id
           return (
@@ -316,21 +324,21 @@ function CropStep({ draft, set }: StepProps) {
               }`}
             >
               <div className="flex items-start justify-between gap-1">
-                <span className="text-[13px] font-semibold leading-snug">{crop.name}</span>
+                <span className="text-[13px] font-semibold leading-snug">{t(`crop.${crop.id}`)}</span>
                 {selected ? <CheckCircle size={16} weight="fill" className="flex-none text-brand" /> : null}
               </div>
-              <div className="mt-0.5 text-xs text-muted-foreground">{crop.local}</div>
+              <div className="mt-0.5 text-xs text-muted-foreground">{t(`crop.${crop.id}`) === crop.name ? crop.local : crop.name}</div>
               <div className="mt-2 flex flex-wrap gap-1">
                 {crop.seasons.map((s) => (
                   <span key={s} className="rounded bg-raised px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                    {s}
+                    {t(`season.${s}`)}
                   </span>
                 ))}
               </div>
             </button>
           )
         })}
-        {shown.length === 0 ? <p className="col-span-full p-6 text-center text-sm text-muted-foreground">No crop matches.</p> : null}
+        {shown.length === 0 ? <p className="col-span-full p-6 text-center text-sm text-muted-foreground">{t('ob.crop.none')}</p> : null}
       </div>
     </>
   )
@@ -339,6 +347,7 @@ function CropStep({ draft, set }: StepProps) {
 /* ---------- 2. Location ---------- */
 
 function LocationStep({ draft, set }: StepProps) {
+  const { t } = useI18n()
   const [locating, setLocating] = useState(false)
   const [geoError, setGeoError] = useState('')
   const state = STATES.find((s) => s.name === draft.state)
@@ -353,7 +362,7 @@ function LocationStep({ draft, set }: StepProps) {
 
   const locate = () => {
     setGeoError('')
-    if (!navigator.geolocation) return setGeoError('Location is not available in this browser.')
+    if (!navigator.geolocation) return setGeoError(t('ob.loc.na'))
     setLocating(true)
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -363,7 +372,7 @@ function LocationStep({ draft, set }: StepProps) {
         setLocating(false)
       },
       () => {
-        setGeoError('Could not get your location - please choose from the list.')
+        setGeoError(t('ob.loc.fail'))
         setLocating(false)
       },
       { timeout: 8000 },
@@ -373,28 +382,28 @@ function LocationStep({ draft, set }: StepProps) {
   return (
     <>
       <StepHeader
-        title="Where is your farm?"
-        body="Your state and district set the climate: temperature, rainfall and humidity decide how much water the crop loses each day."
+        title={t('ob.loc.title')}
+        body={t('ob.loc.body')}
       />
 
       <button type="button" className={`${plainBtn} mb-4`} onClick={locate} disabled={locating}>
         <Crosshair size={16} />
-        {locating ? 'Finding you...' : 'Use my current location'}
+        {locating ? t('ob.loc.finding') : t('ob.loc.use')}
       </button>
       {geoError ? <p className="mb-3 text-xs text-status-warning">{geoError}</p> : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-1.5">
-          <label htmlFor="state" className={label}>State / Union territory</label>
+          <label htmlFor="state" className={label}>{t('ob.loc.state')}</label>
           <select id="state" className={control} value={draft.state} onChange={(e) => choose(e.target.value, '')}>
-            <option value="">Select state</option>
+            <option value="">{t('ob.loc.selectState')}</option>
             {STATES.map((s) => (
               <option key={s.name} value={s.name}>{s.name}</option>
             ))}
           </select>
         </div>
         <div className="grid gap-1.5">
-          <label htmlFor="district" className={label}>District</label>
+          <label htmlFor="district" className={label}>{t('ob.loc.district')}</label>
           <select
             id="district"
             className={control}
@@ -402,7 +411,7 @@ function LocationStep({ draft, set }: StepProps) {
             disabled={!state}
             onChange={(e) => choose(draft.state, e.target.value)}
           >
-            <option value="">{state ? 'Select district' : 'Choose a state first'}</option>
+            <option value="">{state ? t('ob.loc.selectDistrict') : t('ob.loc.stateFirst')}</option>
             {state?.districts.map((dd) => (
               <option key={dd.name} value={dd.name}>{dd.name}</option>
             ))}
@@ -412,12 +421,12 @@ function LocationStep({ draft, set }: StepProps) {
 
       {district ? (
         <div className="mt-5 rounded-xl border border-border bg-surface p-4">
-          <div className="text-[13px] font-semibold">{CLIMATE[district.zone].label}</div>
+          <div className="text-[13px] font-semibold">{t(`zone.${district.zone}`)}</div>
           <dl className="mt-3 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
-            <Stat term="This month, day" value={`${CLIMATE[district.zone].tmax[month]} C`} />
-            <Stat term="This month, night" value={`${CLIMATE[district.zone].tmin[month]} C`} />
-            <Stat term="Monthly rain" value={`${CLIMATE[district.zone].rain[month]} mm`} />
-            <Stat term="Coordinates" value={`${draft.lat.toFixed(2)}, ${draft.lon.toFixed(2)}`} />
+            <Stat term={t('ob.loc.day')} value={`${CLIMATE[district.zone].tmax[month]} °C`} />
+            <Stat term={t('ob.loc.night')} value={`${CLIMATE[district.zone].tmin[month]} °C`} />
+            <Stat term={t('ob.loc.rain')} value={`${CLIMATE[district.zone].rain[month]} mm`} />
+            <Stat term={t('ob.loc.coords')} value={`${draft.lat.toFixed(2)}, ${draft.lon.toFixed(2)}`} />
           </dl>
         </div>
       ) : null}
@@ -437,6 +446,7 @@ function Stat({ term, value }: { term: string; value: string }) {
 /* ---------- 3. Field ---------- */
 
 function FieldStep({ draft, set }: StepProps) {
+  const { t } = useI18n()
   const [unit, setUnit] = useState<'acre' | 'hectare'>('acre')
   const crop = cropById(draft.cropId)
   const shownArea = unit === 'acre' ? draft.areaAcres : Number((draft.areaAcres / HECTARE_ACRES).toFixed(2))
@@ -444,13 +454,13 @@ function FieldStep({ draft, set }: StepProps) {
   return (
     <>
       <StepHeader
-        title="Tell us about the field"
-        body="Field size decides how many sensors and valves you need; soil and irrigation method decide how much water actually reaches the roots."
+        title={t('ob.field.title')}
+        body={t('ob.field.body')}
       />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-1.5">
-          <label htmlFor="area" className={label}>Field area</label>
+          <label htmlFor="area" className={label}>{t('ob.field.area')}</label>
           <div className="flex gap-1.5">
             <input
               id="area"
@@ -464,7 +474,7 @@ function FieldStep({ draft, set }: StepProps) {
                 set({ areaAcres: unit === 'acre' ? v : Number((v * HECTARE_ACRES).toFixed(2)) })
               }}
             />
-            <div className="flex flex-none rounded-lg border border-input p-0.5" role="group" aria-label="Area unit">
+            <div className="flex flex-none rounded-lg border border-input p-0.5" role="group" aria-label={t('ob.field.unit')}>
               {(['acre', 'hectare'] as const).map((u) => (
                 <button
                   key={u}
@@ -473,36 +483,39 @@ function FieldStep({ draft, set }: StepProps) {
                   onClick={() => setUnit(u)}
                   className={`rounded-md px-2.5 text-xs font-medium ${unit === u ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
                 >
-                  {u === 'acre' ? 'Acres' : 'Hectares'}
+                  {u === 'acre' ? t('ob.field.acres') : t('ob.field.hectares')}
                 </button>
               ))}
             </div>
           </div>
-          <span className="text-[11px] text-muted-foreground">1 hectare = 2.47 acres</span>
+          <span className="text-[11px] text-muted-foreground">{t('ob.field.hectareNote')}</span>
         </div>
 
         <div className="grid gap-1.5">
-          <label htmlFor="sowing" className={label}>{crop?.perennial ? 'Planted / last pruned on' : 'Sowing / transplanting date'}</label>
+          <label htmlFor="sowing" className={label}>{crop?.perennial ? t('ob.field.planted') : t('ob.field.sowing')}</label>
           <input id="sowing" type="date" className={control} value={draft.sowingDate} max={new Date().toISOString().slice(0, 10)} onChange={(e) => set({ sowingDate: e.target.value })} />
           {crop && draft.sowingDate ? (
             <span className="text-[11px] text-muted-foreground">
-              Day {cropStage(crop, draft.sowingDate).day} - {cropStage(crop, draft.sowingDate).stage.toLowerCase()} stage
+              {t('ob.field.dayStage', {
+                d: cropStage(crop, draft.sowingDate).day,
+                stage: t(`stage.${cropStage(crop, draft.sowingDate).stage}`),
+              })}
             </span>
           ) : null}
         </div>
 
         <div className="grid gap-1.5">
-          <label htmlFor="soil" className={label}>Soil type</label>
+          <label htmlFor="soil" className={label}>{t('ob.field.soil')}</label>
           <select id="soil" className={control} value={draft.soilId} onChange={(e) => set({ soilId: e.target.value })}>
             {SOILS.map((s) => (
-              <option key={s.id} value={s.id}>{s.name} - {s.hint}</option>
+              <option key={s.id} value={s.id}>{t(`soil.${s.id}`)} - {t(`soil.${s.id}.hint`)}</option>
             ))}
           </select>
-          <span className="text-[11px] text-muted-foreground">Pre-selected from your district. Change it if your Soil Health Card says otherwise.</span>
+          <span className="text-[11px] text-muted-foreground">{t('ob.field.soilNote')}</span>
         </div>
 
         <div className="grid gap-1.5">
-          <label htmlFor="pump" className={label}>Pump</label>
+          <label htmlFor="pump" className={label}>{t('ob.field.pump')}</label>
           <select
             id="pump"
             className={control}
@@ -510,15 +523,15 @@ function FieldStep({ draft, set }: StepProps) {
             onChange={(e) => set({ pumpLpm: Number(e.target.value) })}
           >
             {PUMPS.map((p) => (
-              <option key={p.hp} value={p.lpm}>{p.hp} HP - about {p.lpm} litres/min</option>
+              <option key={p.hp} value={p.lpm}>{t('ob.field.pumpOption', { hp: p.hp, lpm: p.lpm })}</option>
             ))}
           </select>
-          <span className="text-[11px] text-muted-foreground">Used to turn litres into pump run time.</span>
+          <span className="text-[11px] text-muted-foreground">{t('ob.field.pumpNote')}</span>
         </div>
       </div>
 
       <fieldset className="mt-5">
-        <legend className={`${label} mb-1.5`}>Irrigation method</legend>
+        <legend className={`${label} mb-1.5`}>{t('ob.field.method')}</legend>
         <div className="grid gap-2 sm:grid-cols-3">
           {(Object.keys(IRRIGATION) as IrrigationMethod[]).map((m) => (
             <button
@@ -530,13 +543,13 @@ function FieldStep({ draft, set }: StepProps) {
                 draft.irrigation === m ? 'border-brand bg-brand-wash ring-2 ring-brand/30' : 'border-border bg-surface hover:bg-raised'
               }`}
             >
-              <div className="text-[13px] font-semibold">{IRRIGATION[m].name}</div>
-              <div className="mt-0.5 text-xs text-muted-foreground">{IRRIGATION[m].hint}</div>
+              <div className="text-[13px] font-semibold">{t(`method.${m}`)}</div>
+              <div className="mt-0.5 text-xs text-muted-foreground">{t(`method.${m}.hint`)}</div>
             </button>
           ))}
         </div>
         {crop?.ponded && draft.irrigation !== 'flood' ? (
-          <p className="mt-2 text-xs text-status-warning">Paddy is normally grown ponded - flood irrigation is recommended.</p>
+          <p className="mt-2 text-xs text-status-warning">{t('ob.field.paddyNote')}</p>
         ) : null}
       </fieldset>
     </>
@@ -552,6 +565,7 @@ const PRIORITY_TONE: Record<SensorPriority, string> = {
 }
 
 function SensorStep({ draft }: { draft: FarmProfile }) {
+  const { t, tm } = useI18n()
   const items = recommendSensors(draft)
   const budget = sensorBudget(items)
   const crop = cropById(draft.cropId)
@@ -560,46 +574,48 @@ function SensorStep({ draft }: { draft: FarmProfile }) {
   return (
     <>
       <StepHeader
-        title={`Sensors for your ${draft.areaAcres} acre ${crop?.name ?? ''} field`}
-        body={`We split the field into ${zones} ${IRRIGATION[draft.irrigation].name.toLowerCase()} zone${zones > 1 ? 's' : ''} of about ${IRRIGATION[draft.irrigation].acresPerZone} acre${IRRIGATION[draft.irrigation].acresPerZone > 1 ? 's' : ''} each. Every zone gets its own moisture reading and valve.`}
+        title={t('ob.sens.title', { area: draft.areaAcres, crop: crop ? t(`crop.${crop.id}`) : '' })}
+        body={t('ob.sens.body', {
+          n: zones,
+          method: t(`method.${draft.irrigation}`),
+          size: IRRIGATION[draft.irrigation].acresPerZone,
+        })}
       />
 
       <div className="mb-4 grid gap-2 sm:grid-cols-2">
         <div className="rounded-xl border border-border bg-surface p-3">
-          <div className="text-xs text-muted-foreground">Essential kit</div>
+          <div className="text-xs text-muted-foreground">{t('ob.sens.essential')}</div>
           <div className="font-mono text-xl font-bold tabular">{formatInr(budget.essential)}</div>
         </div>
         <div className="rounded-xl border border-border bg-surface p-3">
-          <div className="text-xs text-muted-foreground">Full recommended kit</div>
+          <div className="text-xs text-muted-foreground">{t('ob.sens.full')}</div>
           <div className="font-mono text-xl font-bold tabular">{formatInr(budget.full)}</div>
         </div>
       </div>
 
-      <ul className="grid gap-2" aria-label="Recommended sensors">
+      <ul className="grid gap-2" aria-label={t('ob.sens.list')}>
         {items.map((item) => (
           <li key={item.id} data-sensor={item.id} className="rounded-xl border border-border bg-surface p-3.5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[13px] font-semibold">{item.name}</span>
-              <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${PRIORITY_TONE[item.priority]}`}>{item.priority}</span>
+              <span className="text-[13px] font-semibold">{tm(item.name)}</span>
+              <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${PRIORITY_TONE[item.priority]}`}>{t(`prio.${item.priority}`)}</span>
               <span className="ml-auto font-mono text-[13px] tabular">
-                {item.quantity} x {formatInr(item.unitPrice)}
+                {item.quantity} × {formatInr(item.unitPrice)}
               </span>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Measures:</span> {item.measures}
+              <span className="font-medium text-foreground">{t('ob.sens.measures')}</span> {tm(item.measures)}
             </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">{item.why}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{tm(item.why)}</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Placement:</span> {item.placement}
+              <span className="font-medium text-foreground">{t('ob.sens.placement')}</span> {tm(item.placement)}
             </p>
           </li>
         ))}
       </ul>
 
       <p className="mt-4 rounded-lg border border-brand/30 bg-brand/10 px-3.5 py-3 text-xs">
-        Prices are indicative Indian market rates. Drip and sprinkler hardware may qualify for the PMKSY
-        &ldquo;Per Drop More Crop&rdquo; subsidy (up to 55% for small and marginal farmers) - check with your district
-        agriculture office.
+        {t('ob.sens.subsidy')}
       </p>
     </>
   )
@@ -608,39 +624,40 @@ function SensorStep({ draft }: { draft: FarmProfile }) {
 /* ---------- 5. Automate ---------- */
 
 function AutomateStep({ draft }: { draft: FarmProfile }) {
+  const { t, tm } = useI18n()
   const model = fieldModel(draft)
   const district = districtOf(draft)
-  if (!model || !district) return <p className="text-sm text-muted-foreground">Complete the earlier steps first.</p>
+  if (!model || !district) return <p className="text-sm text-muted-foreground">{t('ob.auto.incomplete')}</p>
   const today = normalsWeek(district)[0]
   const plan = planDay(draft, model, today)
 
   return (
     <>
       <StepHeader
-        title="Your automation is ready"
-        body="Here is what the assistant will do today. Start it and it runs every day on its own, adjusting to temperature and rain."
+        title={t('ob.auto.title')}
+        body={t('ob.auto.body')}
       />
 
       <dl className="grid gap-3 rounded-xl border border-border bg-surface p-4 text-xs sm:grid-cols-3">
-        <Stat term="Crop" value={model.crop.name} />
-        <Stat term="Stage" value={`${model.stage.stage} (Kc ${model.stage.kc.toFixed(2)})`} />
-        <Stat term="Location" value={`${draft.district}, ${draft.state}`} />
-        <Stat term="Today" value={`${today.tmin.toFixed(0)}-${today.tmax.toFixed(0)} C, ${plan.band}`} />
-        <Stat term="Crop water use" value={`${plan.etc.toFixed(1)} mm/day`} />
-        <Stat term="Water to give" value={plan.skipped ? 'None' : formatLitres(plan.litres)} />
+        <Stat term={t('ob.auto.crop')} value={t(`crop.${model.crop.id}`)} />
+        <Stat term={t('ob.auto.stage')} value={`${t(`stage.${model.stage.stage}`)} (Kc ${model.stage.kc.toFixed(2)})`} />
+        <Stat term={t('ob.auto.location')} value={`${draft.district}, ${draft.state}`} />
+        <Stat term={t('ob.auto.today')} value={`${today.tmin.toFixed(0)}-${today.tmax.toFixed(0)} °C, ${t(`band.${plan.band}`)}`} />
+        <Stat term={t('ob.auto.use')} value={t('ob.auto.mmDay', { n: plan.etc.toFixed(1) })} />
+        <Stat term={t('ob.auto.give')} value={plan.skipped ? t('ob.auto.none') : formatLitres(plan.litres)} />
       </dl>
 
-      <h3 className="mb-2 mt-5 text-[13px] font-semibold">Today&apos;s irrigation plan</h3>
+      <h3 className="mb-2 mt-5 text-[13px] font-semibold">{t('ob.auto.plan')}</h3>
       {plan.skipped ? (
-        <p className="rounded-lg border border-border bg-surface p-3 text-[13px]">Skip today - {plan.skipped}.</p>
+        <p className="rounded-lg border border-border bg-surface p-3 text-[13px]">{t('ob.auto.skip', { reason: plan.skipped })}</p>
       ) : (
         <ul className="grid gap-2">
           {plan.pulses.map((p) => (
             <li key={p.start} className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface p-3 text-[13px]">
               <span className="font-mono font-semibold tabular">{formatHour(p.start)}</span>
               <span>{formatLitres(p.litres)}</span>
-              <span className="text-muted-foreground">pump {formatMinutes(p.minutes)}</span>
-              <span className="w-full text-xs text-muted-foreground sm:ml-auto sm:w-auto">{p.reason}</span>
+              <span className="text-muted-foreground">{t('ob.auto.pump', { t: formatMinutes(p.minutes) })}</span>
+              <span className="w-full text-xs text-muted-foreground sm:ml-auto sm:w-auto">{tm(p.reason)}</span>
             </li>
           ))}
         </ul>
@@ -648,7 +665,7 @@ function AutomateStep({ draft }: { draft: FarmProfile }) {
       {plan.advisories.length ? (
         <ul className="mt-3 grid gap-1.5">
           {plan.advisories.map((a) => (
-            <li key={a} className="text-xs text-status-warning">{a}</li>
+            <li key={a.k} className="text-xs text-status-warning">{tm(a)}</li>
           ))}
         </ul>
       ) : null}

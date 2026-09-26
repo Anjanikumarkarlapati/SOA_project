@@ -4,16 +4,18 @@ import { api } from '../api'
 import { ConfirmButton, DataError, Empty, Loading, Status, relativeTime } from '../components'
 import { IconChevron, IconPlus, IconTrash } from '../icons'
 import { usePolling, useSession } from '../session'
+import { useI18n } from '../i18n/react'
 
 const HEALTH_FILTERS = [
-  { value: '', label: 'All statuses' },
-  { value: 'ONLINE', label: 'Online' },
-  { value: 'OFFLINE', label: 'Offline' },
-  { value: 'LOW_BATTERY', label: 'Low battery' },
+  { value: '', label: 'sensors.allStatuses' },
+  { value: 'ONLINE', label: 'status.ONLINE' },
+  { value: 'OFFLINE', label: 'status.OFFLINE' },
+  { value: 'LOW_BATTERY', label: 'status.LOW_BATTERY' },
 ]
 
 export default function Sensors() {
   const { token, isAdmin } = useSession()
+  const { t } = useI18n()
   const [query, setQuery] = useState('')
   const [health, setHealth] = useState('')
   const [fieldId, setFieldId] = useState('')
@@ -50,7 +52,7 @@ export default function Sensors() {
   const deregister = async (deviceId) => {
     try {
       await api.deleteSensor(token, deviceId)
-      setNotice({ tone: '', text: `${deviceId} deregistered, along with its history` })
+      setNotice({ tone: '', text: t('sensors.deregistered', { id: deviceId }) })
       reload()
     } catch (err) {
       setNotice({ tone: 'toast-critical', text: err.message })
@@ -63,8 +65,8 @@ export default function Sensors() {
         <input
           className="input"
           type="search"
-          placeholder="Search device ID"
-          aria-label="Search by device ID"
+          placeholder={t('sensors.search')}
+          aria-label={t('sensors.searchAria')}
           value={query}
           onChange={(e) => {
             setPage(0)
@@ -73,7 +75,7 @@ export default function Sensors() {
         />
         <select
           className="select"
-          aria-label="Filter by status"
+          aria-label={t('sensors.filterStatus')}
           value={health}
           onChange={(e) => {
             setPage(0)
@@ -82,20 +84,20 @@ export default function Sensors() {
         >
           {HEALTH_FILTERS.map((f) => (
             <option key={f.value} value={f.value}>
-              {f.label}
+              {t(f.label)}
             </option>
           ))}
         </select>
         <select
           className="select"
-          aria-label="Filter by field"
+          aria-label={t('sensors.filterField')}
           value={fieldId}
           onChange={(e) => {
             setPage(0)
             setFieldId(e.target.value)
           }}
         >
-          <option value="">All fields</option>
+          <option value="">{t('sensors.allFields')}</option>
           {(crops || []).map((c) => (
             <option key={c.cropId} value={c.cropId}>
               {c.name}
@@ -107,7 +109,7 @@ export default function Sensors() {
           <div className="toolbar-right">
             <button type="button" className="btn btn-primary" onClick={() => setShowForm((v) => !v)}>
               <IconPlus />
-              Register device
+              {t('sensors.register')}
             </button>
           </div>
         ) : null}
@@ -119,29 +121,29 @@ export default function Sensors() {
           onCancel={() => setShowForm(false)}
           onCreated={(deviceId) => {
             setShowForm(false)
-            setNotice({ tone: '', text: `${deviceId} registered` })
+            setNotice({ tone: '', text: t('sensors.registered', { id: deviceId }) })
             reload()
           }}
         />
       ) : null}
 
-      {!data && error ? <DataError what="the device list" onRetry={refresh} /> : null}
+      {!data && error ? <DataError what="what.devices" onRetry={refresh} /> : null}
 
       <section className="card" hidden={Boolean(!data && error)}>
         {loading && !data ? (
           <Loading rows={6} />
         ) : !data || data.content.length === 0 ? (
           <Empty
-            title="No sensors match this view"
+            title={t('sensors.none')}
             description={
               query || health || fieldId
-                ? 'Try clearing the search or filters above.'
+                ? t('sensors.clear')
                 : undefined
             }
             action={
               isAdmin ? (
                 <button type="button" className="btn btn-primary" onClick={() => setShowForm(true)}>
-                  Register a sensor
+                  {t('sensors.registerSensor')}
                 </button>
               ) : null
             }
@@ -152,13 +154,13 @@ export default function Sensors() {
               <table className="data">
                 <thead>
                   <tr>
-                    <th>Device ID</th>
-                    <th>Type</th>
-                    <th>Field</th>
-                    <th>Status</th>
-                    <th>Last reading</th>
-                    <th>Battery</th>
-                    <th aria-label="Actions" />
+                    <th>{t('sensors.deviceId')}</th>
+                    <th>{t('sensors.type')}</th>
+                    <th>{t('sensors.field')}</th>
+                    <th>{t('sensors.status')}</th>
+                    <th>{t('sensors.lastReading')}</th>
+                    <th>{t('sensors.battery')}</th>
+                    <th aria-label={t('sensors.actions')} />
                   </tr>
                 </thead>
                 <tbody>
@@ -167,35 +169,35 @@ export default function Sensors() {
                       key={device.deviceId}
                       className={device.health === 'OFFLINE' ? 'row-offline' : undefined}
                     >
-                      <td data-label="Device ID" className="mono">
+                      <td data-label={t('sensors.deviceId')} className="mono">
                         <Link to={`/sensors/${device.deviceId}`}>{device.deviceId}</Link>
                       </td>
-                      <td data-label="Type">{device.sensorType}</td>
-                      <td data-label="Field">{device.fieldId || '--'}</td>
-                      <td data-label="Status" className="col-status">
+                      <td data-label={t('sensors.type')}>{device.sensorType}</td>
+                      <td data-label={t('sensors.field')}>{device.fieldId || '--'}</td>
+                      <td data-label={t('sensors.status')} className="col-status">
                         <Status value={device.health} />
                       </td>
-                      <td data-label="Last reading" className="mono">
+                      <td data-label={t('sensors.lastReading')} className="mono">
                         {relativeTime(device.lastReadingAt)}
                       </td>
-                      <td data-label="Battery" className="mono">
+                      <td data-label={t('sensors.battery')} className="mono">
                         {device.batteryPercent == null
                           ? '--'
                           : `${Math.round(device.batteryPercent)}%`}
                       </td>
-                      <td data-label="Actions">
+                      <td data-label={t('sensors.actions')}>
                         <div className="row-actions">
                           <Link
                             to={`/sensors/${device.deviceId}`}
                             className="btn btn-quiet btn-icon"
-                            aria-label={`View ${device.deviceId}`}
+                            aria-label={t('sensors.view', { id: device.deviceId })}
                           >
-                            <IconChevron />
+                            <IconChevron className="flip-rtl" />
                           </Link>
                           {isAdmin ? (
                             <ConfirmButton
-                              label={`Deregister ${device.deviceId}`}
-                              confirmLabel="Deregister"
+                              label={t('sensors.deregister', { id: device.deviceId })}
+                              confirmLabel={t('sensors.deregisterBtn')}
                               onConfirm={() => deregister(device.deviceId)}
                             >
                               <IconTrash />
@@ -211,7 +213,7 @@ export default function Sensors() {
 
             <div className="card-head" style={{ borderBottom: 0, borderTop: '1px solid var(--border)' }}>
               <span className="muted" style={{ fontSize: 12 }}>
-                {data.totalElements} devices
+                {t('sensors.devices', { n: data.totalElements })}
               </span>
               <div className="toolbar-right">
                 <button
@@ -220,10 +222,10 @@ export default function Sensors() {
                   disabled={data.page === 0}
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                 >
-                  Previous
+                  {t('sensors.prev')}
                 </button>
                 <span className="mono muted" style={{ fontSize: 12, alignSelf: 'center' }}>
-                  Page {data.page + 1} of {Math.max(data.totalPages, 1)}
+                  {t('sensors.page', { a: data.page + 1, b: Math.max(data.totalPages, 1) })}
                 </span>
                 <button
                   type="button"
@@ -231,7 +233,7 @@ export default function Sensors() {
                   disabled={data.page + 1 >= data.totalPages}
                   onClick={() => setPage((p) => p + 1)}
                 >
-                  Next
+                  {t('sensors.next')}
                 </button>
               </div>
             </div>
@@ -248,7 +250,7 @@ export default function Sensors() {
             style={{ minHeight: 24, marginLeft: 8 }}
             onClick={() => setNotice(null)}
           >
-            Dismiss
+            {t('common.dismiss')}
           </button>
         </div>
       ) : null}
@@ -258,6 +260,7 @@ export default function Sensors() {
 
 function RegisterForm({ crops, onCancel, onCreated }) {
   const { token } = useSession()
+  const { t } = useI18n()
   const [form, setForm] = useState({
     deviceId: '',
     farmId: 'FARM-001',
@@ -292,7 +295,7 @@ function RegisterForm({ crops, onCancel, onCreated }) {
   return (
     <section className="card" style={{ marginBottom: 16 }}>
       <div className="card-head">
-        <h2 className="card-title">Register a device</h2>
+        <h2 className="card-title">{t('sensors.registerTitle')}</h2>
       </div>
       <form className="card-body" onSubmit={submit}>
         {error ? (
@@ -303,7 +306,7 @@ function RegisterForm({ crops, onCancel, onCreated }) {
 
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
           <div className="field">
-            <label htmlFor="deviceId">Device ID</label>
+            <label htmlFor="deviceId">{t('sensors.deviceId')}</label>
             <input
               id="deviceId"
               className="input mono"
@@ -314,11 +317,11 @@ function RegisterForm({ crops, onCancel, onCreated }) {
             />
           </div>
           <div className="field">
-            <label htmlFor="farmId">Farm ID</label>
+            <label htmlFor="farmId">{t('sensors.farmId')}</label>
             <input id="farmId" className="input mono" required value={form.farmId} onChange={set('farmId')} />
           </div>
           <div className="field">
-            <label htmlFor="sensorType">Sensor type</label>
+            <label htmlFor="sensorType">{t('sensors.sensorType')}</label>
             <select id="sensorType" className="select" value={form.sensorType} onChange={set('sensorType')}>
               <option value="soil-moisture-temperature">soil-moisture-temperature</option>
               <option value="weather-station">weather-station</option>
@@ -326,9 +329,9 @@ function RegisterForm({ crops, onCancel, onCreated }) {
             </select>
           </div>
           <div className="field">
-            <label htmlFor="fieldId">Field assignment</label>
+            <label htmlFor="fieldId">{t('sensors.assign')}</label>
             <select id="fieldId" className="select" value={form.fieldId} onChange={set('fieldId')}>
-              <option value="">Unassigned</option>
+              <option value="">{t('sensors.unassigned')}</option>
               {crops.map((c) => (
                 <option key={c.cropId} value={c.cropId}>
                   {c.name} ({c.cropId})
@@ -337,21 +340,21 @@ function RegisterForm({ crops, onCancel, onCreated }) {
             </select>
           </div>
           <div className="field">
-            <label htmlFor="latitude">Latitude</label>
+            <label htmlFor="latitude">{t('sensors.lat')}</label>
             <input id="latitude" className="input mono" type="number" step="any" value={form.latitude} onChange={set('latitude')} />
           </div>
           <div className="field">
-            <label htmlFor="longitude">Longitude</label>
+            <label htmlFor="longitude">{t('sensors.lon')}</label>
             <input id="longitude" className="input mono" type="number" step="any" value={form.longitude} onChange={set('longitude')} />
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: 8 }}>
           <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? 'Registering' : 'Register device'}
+            {saving ? t('sensors.registering') : t('sensors.register')}
           </button>
           <button type="button" className="btn" onClick={onCancel}>
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </form>

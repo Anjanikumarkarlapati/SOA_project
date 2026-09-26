@@ -1,4 +1,4 @@
-// Shared with web/src/lib/farm - keep the two copies in step.
+// Shared with web/src/lib/farm - edit it there and run node scripts/sync-shared.mjs.
 /*
  * The farm assistant's automation engine. Pure functions, no React: given a farm profile and
  * a day's weather it works out how much water the crop needs, when to give it, and which
@@ -23,6 +23,7 @@ import {
   type SensorItem,
   type SoilProfile,
 } from './india'
+import { msg, tr, type Msg } from '../i18n/core'
 
 /* ---------- Profile ---------- */
 
@@ -151,12 +152,7 @@ export type WeatherSource = 'live' | 'normals'
 
 export type Scenario = 'normal' | 'heatwave' | 'monsoon' | 'coldwave'
 
-export const SCENARIOS: Record<Scenario, { label: string; hint: string }> = {
-  normal: { label: 'As forecast', hint: 'Use the weather as it is' },
-  heatwave: { label: 'Heatwave', hint: '+7 C, dry air - watch the engine add water' },
-  monsoon: { label: 'Monsoon rain', hint: 'Heavy rain - watch the engine skip irrigation' },
-  coldwave: { label: 'Cold wave', hint: '-9 C nights - frost protection kicks in' },
-}
+export const SCENARIOS: Scenario[] = ['normal', 'heatwave', 'monsoon', 'coldwave']
 
 /** FAO-56 eq. 21: extraterrestrial radiation, converted to mm/day of evaporation. */
 function extraterrestrialMm(lat: number, dayOfYear: number) {
@@ -305,7 +301,7 @@ export interface Pulse {
   start: number
   litres: number
   minutes: number
-  reason: string
+  reason: Msg
 }
 
 export interface DayPlan {
@@ -320,8 +316,8 @@ export interface DayPlan {
   litres: number
   pumpMinutes: number
   pulses: Pulse[]
-  skipped: string | null
-  advisories: string[]
+  skipped: Msg | null
+  advisories: Msg[]
 }
 
 export interface FieldModel {
@@ -383,45 +379,44 @@ export function planDay(profile: FarmProfile, model: FieldModel, weather: DayWea
   const litres = litresFor(grossMm, model.areaM2)
   const pumpMinutes = litres / profile.pumpLpm
 
-  const advisories: string[] = []
+  const advisories: Msg[] = []
   const [tLow, tHigh] = crop.temp
-  if (band === 'Heatwave') {
-    advisories.push(`Heatwave (${weather.tmax.toFixed(0)} C): irrigate only in early morning and evening, never 11:00-16:00. Mulch to cut evaporation.`)
-  }
-  if (weather.tmax > tHigh) advisories.push(`Above ${crop.name}'s comfort range (${tLow}-${tHigh} C): heat stress likely at flowering.`)
-  if (weather.tmin <= 4) advisories.push(`Frost risk tonight (min ${weather.tmin.toFixed(0)} C): a light evening irrigation keeps the soil warmer.`)
-  else if (weather.tmax < tLow) advisories.push(`Cooler than ${crop.name} likes (${tLow}-${tHigh} C): growth slows, water need is lower.`)
-  if (crop.fungal && weather.humidity >= 80) advisories.push('Humid day: fungal disease risk. Avoid overhead watering in the evening.')
-  if (weather.rainMm >= 20) advisories.push(`Heavy rain expected (${weather.rainMm.toFixed(0)} mm): check field drainage.`)
+  const cropName = msg(`crop.${crop.id}`)
+  if (band === 'Heatwave') advisories.push(msg('adv.heatwave', { t: weather.tmax.toFixed(0) }))
+  if (weather.tmax > tHigh) advisories.push(msg('adv.above', { crop: cropName, lo: tLow, hi: tHigh }))
+  if (weather.tmin <= 4) advisories.push(msg('adv.frost', { t: weather.tmin.toFixed(0) }))
+  else if (weather.tmax < tLow) advisories.push(msg('adv.cool', { crop: cropName, lo: tLow, hi: tHigh }))
+  if (crop.fungal && weather.humidity >= 80) advisories.push(msg('adv.fungal'))
+  if (weather.rainMm >= 20) advisories.push(msg('adv.rain', { n: weather.rainMm.toFixed(0) }))
 
-  let skipped: string | null = null
+  let skipped: Msg | null = null
   let pulses: Pulse[] = []
   const minutes = (l: number) => Math.round(l / profile.pumpLpm)
 
   if (effectiveRain >= etc + extra && weather.rainMm > 0) {
-    skipped = `Rain (${weather.rainMm.toFixed(0)} mm) covers today's ${(etc + extra).toFixed(1)} mm demand`
+    skipped = msg('skip.rain', { n: weather.rainMm.toFixed(0), d: (etc + extra).toFixed(1) })
   } else if (grossMm < 0.5) {
-    skipped = 'Demand under 0.5 mm - soil reserve covers it'
+    skipped = msg('skip.small')
   } else if (band === 'Heatwave' || band === 'Hot') {
     // Split so the root zone never dries out through the hot afternoon.
     const morning = litres * 0.6
     pulses = [
-      { start: 5.5, litres: morning, minutes: minutes(morning), reason: 'Pre-dawn: lowest evaporation loss' },
-      { start: 18, litres: litres - morning, minutes: minutes(litres - morning), reason: 'Evening top-up after peak heat' },
+      { start: 5.5, litres: morning, minutes: minutes(morning), reason: msg('pulse.predawn') },
+      { start: 18, litres: litres - morning, minutes: minutes(litres - morning), reason: msg('pulse.evening') },
     ]
   } else if (band === 'Cold' || band === 'Cool') {
     // Cold mornings: water late morning so roots are not chilled; frost nights get a light evening run.
     if (weather.tmin <= 4) {
       const evening = litres * 0.3
       pulses = [
-        { start: 10, litres: litres - evening, minutes: minutes(litres - evening), reason: 'Late morning once the soil has warmed' },
-        { start: 17, litres: evening, minutes: minutes(evening), reason: 'Frost protection: wet soil holds heat overnight' },
+        { start: 10, litres: litres - evening, minutes: minutes(litres - evening), reason: msg('pulse.lateMorning') },
+        { start: 17, litres: evening, minutes: minutes(evening), reason: msg('pulse.frost') },
       ]
     } else {
-      pulses = [{ start: 9.5, litres, minutes: minutes(litres), reason: 'Mid-morning: soil warm, low evaporation' }]
+      pulses = [{ start: 9.5, litres, minutes: minutes(litres), reason: msg('pulse.midMorning') }]
     }
   } else {
-    pulses = [{ start: 6, litres, minutes: minutes(litres), reason: 'Early morning: cool, calm, least evaporation' }]
+    pulses = [{ start: 6, litres, minutes: minutes(litres), reason: msg('pulse.early') }]
   }
 
   return {
@@ -457,142 +452,70 @@ export function recommendSensors(profile: FarmProfile): SensorItem[] {
   if (!crop) return []
   const acres = profile.areaAcres
   const method = IRRIGATION[profile.irrigation]
+  const methodName = msg(`method.${profile.irrigation}`)
   const zones = Math.max(1, Math.ceil(acres / method.acresPerZone))
   const per = (n: number) => Math.max(1, Math.ceil(acres / n))
   const zoneRain = district ? CLIMATE[district.zone].rain.reduce((a, b) => a + b, 0) : 800
-  const depthNote =
-    crop.rootDepth >= 1
-      ? `Dual-depth probe at ${Math.round(crop.rootDepth * 30)} cm and ${Math.round(crop.rootDepth * 70)} cm (deep roots)`
-      : `Single probe at ${Math.round(crop.rootDepth * 50)} cm, in the root zone`
+  const text = (id: string, params?: Record<string, string | number | Msg>) => ({
+    name: msg(`sensor.${id}.name`),
+    measures: msg(`sensor.${id}.measures`),
+    why: msg(`sensor.${id}.why`, params),
+    placement: msg(`sensor.${id}.placement`),
+  })
 
   const items: SensorItem[] = []
 
   if (crop.ponded) {
-    items.push({
-      id: 'water-level',
-      name: 'Field water level sensor (ultrasonic, AWD tube)',
-      measures: 'Standing water depth, cm',
-      why: 'Paddy is grown ponded. Alternate wetting and drying (AWD) saves 25-30% water without yield loss.',
-      unitPrice: 3200,
-      quantity: zones,
-      priority: 'Essential',
-      placement: 'One per irrigation block, in a perforated AWD pipe 15 cm into the soil',
-    })
+    items.push({ id: 'water-level', ...text('water-level'), unitPrice: 3200, quantity: zones, priority: 'Essential' })
   }
   items.push({
     id: 'soil-moisture',
-    name: 'Capacitive soil moisture probe',
-    measures: 'Volumetric water content, %',
-    why: 'Tells the controller when the root zone actually needs water. This drives the automation.',
+    ...text('soil-moisture'),
+    placement:
+      crop.rootDepth >= 1
+        ? msg('sensor.soil-moisture.placementDeep', {
+            a: Math.round(crop.rootDepth * 30),
+            b: Math.round(crop.rootDepth * 70),
+            method: methodName,
+          })
+        : msg('sensor.soil-moisture.placement', { a: Math.round(crop.rootDepth * 50), method: methodName }),
     unitPrice: crop.rootDepth >= 1 ? 6500 : 4500,
     quantity: crop.ponded ? Math.max(1, Math.ceil(zones / 2)) : zones,
     priority: crop.ponded ? 'Recommended' : 'Essential',
-    placement: `${depthNote}. One per ${method.name.toLowerCase()} zone, away from field edges.`,
   })
-  items.push({
-    id: 'soil-temp',
-    name: 'Soil temperature probe',
-    measures: 'Soil temperature, C',
-    why: 'Germination, root activity and frost risk depend on soil temperature, not air.',
-    unitPrice: 1800,
-    quantity: per(5),
-    priority: 'Recommended',
-    placement: 'Beside a moisture probe at 10 cm depth',
-  })
-  items.push({
-    id: 'weather',
-    name: 'Micro weather station',
-    measures: 'Air temperature, humidity, wind, solar radiation',
-    why: 'On-farm temperature and humidity feed the water calculation (ET0) and heatwave alerts.',
-    unitPrice: 18000,
-    quantity: acres > 25 ? 2 : 1,
-    priority: 'Essential',
-    placement: 'Open ground, 2 m high, away from trees and buildings',
-  })
+  items.push({ id: 'soil-temp', ...text('soil-temp'), unitPrice: 1800, quantity: per(5), priority: 'Recommended' })
+  items.push({ id: 'weather', ...text('weather'), unitPrice: 18000, quantity: acres > 25 ? 2 : 1, priority: 'Essential' })
   items.push({
     id: 'rain',
-    name: 'Tipping-bucket rain gauge',
-    measures: 'Rainfall, mm',
-    why: 'Lets the automation skip irrigation after rain instead of wasting water and power.',
+    ...text('rain'),
     unitPrice: 4000,
     quantity: 1,
     priority: zoneRain > 600 ? 'Essential' : 'Recommended',
-    placement: 'Level mount on the weather station mast',
   })
-  items.push({
-    id: 'npk',
-    name: 'Soil NPK + pH + EC sensor (7-in-1)',
-    measures: 'Nitrogen, phosphorus, potassium, pH, salinity',
-    why: 'Matches fertiliser to what the soil lacks - useful alongside the Soil Health Card.',
-    unitPrice: 9500,
-    quantity: per(5),
-    priority: 'Recommended',
-    placement: 'Root zone, one per 5 acres; reading once a week is enough',
-  })
+  items.push({ id: 'npk', ...text('npk'), unitPrice: 9500, quantity: per(5), priority: 'Recommended' })
   if (crop.fungal) {
     items.push({
       id: 'leaf-wetness',
-      name: 'Leaf wetness sensor',
-      measures: 'Hours of leaf wetness',
-      why: `${crop.name} is prone to fungal disease; long wet-leaf hours are the early warning.`,
+      ...text('leaf-wetness', { crop: msg(`crop.${crop.id}`) }),
       unitPrice: 3500,
       quantity: per(5),
       priority: 'Recommended',
-      placement: 'At canopy height, facing north, angled 45 degrees',
     })
   }
-  items.push({
-    id: 'flow',
-    name: 'Water flow meter (pulse output)',
-    measures: 'Litres delivered, flow rate',
-    why: 'Confirms the litres the plan asked for actually reached the field; spots leaks and dry-running.',
-    unitPrice: 2500,
-    quantity: 1,
-    priority: 'Essential',
-    placement: 'On the pump delivery pipe, after the filter',
-  })
+  items.push({ id: 'flow', ...text('flow'), unitPrice: 2500, quantity: 1, priority: 'Essential' })
   if (profile.irrigation !== 'flood') {
-    items.push({
-      id: 'pressure',
-      name: 'Line pressure sensor',
-      measures: 'Pipe pressure, bar',
-      why: `Detects clogged emitters or burst laterals in the ${method.name.toLowerCase()} system.`,
-      unitPrice: 2200,
-      quantity: 1,
-      priority: 'Optional',
-      placement: 'At the head of the mainline, after the filter',
-    })
+    items.push({ id: 'pressure', ...text('pressure', { method: methodName }), unitPrice: 2200, quantity: 1, priority: 'Optional' })
   }
   items.push({
     id: 'valve',
-    name: profile.irrigation === 'flood' ? 'Motorised gate / channel valve' : 'Solenoid valve controller',
-    measures: 'Opens and closes a zone',
-    why: 'What the automation switches - one per zone so each block gets only what it needs.',
+    ...text('valve'),
+    name: msg(profile.irrigation === 'flood' ? 'sensor.valve-flood.name' : 'sensor.valve.name'),
     unitPrice: profile.irrigation === 'flood' ? 9000 : 6500,
     quantity: zones,
     priority: 'Essential',
-    placement: 'At the inlet of each zone',
   })
-  items.push({
-    id: 'pump',
-    name: 'GSM / IoT pump starter',
-    measures: 'Pump on/off, dry-run and voltage protection',
-    why: 'Starts the borewell pump on schedule and protects the motor during low voltage - common on rural feeders.',
-    unitPrice: 7500,
-    quantity: 1,
-    priority: 'Essential',
-    placement: 'In the pump starter panel',
-  })
-  items.push({
-    id: 'gateway',
-    name: 'Solar LoRaWAN gateway with 4G',
-    measures: 'Connects every sensor to the dashboard',
-    why: 'One gateway covers 2-5 km, so sensors run for years on batteries with no Wi-Fi in the field.',
-    unitPrice: 22000,
-    quantity: 1,
-    priority: 'Essential',
-    placement: 'Highest point on the farm, e.g. the pump house roof',
-  })
+  items.push({ id: 'pump', ...text('pump'), unitPrice: 7500, quantity: 1, priority: 'Essential' })
+  items.push({ id: 'gateway', ...text('gateway'), unitPrice: 22000, quantity: 1, priority: 'Essential' })
   return items
 }
 
@@ -614,7 +537,13 @@ export const formatHour = (hour: number) => {
   const m = Math.round((hour - Math.floor(hour)) * 60)
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
 }
+/** Duration as a message, for text stored now and shown later in whatever language is active. */
+export const minutesMsg = (minutes: number): Msg => {
+  const m = Math.round(minutes)
+  return m >= 60 ? msg('unit.hmin', { h: Math.floor(m / 60), m: m % 60 }) : msg('unit.min', { m })
+}
+
 export const formatMinutes = (minutes: number) => {
   const m = Math.round(minutes)
-  return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`
+  return m >= 60 ? tr('unit.hmin', { h: Math.floor(m / 60), m: m % 60 }) : tr('unit.min', { m })
 }

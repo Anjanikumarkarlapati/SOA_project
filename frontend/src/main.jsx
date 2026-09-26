@@ -13,14 +13,17 @@ import '@fontsource/dm-mono/500.css'
 
 import App from './App'
 import { SessionProvider } from './session'
+import { I18nProvider } from './i18n/react'
 import './styles.css'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <SessionProvider>
-        <App />
-      </SessionProvider>
+      <I18nProvider>
+        <SessionProvider>
+          <App />
+        </SessionProvider>
+      </I18nProvider>
     </BrowserRouter>
   </StrictMode>,
 )

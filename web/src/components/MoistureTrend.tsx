@@ -3,6 +3,7 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { clockTime } from '@/components/Status'
 import { usePrefersReducedMotion } from '@/lib/session'
+import { useI18n } from '@/lib/i18n/react'
 
 /**
  * Farm-wide soil moisture over 24 hours, averaged across every field.
@@ -17,9 +18,10 @@ export default function MoistureTrend({
   series: { timestamp: string; soilMoisture: number }[] | null
 }) {
   const reducedMotion = usePrefersReducedMotion()
+  const { t } = useI18n()
 
   if (!series || series.length < 2) {
-    return <p className="p-4 text-xs text-muted-foreground">Not enough telemetry yet to plot a trend.</p>
+    return <p className="p-4 text-xs text-muted-foreground">{t('chart.notEnough')}</p>
   }
 
   const data = series.map((point) => ({
@@ -59,12 +61,12 @@ export default function MoistureTrend({
             fontFamily: 'var(--font-plex-mono)',
             fontSize: 12,
           }}
-          formatter={(value) => [`${value}%`, 'Farm average']}
+          formatter={(value) => [`${value}%`, t('chart.farmAvg')]}
         />
         <Area
           type="monotone"
           dataKey="moisture"
-          name="Farm average"
+          name={t('chart.farmAvg')}
           stroke="var(--brand-accent)"
           strokeWidth={1.75}
           fill="url(#moistureFade)"

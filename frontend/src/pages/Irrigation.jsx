@@ -12,15 +12,17 @@ import {
 } from '../components'
 import { IconEdit, IconPlus, IconTrash } from '../icons'
 import { usePolling, useSession } from '../session'
+import { useI18n } from '../i18n/react'
 
 const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']
 
 export default function Irrigation() {
+  const { t } = useI18n()
   const [tab, setTab] = useState('schedules')
 
   return (
     <>
-      <div className="tabs" role="tablist" aria-label="Irrigation views">
+      <div className="tabs" role="tablist" aria-label={t('irr.views')}>
         <button
           type="button"
           role="tab"
@@ -28,7 +30,7 @@ export default function Irrigation() {
           aria-selected={tab === 'schedules'}
           onClick={() => setTab('schedules')}
         >
-          Schedules
+          {t('irr.schedules')}
         </button>
         <button
           type="button"
@@ -37,7 +39,7 @@ export default function Irrigation() {
           aria-selected={tab === 'manual'}
           onClick={() => setTab('manual')}
         >
-          Manual Control
+          {t('irr.manual')}
         </button>
       </div>
 
@@ -50,6 +52,7 @@ export default function Irrigation() {
 
 function Schedules() {
   const { token, isAdmin } = useSession()
+  const { t } = useI18n()
   const [reloadKey, setReloadKey] = useState(0)
   const [editing, setEditing] = useState(null)
   const [error, setError] = useState('')
@@ -80,7 +83,7 @@ function Schedules() {
   }
 
   if (loading && !data) return <Loading variant="rows" rows={4} />
-  if (!data) return <DataError what="the irrigation schedules" onRetry={retry} />
+  if (!data) return <DataError what="what.schedules" onRetry={retry} />
 
   return (
     <>
@@ -92,7 +95,7 @@ function Schedules() {
 
       <div className="toolbar">
         <span className="muted" style={{ fontSize: 13 }}>
-          {data.schedules.filter((s) => s.active).length} of {data.schedules.length} schedules active
+          {t('irr.active', { a: data.schedules.filter((s) => s.active).length, b: data.schedules.length })}
         </span>
         {isAdmin ? (
           <div className="toolbar-right">
@@ -102,7 +105,7 @@ function Schedules() {
               onClick={() => setEditing(editing === 'new' ? null : 'new')}
             >
               <IconPlus />
-              New schedule
+              {t('irr.new')}
             </button>
           </div>
         ) : null}
@@ -122,7 +125,7 @@ function Schedules() {
 
       {data.schedules.length === 0 ? (
         <section className="card">
-          <Empty title="No irrigation schedules yet" />
+          <Empty title={t('irr.none')} />
         </section>
       ) : (
         <section className="card">
@@ -146,7 +149,7 @@ function Schedules() {
                   <Toggle
                     checked={schedule.active}
                     disabled={!isAdmin}
-                    label={`${schedule.scheduleId} active`}
+                    label={t('irr.activeLabel', { id: schedule.scheduleId })}
                     onChange={(next) =>
                       act(() => api.toggleSchedule(token, schedule.scheduleId, next))
                     }
@@ -158,13 +161,13 @@ function Schedules() {
                 </div>
                 <div className="field-meta">
                   {schedule.recurrence === 'WEEKLY'
-                    ? schedule.daysOfWeek.map((d) => d.slice(0, 3)).join(', ')
-                    : 'Every day'}
+                    ? schedule.daysOfWeek.map((d) => t(`day.${d}`)).join(', ')
+                    : t('irr.everyDay')}
                 </div>
                 <div className="field-meta mono">
-                  {schedule.startTime.slice(0, 5)} for {schedule.durationMinutes} min
+                  {t('irr.for', { time: schedule.startTime.slice(0, 5), n: schedule.durationMinutes })}
                   <div>
-                    {schedule.lastRunAt ? `last run ${relativeTime(schedule.lastRunAt)}` : 'never run'}
+                    {schedule.lastRunAt ? t('irr.lastRun', { t: relativeTime(schedule.lastRunAt) }) : t('irr.neverRun')}
                   </div>
                 </div>
                 {isAdmin ? (
@@ -172,14 +175,14 @@ function Schedules() {
                     <button
                       type="button"
                       className="btn btn-quiet btn-icon"
-                      aria-label={`Edit ${schedule.scheduleId}`}
+                      aria-label={t('irr.edit', { id: schedule.scheduleId })}
                       onClick={() => setEditing(schedule.scheduleId)}
                     >
                       <IconEdit />
                     </button>
                     <ConfirmButton
-                      label={`Delete ${schedule.scheduleId}`}
-                      confirmLabel="Delete"
+                      label={t('irr.delete', { id: schedule.scheduleId })}
+                      confirmLabel={t('irr.deleteBtn')}
                       onConfirm={() => act(() => api.deleteSchedule(token, schedule.scheduleId))}
                     >
                       <IconTrash />
@@ -199,6 +202,7 @@ function Schedules() {
 
 function ScheduleForm({ schedule, valves, crops, onCancel, onSaved }) {
   const { token } = useSession()
+  const { t } = useI18n()
   const [form, setForm] = useState({
     valveId: schedule?.valveId || valves[0]?.valveId || '',
     cropId: schedule?.cropId || crops[0]?.cropId || '',
@@ -254,7 +258,7 @@ function ScheduleForm({ schedule, valves, crops, onCancel, onSaved }) {
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
         <div className="field">
-          <label htmlFor="valveId">Zone</label>
+          <label htmlFor="valveId">{t('irr.zone')}</label>
           <select
             id="valveId"
             className="select"
@@ -269,19 +273,19 @@ function ScheduleForm({ schedule, valves, crops, onCancel, onSaved }) {
           </select>
         </div>
         <div className="field">
-          <label htmlFor="recurrence">Recurrence</label>
+          <label htmlFor="recurrence">{t('irr.recurrence')}</label>
           <select
             id="recurrence"
             className="select"
             value={form.recurrence}
             onChange={(e) => setForm((f) => ({ ...f, recurrence: e.target.value }))}
           >
-            <option value="DAILY">Daily</option>
-            <option value="WEEKLY">Weekly</option>
+            <option value="DAILY">{t('irr.daily')}</option>
+            <option value="WEEKLY">{t('irr.weekly')}</option>
           </select>
         </div>
         <div className="field">
-          <label htmlFor="startTime">Start time</label>
+          <label htmlFor="startTime">{t('irr.start')}</label>
           <input
             id="startTime"
             className="input mono"
@@ -292,7 +296,7 @@ function ScheduleForm({ schedule, valves, crops, onCancel, onSaved }) {
           />
         </div>
         <div className="field">
-          <label htmlFor="duration">Duration (minutes)</label>
+          <label htmlFor="duration">{t('irr.duration')}</label>
           <input
             id="duration"
             className="input mono"
@@ -309,7 +313,7 @@ function ScheduleForm({ schedule, valves, crops, onCancel, onSaved }) {
       {form.recurrence === 'WEEKLY' ? (
         <fieldset className="field" style={{ border: 0, padding: 0, margin: '0 0 14px' }}>
           <legend className="metric-label" style={{ padding: 0 }}>
-            Days
+            {t('irr.days')}
           </legend>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {DAYS.map((day) => (
@@ -325,7 +329,7 @@ function ScheduleForm({ schedule, valves, crops, onCancel, onSaved }) {
                 }
                 onClick={() => toggleDay(day)}
               >
-                {day.slice(0, 3)}
+                {t(`day.${day}`)}
               </button>
             ))}
           </div>
@@ -335,17 +339,17 @@ function ScheduleForm({ schedule, valves, crops, onCancel, onSaved }) {
       <div style={{ marginBottom: 14 }}>
         <Toggle
           checked={form.skipIfMoist}
-          label="Skip the run when the field is already at or above optimal moisture"
+          label={t('irr.skipLabel')}
           onChange={(next) => setForm((f) => ({ ...f, skipIfMoist: next }))}
         />
       </div>
 
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="submit" className="btn btn-primary" disabled={saving}>
-          {saving ? 'Saving' : schedule ? 'Save changes' : 'Create schedule'}
+          {saving ? t('irr.saving') : schedule ? t('irr.save') : t('irr.create')}
         </button>
         <button type="button" className="btn" onClick={onCancel}>
-          Cancel
+          {t('common.cancel')}
         </button>
       </div>
     </form>
@@ -356,6 +360,7 @@ function ScheduleForm({ schedule, valves, crops, onCancel, onSaved }) {
 
 function ManualControl() {
   const { token, isAdmin } = useSession()
+  const { t } = useI18n()
   const [reloadKey, setReloadKey] = useState(0)
   const [pending, setPending] = useState({})
   const [optimistic, setOptimistic] = useState({})
@@ -386,7 +391,7 @@ function ManualControl() {
       setError(
         err.status === 409
           ? `${valve.zoneName}: ${err.message}`
-          : `${valve.zoneName}: valve did not respond - try again`,
+          : t('irr.noRespond', { zone: valve.zoneName }),
       )
     } finally {
       setPending((p) => {
@@ -414,7 +419,7 @@ function ManualControl() {
   }
 
   if (loading && !data) return <Loading variant="cards" rows={4} />
-  if (!data) return <DataError what="the valve states" onRetry={retry} />
+  if (!data) return <DataError what="what.valves" onRetry={retry} />
 
   return (
     <>
@@ -429,22 +434,22 @@ function ManualControl() {
           {confirmStop ? (
             <>
               <span className="emergency-copy">
-                This closes every valve on the farm immediately. Continue?
+                {t('irr.confirmStop')}
               </span>
               <button type="button" className="btn btn-danger" onClick={emergencyStop}>
-                Yes, close all valves
+                {t('irr.yesClose')}
               </button>
               <button type="button" className="btn" onClick={() => setConfirmStop(false)}>
-                Cancel
+                {t('common.cancel')}
               </button>
             </>
           ) : (
             <>
               <button type="button" className="btn btn-danger" onClick={() => setConfirmStop(true)}>
-                Close all valves
+                {t('irr.closeAll')}
               </button>
               <span className="emergency-copy">
-                Farm-wide emergency stop. Asks for confirmation before it runs.
+                {t('irr.stopHint')}
               </span>
             </>
           )}
@@ -471,8 +476,8 @@ function ManualControl() {
                 <Toggle
                   checked={isOpen}
                   disabled={!isAdmin || pending[valve.valveId]}
-                  name={`${valve.zoneName} valve`}
-                  label={isOpen ? 'Open' : 'Closed'}
+                  name={t('irr.valveName', { zone: valve.zoneName })}
+                  label={isOpen ? t('status.OPEN') : t('status.CLOSED')}
                   onChange={(next) => setValve(valve, next)}
                 />
 
@@ -480,17 +485,19 @@ function ManualControl() {
                   {pending[valve.valveId] ? (
                     <span className="valve-syncing">
                       <span className="spinner" />
-                      syncing with the device
+                      {t('irr.syncing')}
                     </span>
                   ) : null}
                   <span className="field-meta mono">
                     {isOpen
-                      ? `${valve.flowRateLpm} L/min${remaining ? `, ${remaining} remaining` : ''}`
-                      : `rated ${valve.ratedFlowLpm} L/min`}
+                      ? remaining
+                        ? t('irr.flowRemaining', { f: valve.flowRateLpm, t: remaining })
+                        : t('irr.flow', { f: valve.flowRateLpm })
+                      : t('irr.rated', { f: valve.ratedFlowLpm })}
                   </span>
                   <span className="field-meta mono">
-                    last change {relativeTime(valve.lastChangedAt)}
-                    {valve.runningScheduleId ? ` by ${valve.runningScheduleId}` : ''}
+                    {t('irr.lastChange', { t: relativeTime(valve.lastChangedAt) })}
+                    {valve.runningScheduleId ? ` ${t('irr.by', { id: valve.runningScheduleId })}` : ''}
                   </span>
                 </div>
               </div>

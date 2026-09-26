@@ -13,6 +13,8 @@ import {
 } from '../icons'
 import { useSession, useTheme } from '../session'
 import { supabaseEnabled, onSupabaseSignIn } from '../supabase'
+import { useI18n } from '../i18n/react'
+import LanguageSwitcher from '../i18n/LanguageSwitcher'
 
 // Single-farm demo (see the seeded pilot farm in sensor-service) - a self-serve signup does not
 // need to ask a new user to type an id they cannot know yet.
@@ -20,12 +22,14 @@ const FARM_ID = 'FARM-001'
 
 export default function Login() {
   const [mode, setMode] = useState('signin')
+  const { t } = useI18n()
   useTheme()
 
   return (
     <div className="auth-page">
       <header className="auth-top">
-        <span className="brand">AgriTech</span>
+        <span className="brand">{t('app.brand')}</span>
+        <LanguageSwitcher />
       </header>
 
       <div className="auth-shell">
@@ -39,22 +43,22 @@ export default function Login() {
 
         <aside className="auth-visual" aria-hidden="true">
           <div className="auth-photo" style={{ '--auth-img': `url(${farmland})` }}>
-            <h2>Every field, sensor and valve on one screen.</h2>
+            <h2>{t('login.visual')}</h2>
             <ul className="auth-features">
               <Feature
                 icon={<IconGauge width={18} height={18} />}
-                title="Live crop health"
-                body="Soil moisture, temperature and pH scored against each crop's optimal range."
+                title={t('login.f1')}
+                body={t('login.f1Body')}
               />
               <Feature
                 icon={<IconLeaf width={18} height={18} />}
-                title="Automated irrigation"
-                body="Schedules that skip a run when the soil is already wet enough."
+                title={t('login.f2')}
+                body={t('login.f2Body')}
               />
               <Feature
                 icon={<IconShield width={18} height={18} />}
-                title="Role-based access"
-                body="Farmers see the data; administrators control the hardware."
+                title={t('login.f3')}
+                body={t('login.f3Body')}
               />
             </ul>
           </div>
@@ -78,6 +82,7 @@ function Feature({ icon, title, body }) {
 
 function SignIn({ onCreateAccount }) {
   const { signIn, signInDemo, signInWithGoogle, exchangeSupabaseToken } = useSession()
+  const { t } = useI18n()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -101,7 +106,7 @@ function SignIn({ onCreateAccount }) {
         await exchangeSupabaseToken(token)
       } catch (error) {
         exchanged = false
-        setAuthError(error.message || 'Google sign-in failed')
+        setAuthError(error.message || t('login.googleFailed'))
       } finally {
         setGoogleBusy(false)
       }
@@ -115,7 +120,7 @@ function SignIn({ onCreateAccount }) {
     try {
       await signInWithGoogle() // redirects away; control returns via the effect above
     } catch (error) {
-      setAuthError(error.message || 'Could not start Google sign-in')
+      setAuthError(error.message || t('login.googleStart'))
       setGoogleBusy(false)
     }
   }
@@ -124,8 +129,8 @@ function SignIn({ onCreateAccount }) {
     event.preventDefault()
 
     const errors = {}
-    if (!email.trim()) errors.email = 'Enter your email address'
-    if (!password) errors.password = 'Enter your password'
+    if (!email.trim()) errors.email = t('login.errEmail')
+    if (!password) errors.password = t('login.errPassword')
     setFieldErrors(errors)
     setAuthError('')
     if (Object.keys(errors).length) return
@@ -135,7 +140,7 @@ function SignIn({ onCreateAccount }) {
       await signIn(email.trim(), password)
     } catch (error) {
       setAuthError(
-        error.status === 401 ? 'Incorrect email or password' : error.message || 'Sign in failed',
+        error.status === 401 ? t('login.incorrect') : error.message || t('login.failed'),
       )
     } finally {
       setSubmitting(false)
@@ -145,15 +150,15 @@ function SignIn({ onCreateAccount }) {
   return (
     <>
       <div className="auth-switch-banner">
-        <p>New to AgriTech Sensing Solutions?</p>
+        <p>{t('login.newTo')}</p>
         <button type="button" onClick={onCreateAccount}>
-          Create an account
-          <IconArrowRight width={14} height={14} />
+          {t('login.createAccount')}
+          <IconArrowRight width={14} height={14} className="flip-rtl" />
         </button>
       </div>
 
-      <h1 className="auth-heading">Welcome back.</h1>
-      <p className="auth-subheading">Sign in to the operations dashboard.</p>
+      <h1 className="auth-heading">{t('login.welcome')}</h1>
+      <p className="auth-subheading">{t('login.sub')}</p>
 
       <form onSubmit={submit} noValidate>
         {authError ? (
@@ -163,7 +168,7 @@ function SignIn({ onCreateAccount }) {
         ) : null}
 
         <div className="field">
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">{t('login.email')}</label>
           <input
             id="email"
             className="input"
@@ -182,7 +187,7 @@ function SignIn({ onCreateAccount }) {
         </div>
 
         <div className="field">
-          <label htmlFor="password">Password</label>
+          <label htmlFor="password">{t('login.password')}</label>
           <div className="input-affix">
             <input
               id="password"
@@ -195,7 +200,7 @@ function SignIn({ onCreateAccount }) {
               aria-describedby={fieldErrors.password ? 'password-error' : undefined}
             />
             <button type="button" onClick={() => setShowPassword((v) => !v)}>
-              {showPassword ? 'Hide' : 'Show'}
+              {showPassword ? t('login.hide') : t('login.show')}
             </button>
           </div>
           {fieldErrors.password ? (
@@ -207,13 +212,13 @@ function SignIn({ onCreateAccount }) {
 
         <button type="submit" className="btn btn-primary btn-block auth-submit" disabled={submitting}>
           {submitting ? <span className="spinner" /> : <IconSignIn width={16} height={16} />}
-          {submitting ? 'Signing in' : 'Sign in'}
+          {submitting ? t('login.signingIn') : t('login.signIn')}
         </button>
 
         {supabaseEnabled ? (
           <>
             <div className="auth-divider" role="separator">
-              <span>or</span>
+              <span>{t('login.or')}</span>
             </div>
             <button
               type="button"
@@ -222,7 +227,7 @@ function SignIn({ onCreateAccount }) {
               disabled={googleBusy || submitting}
             >
               {googleBusy ? <span className="spinner" /> : <GoogleMark />}
-              {googleBusy ? 'Connecting' : 'Continue with Google'}
+              {googleBusy ? t('login.connecting') : t('login.google')}
             </button>
           </>
         ) : null}
@@ -230,28 +235,25 @@ function SignIn({ onCreateAccount }) {
         {/* Password reset is not built yet, so this says who to ask instead of dangling a link
             that goes nowhere. */}
         <p className="auth-foot">
-          Lost your password? Ask your farm administrator to reset it.
+          {t('login.lost')}
         </p>
       </form>
 
       <div className="auth-hint farm-demo-hint">
-        <p className="hint-title">Try the India farm demo</p>
-        <p className="muted">
-          No server needed. Set up a farm as a new farmer - crop, location, sensors - and watch the
-          irrigation automation run a simulated day.
-        </p>
+        <p className="hint-title">{t('login.demoTitle')}</p>
+        <p className="muted">{t('login.demoBody')}</p>
         <button type="button" className="btn btn-primary btn-block" onClick={signInDemo} data-testid="demo-login">
           <IconAssistant width={16} height={16} />
-          Start India demo as a new farmer
+          {t('login.demoButton')}
         </button>
       </div>
 
       <div className="auth-hint">
-        <p className="hint-title">Demo accounts</p>
+        <p className="hint-title">{t('login.demoAccounts')}</p>
         <dl className="hint-accounts">
-          <dt>Administrator</dt>
+          <dt>{t('role.ADMIN')}</dt>
           <dd className="mono">admin@agritech.io / admin1234</dd>
-          <dt>Farmer</dt>
+          <dt>{t('role.FARMER')}</dt>
           <dd className="mono">farmer@agritech.io / farmer1234</dd>
         </dl>
       </div>
@@ -261,6 +263,7 @@ function SignIn({ onCreateAccount }) {
 
 function SignUp({ onSignIn }) {
   const { signUp } = useSession()
+  const { t } = useI18n()
 
   const [form, setForm] = useState({
     firstName: '',
@@ -281,10 +284,10 @@ function SignUp({ onSignIn }) {
     event.preventDefault()
 
     const errors = {}
-    if (!form.firstName.trim()) errors.firstName = 'Required'
-    if (!form.email.trim()) errors.email = 'Enter your email address'
-    if (form.password.length < 8) errors.password = 'At least 8 characters'
-    if (form.confirmPassword !== form.password) errors.confirmPassword = 'Passwords do not match'
+    if (!form.firstName.trim()) errors.firstName = t('signup.required')
+    if (!form.email.trim()) errors.email = t('login.errEmail')
+    if (form.password.length < 8) errors.password = t('signup.min8')
+    if (form.confirmPassword !== form.password) errors.confirmPassword = t('signup.mismatch')
     setFieldErrors(errors)
     setAuthError('')
     if (Object.keys(errors).length) return
@@ -301,8 +304,8 @@ function SignUp({ onSignIn }) {
     } catch (error) {
       setAuthError(
         error.status === 409
-          ? 'An account with that email already exists'
-          : error.message || 'Could not create the account',
+          ? t('signup.exists')
+          : error.message || t('signup.failed'),
       )
     } finally {
       setSubmitting(false)
@@ -312,7 +315,7 @@ function SignUp({ onSignIn }) {
   return (
     <>
       <p className="auth-subheading" style={{ marginBottom: 20 }}>
-        Already have an account?{' '}
+        {t('signup.have')}{' '}
         <a
           href="#signin"
           onClick={(e) => {
@@ -320,12 +323,12 @@ function SignUp({ onSignIn }) {
             onSignIn()
           }}
         >
-          Sign in
+          {t('login.signIn')}
         </a>
       </p>
 
-      <h1 className="auth-heading">Create your account.</h1>
-      <p className="auth-subheading">Set up access to the operations dashboard.</p>
+      <h1 className="auth-heading">{t('signup.title')}</h1>
+      <p className="auth-subheading">{t('signup.sub')}</p>
 
       <form onSubmit={submit} noValidate>
         {authError ? (
@@ -336,7 +339,7 @@ function SignUp({ onSignIn }) {
 
         <div className="auth-row">
           <div className="field">
-            <label htmlFor="firstName">First name</label>
+            <label htmlFor="firstName">{t('signup.first')}</label>
             <input
               id="firstName"
               className="input"
@@ -348,7 +351,7 @@ function SignUp({ onSignIn }) {
             {fieldErrors.firstName ? <span className="field-error">{fieldErrors.firstName}</span> : null}
           </div>
           <div className="field">
-            <label htmlFor="lastName">Last name</label>
+            <label htmlFor="lastName">{t('signup.last')}</label>
             <input
               id="lastName"
               className="input"
@@ -360,7 +363,7 @@ function SignUp({ onSignIn }) {
         </div>
 
         <div className="field">
-          <label htmlFor="signupEmail">Email address</label>
+          <label htmlFor="signupEmail">{t('signup.email')}</label>
           <input
             id="signupEmail"
             className="input"
@@ -374,28 +377,28 @@ function SignUp({ onSignIn }) {
         </div>
 
         <div className="field">
-          <label id="role-label">Account type</label>
+          <label id="role-label">{t('signup.type')}</label>
           <div className="auth-segment" role="group" aria-labelledby="role-label">
             <button
               type="button"
               aria-pressed={form.role === 'FARMER'}
               onClick={() => setForm((f) => ({ ...f, role: 'FARMER' }))}
             >
-              Farmer
+              {t('role.FARMER')}
             </button>
             <button
               type="button"
               aria-pressed={form.role === 'ADMIN'}
               onClick={() => setForm((f) => ({ ...f, role: 'ADMIN' }))}
             >
-              Administrator
+              {t('role.ADMIN')}
             </button>
           </div>
         </div>
 
         <div className="auth-row">
           <div className="field">
-            <label htmlFor="signupPassword">Password</label>
+            <label htmlFor="signupPassword">{t('login.password')}</label>
             <input
               id="signupPassword"
               className="input"
@@ -408,7 +411,7 @@ function SignUp({ onSignIn }) {
             {fieldErrors.password ? <span className="field-error">{fieldErrors.password}</span> : null}
           </div>
           <div className="field">
-            <label htmlFor="confirmPassword">Confirm password</label>
+            <label htmlFor="confirmPassword">{t('signup.confirm')}</label>
             <input
               id="confirmPassword"
               className="input"
@@ -424,7 +427,7 @@ function SignUp({ onSignIn }) {
           </div>
         </div>
 
-        <p className="auth-helper">Use 8 or more characters with a mix of letters and numbers.</p>
+        <p className="auth-helper">{t('signup.helper')}</p>
 
         <label className="auth-check">
           <input
@@ -433,12 +436,12 @@ function SignUp({ onSignIn }) {
             onChange={(e) => setShowPassword(e.target.checked)}
           />
           {showPassword ? <IconEyeSlash width={14} height={14} /> : <IconEye width={14} height={14} />}
-          Show password
+          {t('signup.showPassword')}
         </label>
 
         <button type="submit" className="btn btn-primary btn-block auth-submit" disabled={submitting}>
           {submitting ? <span className="spinner" /> : <IconUserPlus width={16} height={16} />}
-          {submitting ? 'Creating account' : 'Create an account'}
+          {submitting ? t('signup.creating') : t('login.createAccount')}
         </button>
       </form>
     </>

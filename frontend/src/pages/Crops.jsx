@@ -5,9 +5,11 @@ import { api } from '../api'
 import { Empty, Loading, Status, relativeTime, statusColor } from '../components'
 import { IconRefresh } from '../icons'
 import { usePolling, useSession } from '../session'
+import { useI18n } from '../i18n/react'
 
 export default function Crops() {
   const { token } = useSession()
+  const { t } = useI18n()
   const [reloadKey, setReloadKey] = useState(0)
   const [analyzing, setAnalyzing] = useState(false)
 
@@ -39,18 +41,18 @@ export default function Crops() {
   }
 
   if (loading && !data) return <Loading variant="cards" rows={4} />
-  if (!data || data.length === 0) return <Empty title="No fields configured yet" />
+  if (!data || data.length === 0) return <Empty title={t('crops.none')} />
 
   return (
     <>
       <div className="toolbar">
         <span className="muted" style={{ fontSize: 13 }}>
-          {data.length} fields monitored
+          {t('crops.monitored', { n: data.length })}
         </span>
         <div className="toolbar-right">
           <button type="button" className="btn" onClick={analyze} disabled={analyzing}>
             {analyzing ? <span className="spinner" /> : <IconRefresh />}
-            {analyzing ? 'Analyzing' : 'Run analysis'}
+            {analyzing ? t('crops.analyzing') : t('crops.run')}
           </button>
         </div>
       </div>
@@ -62,7 +64,7 @@ export default function Crops() {
               <div>
                 <h2 className="card-title">{crop.name}</h2>
                 <div className="field-meta">
-                  {crop.cropType}, {crop.areaHectares} ha
+                  {crop.cropType}, {t('unit.ha', { n: crop.areaHectares })}
                 </div>
               </div>
             </div>
@@ -70,7 +72,7 @@ export default function Crops() {
             <div className="card-body">
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16 }}>
                 <div>
-                  <div className="metric-label">Health score</div>
+                  <div className="metric-label">{t('crops.health')}</div>
                   <div className="crop-score" style={{ color: statusColor(crop.status) }}>
                     {crop.healthScore ?? '--'}
                   </div>
@@ -83,7 +85,7 @@ export default function Crops() {
 
               <div className="crop-metrics">
                 <div>
-                  <div className="metric-label">Soil moisture</div>
+                  <div className="metric-label">{t('metric.moisture')}</div>
                   <div
                     className="metric-value"
                     style={{ color: statusColor(crop.moistureStatus || 'NO_DATA') }}
@@ -91,19 +93,19 @@ export default function Crops() {
                     {crop.soilMoisture == null ? '--' : `${crop.soilMoisture.toFixed(1)}%`}
                   </div>
                   <div className="field-meta mono">
-                    optimal {crop.optimal.moisture[0]}-{crop.optimal.moisture[1]}%
+                    {t('crops.optimal', { range: `${crop.optimal.moisture[0]}-${crop.optimal.moisture[1]}%` })}
                   </div>
                 </div>
                 <div>
-                  <div className="metric-label">Soil temperature</div>
+                  <div className="metric-label">{t('metric.temperature')}</div>
                   <div
                     className="metric-value"
                     style={{ color: statusColor(crop.temperatureStatus || 'NO_DATA') }}
                   >
-                    {crop.soilTemperature == null ? '--' : `${crop.soilTemperature.toFixed(1)} C`}
+                    {crop.soilTemperature == null ? '--' : `${crop.soilTemperature.toFixed(1)} °C`}
                   </div>
                   <div className="field-meta mono">
-                    optimal {crop.optimal.temperature[0]}-{crop.optimal.temperature[1]} C
+                    {t('crops.optimal', { range: `${crop.optimal.temperature[0]}-${crop.optimal.temperature[1]} °C` })}
                   </div>
                 </div>
               </div>
@@ -117,9 +119,9 @@ export default function Crops() {
                   fontSize: 12,
                 }}
               >
-                <span className="muted mono">updated {relativeTime(crop.lastUpdated)}</span>
+                <span className="muted mono">{t('crops.updated', { t: relativeTime(crop.lastUpdated) })}</span>
                 <Link to={`/crops/${crop.cropId}`} style={{ marginLeft: 'auto' }}>
-                  View details
+                  {t('crops.view')}
                 </Link>
               </div>
             </div>
@@ -132,8 +134,9 @@ export default function Crops() {
 
 /** 7-day health-score movement. Deliberately axis-free - it shows shape, not values. */
 function Sparkline({ trend, color }) {
+  const { t } = useI18n()
   if (!trend || trend.length < 2) {
-    return <span className="field-meta">no trend yet</span>
+    return <span className="field-meta">{t('crops.noTrend')}</span>
   }
   return (
     <ResponsiveContainer width="100%" height="100%">
