@@ -256,6 +256,29 @@ farm profile is kept in the browser (`localStorage`, per user email). The engine
 `web/src/lib/farm/` (`india.ts` data, `engine.ts` calculations, `simulator.ts` controller), and
 the Vite app keeps an identical copy in `frontend/src/farm/`. Change them together.
 
+## Languages
+
+Both dashboards have a language button (top right; also on the login and onboarding screens)
+offering English plus all 22 languages of the Eighth Schedule: Hindi, Bengali, Marathi, Telugu,
+Tamil, Gujarati, Urdu, Kannada, Odia, Malayalam, Punjabi, Assamese, Maithili, Santali (Ol Chiki),
+Kashmiri, Nepali, Sindhi, Dogri, Konkani, Manipuri (Bengali script), Bodo and Sanskrit. The choice
+is saved in the browser. It translates the whole interface, including the onboarding wizard, the
+sensor recommendations, the automation log and the advisories. Urdu, Kashmiri and Sindhi switch
+the page to right-to-left.
+
+- The strings live in `web/src/lib/i18n/en.ts`, with one file per language in
+  `web/src/lib/i18n/locales/`. Each language is loaded only when it is picked. A key a language
+  does not have falls back to English.
+- `node scripts/sync-shared.mjs` (repo root) copies the i18n and farm-engine files into
+  `frontend/src/`. Run it after editing them in `web/`.
+- `cd web && node scripts/check-i18n.mjs` checks every language for unknown keys, mismatched
+  `{placeholders}` and coverage.
+- These stay in English: text that comes from the backend (alert messages, recommendations),
+  device IDs, and state and district names.
+- The translations were machine-authored. Have native speakers review them before production use,
+  especially the less-resourced languages (Bodo, Santali, Dogri, Manipuri, Kashmiri, Sindhi,
+  Konkani, Maithili and Sanskrit).
+
 ## Frontend stack
 
 `web/` is Next.js 16 (App Router) + React 19 + Tailwind v4 + shadcn, replacing the Vite SPA.
