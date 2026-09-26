@@ -7,13 +7,18 @@ import { IconButton } from '@/components/IconButton'
 import { SpotlightNavbar, type NavItem } from '@/components/ui/spotlight-navbar'
 import { GooeySearch } from '@/components/ui/gooey-search'
 import { useSession, useTheme } from '@/lib/session'
+import { loadProfile } from '@/lib/farm/engine'
 
 const NAV: NavItem[] = [
   { label: 'Dashboard', href: '/' },
   { label: 'Sensors', href: '/sensors' },
   { label: 'Crops', href: '/crops' },
   { label: 'Irrigation', href: '/irrigation' },
+  { label: 'Farm Assistant', href: '/assistant' },
 ]
+
+/** The offline demo has no backend, so only the browser-side assistant is reachable. */
+const DEMO_NAV: NavItem[] = [{ label: 'Farm Assistant', href: '/assistant' }]
 
 /**
  * Everything a signed-in user sees sits inside this shell: brand, spotlight navigation,
@@ -22,8 +27,9 @@ const NAV: NavItem[] = [
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { session, ready, signOut } = useSession()
+  const { session, ready, isDemo, signOut } = useSession()
   const [theme, toggleTheme] = useTheme()
+  const nav = isDemo ? DEMO_NAV : NAV
 
   // Route guard. Waits for `ready` so a hard refresh does not bounce a signed-in user to
   // the login screen before localStorage has been read.
@@ -31,14 +37,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (ready && !session) router.replace('/login')
   }, [ready, session, router])
 
+  // A farmer who has not set up a farm yet goes through onboarding first: crop, location,
+  // field, sensors. The demo account lives only on the assistant screen.
+  useEffect(() => {
+    if (!ready || !session) return
+    if (session.role === 'FARMER' && !loadProfile(session.email)) router.replace('/onboarding')
+    else if (isDemo && !pathname.startsWith('/assistant')) router.replace('/assistant')
+  }, [ready, session, isDemo, pathname, router])
+
   // Deepest match wins, so /sensors/SENSOR-001 still highlights Sensors.
   const activeIndex = useMemo(() => {
     let best = 0
-    NAV.forEach((item, i) => {
+    nav.forEach((item, i) => {
       if (item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)) best = i
     })
     return best
-  }, [pathname])
+  }, [pathname, nav])
 
   // What the search box can take you to. Pages first, then the crop fields by name.
   const searchTargets = useMemo(
@@ -48,6 +62,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       'Crops',
       'Irrigation schedules',
       'Manual valve control',
+      'Farm Assistant',
       'North Field',
       'River Paddock',
       'South Terrace',
@@ -63,6 +78,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       Crops: '/crops',
       'Irrigation schedules': '/irrigation',
       'Manual valve control': '/irrigation',
+      'Farm Assistant': '/assistant',
       'North Field': '/crops/CROP-FIELD-01',
       'River Paddock': '/crops/CROP-FIELD-02',
       'South Terrace': '/crops/CROP-FIELD-03',
@@ -114,7 +130,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <nav className="hidden h-full min-w-0 flex-1 justify-center md:flex" aria-label="Primary">
             <SpotlightNavbar
               className="h-full items-center pt-0"
-              items={NAV}
+              items={nav}
               defaultActiveIndex={activeIndex}
               onItemClick={(item) => router.push(item.href)}
             />
@@ -154,7 +170,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="flex h-12 justify-center border-t border-border md:hidden" aria-label="Primary">
           <SpotlightNavbar
             className="h-full items-center pt-0"
-            items={NAV}
+            items={nav}
             defaultActiveIndex={activeIndex}
             onItemClick={(item) => router.push(item.href)}
           />

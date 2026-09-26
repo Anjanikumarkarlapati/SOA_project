@@ -10,15 +10,20 @@ import {
   type ReactNode,
 } from 'react'
 import { api, clearSession, loadSession, saveSession, type Session } from './api'
+import { demoSession, isDemoSession } from './farm/demo'
+import { clearProfile } from './farm/engine'
 
 interface SessionValue {
   session: Session | null
   token: string | undefined
   isAdmin: boolean
+  /** Offline India demo: no backend, only the farm onboarding and assistant. */
+  isDemo: boolean
   /** False until the client has read localStorage, so guards do not redirect during hydration. */
   ready: boolean
   signIn: (email: string, password: string) => Promise<Session>
   signUp: (body: unknown) => Promise<Session>
+  signInDemo: () => Session
   signOut: () => Promise<void>
 }
 
@@ -50,8 +55,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return result
   }, [])
 
+  /** Every demo start is a brand-new farmer, so the onboarding wizard always runs. */
+  const signInDemo = useCallback(() => {
+    const result = demoSession()
+    clearProfile(result.email)
+    saveSession(result)
+    setSession(result)
+    return result
+  }, [])
+
   const signOut = useCallback(async () => {
-    if (session?.token) {
+    if (session?.token && !isDemoSession(session)) {
       // Best effort - the local session goes either way.
       await api.logout(session.token).catch(() => {})
     }
@@ -65,12 +79,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       token: session?.token,
       // Role comes from the JWT the server issued, never from a client-side choice.
       isAdmin: session?.role === 'ADMIN',
+      isDemo: isDemoSession(session),
       ready,
       signIn,
       signUp,
+      signInDemo,
       signOut,
     }),
-    [session, ready, signIn, signUp, signOut],
+    [session, ready, signIn, signUp, signInDemo, signOut],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

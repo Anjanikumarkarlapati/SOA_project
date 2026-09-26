@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, Eye, EyeSlash, Gauge, Leaf, Plant, ShieldCheck, SignIn, UserPlus } from '@phosphor-icons/react'
+import { ArrowRight, Eye, EyeSlash, Gauge, Leaf, Plant, Robot, ShieldCheck, SignIn, UserPlus } from '@phosphor-icons/react'
 import { useSession } from '@/lib/session'
 
 // Single-farm demo, so a self-serve signup does not ask for an id a new user cannot know.
@@ -96,7 +96,7 @@ const primaryButton =
   'inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-[13px] font-medium text-primary-foreground transition hover:bg-brand-hover active:translate-y-px disabled:opacity-55'
 
 function SignInForm({ onCreateAccount }: { onCreateAccount: () => void }) {
-  const { signIn } = useSession()
+  const { signIn, signInDemo } = useSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -191,6 +191,18 @@ function SignInForm({ onCreateAccount }: { onCreateAccount: () => void }) {
           {submitting ? 'Signing in' : 'Sign in'}
         </button>
       </form>
+
+      <div className="mt-5 rounded-lg border border-border bg-surface p-3.5">
+        <p className="text-[13px] font-semibold">Try the India farm demo</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          No server needed. Set up a farm as a new farmer - crop, location, sensors - and watch the irrigation
+          automation run a simulated day.
+        </p>
+        <button type="button" onClick={signInDemo} className={`${primaryButton} mt-3`} data-testid="demo-login">
+          <Robot size={16} />
+          Start India demo as a new farmer
+        </button>
+      </div>
 
       <div className="mt-6 border-t border-border pt-4 text-xs text-muted-foreground">
         <p className="mb-2 font-semibold text-foreground">Demo accounts</p>

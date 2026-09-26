@@ -215,6 +215,45 @@ exists only for the simulator; real deployments learn it from the sensors.
 
 ---
 
+## Farm onboarding and India automation demo
+
+A farmer who signs in for the first time (role `FARMER`, no farm set up yet) is sent to
+`/onboarding` in the `web` dashboard, a five-step wizard:
+
+1. **Crop** - 48 Indian crops across cereals, millets, pulses, oilseeds, cash crops, vegetables,
+   fruits, spices and plantation crops, with Hindi names and Kharif/Rabi/Zaid seasons.
+2. **Location** - every state and union territory, key agricultural districts, or "use my
+   location" (nearest district). The district sets the climate zone.
+3. **Field** - area (acres or hectares), sowing date, soil type (pre-filled from the zone),
+   irrigation method (drip / sprinkler / flood) and pump size.
+4. **Sensors** - a kit sized to the field: moisture probes and valves per irrigation zone,
+   a weather station, a rain gauge, NPK, leaf wetness for disease-prone crops, AWD water-level
+   sensors for paddy, a flow meter, a pump starter and a LoRaWAN gateway, with indicative INR prices.
+5. **Automate** - today's plan, then **Start automation**. When the backend is up, the field is
+   also registered with crop-service.
+
+`/assistant` (**Farm Assistant**) then runs the automation:
+
+- **Water need.** It uses FAO-56: ET0 comes from the live Open-Meteo forecast when it is
+  reachable, otherwise Hargreaves ET0 from IMD climate normals for the district. ETc is
+  stage-dependent Kc x ET0. The engine subtracts effective rain, divides by irrigation efficiency,
+  and converts to litres (1 mm on 1 m2 = 1 L) and pump minutes.
+- **Temperature bands.** Each day and hour is classed Cold / Cool / Mild / Warm / Hot /
+  Heatwave (IMD: 40 C and above). Hot and heatwave days get a split pre-dawn and evening schedule,
+  with no watering at 11:00-16:00. Cold days water late morning, with a light evening run on frost
+  nights. Rain covering the demand skips the day.
+- **Views.** An hour-by-hour table, a 7-day plan, crop and heat/frost/fungal advisories, and a
+  simulated field. In the simulated field, moisture falls with the day's evaporation curve and the
+  controller opens and closes the valve itself: scheduled runs, a refill when moisture drops below
+  the trigger, and a cut-out at field capacity. Every action is logged.
+- **Demo controls.** Play/pause, speed (up to 3 simulated hours per second), and weather
+  scenarios (heatwave, monsoon rain, cold wave) that show how the automation reacts.
+
+**Offline demo:** on the login screen, **Start India demo as a new farmer** needs no Spring
+services. It creates a local demo session and always starts the onboarding from scratch. The
+farm profile is kept in the browser (`localStorage`, per user email). The engine is in
+`web/src/lib/farm/` (`india.ts` data, `engine.ts` calculations, `simulator.ts` controller).
+
 ## Frontend stack
 
 `web/` is Next.js 16 (App Router) + React 19 + Tailwind v4 + shadcn, replacing the Vite SPA.
