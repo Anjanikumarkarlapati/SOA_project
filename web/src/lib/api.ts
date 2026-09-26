@@ -40,11 +40,38 @@ export class ApiError extends Error {
   }
 }
 
+let refreshing: Promise<string | null> | null = null
+
+/** Access tokens live 15 minutes: trade the refresh token for a new pair, once, shared by all callers. */
+function refreshSession(): Promise<string | null> {
+  const current = loadSession()
+  if (!current?.refreshToken) return Promise.resolve(null)
+  refreshing ??= fetch('/api/auth/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken: current.refreshToken }),
+  })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((next) => {
+      if (!next?.token) return null
+      saveSession({ ...current, ...next })
+      return next.token as string
+    })
+    .catch(() => null)
+    .finally(() => {
+      refreshing = null
+    })
+  return refreshing
+}
+
 async function request<T = unknown>(
   method: string,
   path: string,
   { body, token }: { body?: unknown; token?: string } = {},
+  retried = false,
 ): Promise<T> {
+  // Components hold the token from login; a silent refresh may have replaced it since.
+  if (token) token = loadSession()?.token || token
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
@@ -54,6 +81,11 @@ async function request<T = unknown>(
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   })
+
+  if (response.status === 401 && token && !retried) {
+    const fresh = await refreshSession()
+    if (fresh) return request<T>(method, path, { body, token: fresh }, true)
+  }
 
   const text = await response.text()
   const payload = text ? JSON.parse(text) : null
@@ -105,6 +137,8 @@ export const api = {
 
   crops: (token: string) => request<Crop[]>('GET', '/crops', { token }),
   crop: (token: string, id: string) => request<Crop>('GET', `/crops/${id}`, { token }),
+  createCrop: (token: string, body: { name: string; cropType: string; areaHectares?: number }) =>
+    request<Crop>('POST', '/crops', { body, token }),
   cropMetrics: (token: string, id: string, range: string) =>
     request<CropMetrics>('GET', `/crops/${id}/metrics?range=${range}`, { token }),
   cropSummary: (token: string) =>

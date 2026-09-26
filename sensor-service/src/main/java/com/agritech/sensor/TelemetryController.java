@@ -45,6 +45,10 @@ public class TelemetryController {
         int accepted = 0;
 
         for (Reading r : req.readings()) {
+            if (r == null) {
+                rejected.add(Map.of("deviceId", "null", "reason", "empty reading"));
+                continue;
+            }
             String problem = validate(r);
             if (problem != null) {
                 rejected.add(Map.of("deviceId", String.valueOf(r.deviceId()), "reason", problem));

@@ -134,7 +134,7 @@ Real login response:
   "email": "admin@agritech.io",
   "role": "ADMIN",
   "farmId": "FARM-001",
-  "expiresIn": 86400
+  "expiresIn": 900
 }
 ```
 
@@ -380,9 +380,9 @@ you attach a small HTML template. Right-click a response → *Save Response* to 
   values come back under `"rejected"` with a reason (e.g. `"soilMoisture out of range (0-100)"`,
   `"device is not registered"`). Valid ranges: moisture 0–100, temp −50–80, pH 0–14, battery 0–100,
   no future timestamps.
-- **`expiresIn` is 86400** (24h). When a token expires, just re‑run Login (the Postman Test script
+- **`expiresIn` is 900** (15 min; use `POST /api/auth/refresh` with the `refreshToken` for a new one). When a token expires, just re‑run Login (the Postman Test script
   refreshes `{{token}}` automatically).
-- **Data is in‑memory H2.** It reseeds on every `start`; anything you create is wiped on restart.
+- **Data persists across restarts** (H2 files in `.run\data`). To start fresh: `stack.ps1 stop`, delete `.run\data`, then `start`.
   That's why the guide deletes its demo device at the end.
 
 ---

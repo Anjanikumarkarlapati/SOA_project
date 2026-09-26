@@ -1,5 +1,6 @@
 package com.agritech.irrigation;
 
+import com.agritech.common.InternalAuth;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.client.RestTemplateBuilder;
@@ -21,8 +22,9 @@ public class IrrigationServiceApplication {
     /** Eureka-resolved, load-balanced client for crop-service and sensor-service (FR-9). */
     @Bean
     @LoadBalanced
-    RestTemplate restTemplate(RestTemplateBuilder builder) {
+    RestTemplate restTemplate(RestTemplateBuilder builder, InternalAuth internalAuth) {
         return builder
+                .additionalInterceptors(internalAuth.interceptor())
                 .setConnectTimeout(Duration.ofSeconds(2))
                 .setReadTimeout(Duration.ofSeconds(4))
                 .build();

@@ -4,11 +4,14 @@ server:
 spring:
   application:
     name: sensor-service
+  # Set DB_URL / DB_USERNAME / DB_PASSWORD (in .env) to use Supabase Postgres; unset = local H2 file.
   datasource:
-    url: jdbc:h2:mem:sensordb;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: ""
+    url: ${DB_URL:jdbc:h2:file:${agritech.data-dir:./.run/data}/sensordb;AUTO_SERVER=TRUE}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    hikari:
+      # 4 services share Supabase's pooler connection limit.
+      maximum-pool-size: 3
   jpa:
     hibernate:
       ddl-auto: update
@@ -22,7 +25,7 @@ spring:
 agritech:
   simulator:
     # Set false to run against real devices posting to /api/telemetry/ingest.
-    enabled: ${SIMULATOR_ENABLED:true}
+    enabled: ${SIMULATOR_ENABLED:${agritech.jobs.enabled:true}}
     interval-ms: 30000
 
 eureka:

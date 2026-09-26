@@ -6,13 +6,16 @@ Start, stop, restart, or check the AgriTech microservice stack.
 .\scripts\stack.ps1 start
 .\scripts\stack.ps1 status
 .\scripts\stack.ps1 stop
+.\scripts\stack.ps1 start -Replicas   # also a 2nd sensor/crop/irrigation instance, to show Eureka load balancing
 #>
 
 param(
     [ValidateSet('start', 'stop', 'status', 'restart')]
     [string]$Action = 'start',
 
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+
+    [switch]$Replicas
 )
 
 $ErrorActionPreference = 'Stop'
@@ -40,6 +43,9 @@ if (Test-Path $envFile) {
     }
 }
 
+# Every instance of a service shares one H2 file DB here, so load-balanced replicas agree.
+$env:AGRITECH_DATA_DIR = Join-Path $logDir 'data'
+
 $services = @(
     @{ Name = 'eureka-server';      Port = 8761 },
     @{ Name = 'auth-service';       Port = 8081 },
@@ -47,6 +53,13 @@ $services = @(
     @{ Name = 'crop-service';       Port = 8083 },
     @{ Name = 'irrigation-service'; Port = 8084 },
     @{ Name = 'api-gateway';        Port = 8080 }
+)
+
+# Second instances: same Eureka name, different port. Timed jobs stay on the primary only.
+$replicaServices = @(
+    @{ Name = 'sensor-service';     Port = 18082; Label = 'sensor-service#2' },
+    @{ Name = 'crop-service';       Port = 18083; Label = 'crop-service#2' },
+    @{ Name = 'irrigation-service'; Port = 18084; Label = 'irrigation-service#2' }
 )
 
 function Get-PortOwner {
@@ -92,7 +105,8 @@ function Start-Stack {
     if (-not $SkipBuild) {
         Write-Host 'Building all modules...' -ForegroundColor Cyan
 
-        & (Join-Path $root 'mvnw.cmd') -q -B install -DskipTests
+        # JVM warnings on stderr must not abort under ErrorActionPreference=Stop; exit code decides.
+        & { $ErrorActionPreference = 'Continue'; & (Join-Path $root 'mvnw.cmd') -q -B install -DskipTests 2>&1 | Out-Host }
 
         if ($LASTEXITCODE -ne 0) {
             throw 'Maven build failed.'
@@ -103,13 +117,16 @@ function Start-Stack {
         New-Item -ItemType Directory -Path $logDir | Out-Null
     }
 
-    foreach ($service in $services) {
+    $toStart = if ($Replicas) { $services + $replicaServices } else { $services }
+
+    foreach ($service in $toStart) {
+        $label = if ($service.Label) { $service.Label } else { $service.Name }
         $existingProcess = Get-PortOwner $service.Port
 
         if ($existingProcess) {
             Write-Host (
                 "{0,-20} already listening on port {1}" -f
-                $service.Name, $service.Port
+                $label, $service.Port
             ) -ForegroundColor Yellow
             continue
         }
@@ -120,29 +137,34 @@ function Start-Stack {
             throw "Missing JAR: $jar. Run without -SkipBuild."
         }
 
-        $log = Join-Path $logDir "$($service.Name).log"
-        $errorLog = Join-Path $logDir "$($service.Name).err.log"
+        $log = Join-Path $logDir "$label.log"
+        $errorLog = Join-Path $logDir "$label.err.log"
 
         Write-Host (
             "Starting {0} on port {1}..." -f
-            $service.Name, $service.Port
+            $label, $service.Port
         ) -ForegroundColor Cyan
+
+        $javaArgs = @('-jar', $jar)
+        if ($service.Label) {
+            $javaArgs += @("--server.port=$($service.Port)", '--agritech.jobs.enabled=false')
+        }
 
         Start-Process `
             -FilePath 'java' `
-            -ArgumentList @('-jar', $jar) `
+            -ArgumentList $javaArgs `
             -RedirectStandardOutput $log `
             -RedirectStandardError $errorLog `
             -WindowStyle Hidden | Out-Null
 
-        if (Wait-ForPort -Port $service.Port -Name $service.Name) {
+        if (Wait-ForPort -Port $service.Port -Name $label) {
             Write-Host (
                 "{0,-20} UP on port {1}" -f
-                $service.Name, $service.Port
+                $label, $service.Port
             ) -ForegroundColor Green
         }
         else {
-            throw "$($service.Name) did not become healthy. Check $log"
+            throw "$label did not become healthy. Check $log"
         }
     }
 
@@ -155,6 +177,14 @@ function Start-Stack {
 }
 
 function Stop-Stack {
+    foreach ($service in $replicaServices) {
+        $owner = Get-PortOwner $service.Port
+        if ($owner) {
+            Stop-Process -Id $owner -Force
+            Write-Host ("{0,-20} stopped" -f $service.Label) -ForegroundColor DarkYellow
+        }
+    }
+
     foreach ($service in ($services | Sort-Object { $_.Port } -Descending)) {
         $owner = Get-PortOwner $service.Port
 
@@ -190,6 +220,13 @@ function Show-Status {
             "{0,-20} {1,-6} {2}" -f
             $service.Name, $service.Port, $state
         ) -ForegroundColor $color
+    }
+
+    foreach ($service in $replicaServices) {
+        $owner = Get-PortOwner $service.Port
+        if ($owner) {
+            Write-Host ("{0,-20} {1,-6} UP (PID {2})" -f $service.Label, $service.Port, $owner) -ForegroundColor Green
+        }
     }
 }
 

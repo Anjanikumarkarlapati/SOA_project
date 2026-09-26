@@ -2,6 +2,7 @@ package com.agritech.irrigation;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +21,14 @@ public class IrrigationScheduler {
     /** A schedule is picked up if the tick lands within this long after its start time. */
     private static final Duration START_GRACE = Duration.ofMinutes(5);
 
+    /**
+     * Only one instance per service runs the timed jobs; extra replicas start with
+     * --agritech.jobs.enabled=false and just serve requests.
+     * ponytail: jobs stop if the primary dies; ShedLock on the shared DB if that matters.
+     */
+    @Value("${agritech.jobs.enabled:true}")
+    private boolean jobsEnabled = true;
+
     private final ScheduleRepository schedules;
     private final ValveRepository valves;
     private final ValveService valveService;
@@ -33,6 +42,7 @@ public class IrrigationScheduler {
 
     @Scheduled(fixedRateString = "${agritech.irrigation.tick-ms:30000}", initialDelay = 25000)
     public void tick() {
+        if (!jobsEnabled) return;
         closeFinishedRuns();
         enforceMoistureCutout();
         startDueSchedules();

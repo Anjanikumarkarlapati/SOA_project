@@ -52,6 +52,21 @@ public class SensorClient {
         }
     }
 
+    /** Registers one simulated soil sensor on a newly added field. Returns false if sensor-service is down. */
+    public boolean provisionSensor(String fieldId, String farmId) {
+        try {
+            rest.postForObject("http://sensor-service/api/sensors/register", Map.of(
+                    "deviceId", "SENSOR-" + fieldId,
+                    "farmId", farmId,
+                    "sensorType", "soil-moisture-temperature",
+                    "fieldId", fieldId), Map.class);
+            return true;
+        } catch (Exception e) {
+            log.warn("could not provision a sensor for field {}: {}", fieldId, e.getMessage());
+            return false;
+        }
+    }
+
     static double asDouble(Object value, double fallback) {
         return value instanceof Number n ? n.doubleValue() : fallback;
     }

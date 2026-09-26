@@ -24,3 +24,5 @@ interface TelemetryRepository extends JpaRepository<TelemetryReading, Long> {
     @Query("select count(t) from TelemetryReading t where t.timestamp > :since")
     long countSince(Instant since);
 }
+
+interface FieldWateringRepository extends JpaRepository<FieldWatering, String> {}

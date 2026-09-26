@@ -1,21 +1,25 @@
 {
   "info": {
     "name": "AgriTech Fast Test Collection",
-    "description": "Complete API testing collection for AgriTech IoT platform",
+    "description": "Every AgriTech API endpoint through the gateway. Run top to bottom (Collection Runner): it logs in, creates, reads, updates and deletes its own test data, then logs out. Names ending \"(expect NNN)\" check that status; the rest must be 2xx.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
     "type": "bearer",
-    "bearer": {
-      "token": "{{token}}"
-    }
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
   },
   "item": [
     {
       "name": "Auth",
       "item": [
         {
-          "name": "Login",
+          "name": "Login (admin)",
           "request": {
             "method": "POST",
             "header": [
@@ -24,16 +28,205 @@
                 "value": "application/json"
               }
             ],
+            "url": "{{baseUrl}}/api/auth/login",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+              "raw": "{\n  \"email\": \"admin@agritech.io\",\n  \"password\": \"admin1234\"\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "login"]
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('token returned', () => pm.expect(j.token).to.be.a('string'));",
+                  "pm.collectionVariables.set('token', j.token);",
+                  "if (pm.environment.has('token')) pm.environment.set('token', j.token);",
+                  "pm.collectionVariables.set('refreshToken', j.refreshToken);",
+                  "pm.collectionVariables.set('runId', Date.now().toString(36).toUpperCase());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (farmer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"farmer@agritech.io\",\n  \"password\": \"farmer1234\"\n}"
             },
-            "description": "Login to get JWT token. Response will be saved to 'token' variable."
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('farmerToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login wrong password (expect 401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@agritech.io\",\n  \"password\": \"nope\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/auth/me"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('role is ADMIN', () => pm.expect(pm.response.json().role).to.eql('ADMIN'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register user (expect 201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"pm-{{runId}}@agritech.io\",\n  \"password\": \"password123\",\n  \"role\": \"FARMER\",\n  \"farmId\": \"FARM-001\",\n  \"displayName\": \"Postman User\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Register duplicate (expect 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@agritech.io\",\n  \"password\": \"password123\",\n  \"role\": \"ADMIN\",\n  \"farmId\": \"FARM-001\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Refresh token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/refresh",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('token', j.token);",
+                  "if (pm.environment.has('token')) pm.environment.set('token', j.token);",
+                  "pm.collectionVariables.set('refreshToken', j.refreshToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Google sign-in with bogus token (expect 401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/google",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessToken\": \"bogus\"\n}"
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "No token (expect 401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/sensors",
+            "auth": {
+              "type": "noauth"
+            }
           }
         }
       ]
@@ -42,27 +235,97 @@
       "name": "Sensors",
       "item": [
         {
-          "name": "List Sensors",
+          "name": "Register sensor (expect 201)",
           "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/sensors",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "sensors"]
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/sensors/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"SENSOR-PM-{{runId}}\",\n  \"farmId\": \"FARM-001\",\n  \"sensorType\": \"soil-moisture-temperature\",\n  \"fieldId\": \"CROP-FIELD-01\",\n  \"latitude\": 17.4,\n  \"longitude\": 78.47\n}"
             }
           }
         },
         {
-          "name": "Get Sensor Summary",
+          "name": "Register same sensor again (expect 409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/sensors/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"SENSOR-PM-{{runId}}\",\n  \"farmId\": \"FARM-001\",\n  \"sensorType\": \"soil-moisture-temperature\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get sensor",
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/sensors/summary",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "sensors", "summary"]
+            "url": "{{baseUrl}}/api/sensors/SENSOR-PM-{{runId}}"
+          }
+        },
+        {
+          "name": "Update sensor (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/sensors/SENSOR-PM-{{runId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fieldId\": \"CROP-FIELD-02\",\n  \"sensorType\": \"soil-ph\"\n}"
             }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('field updated', () => pm.expect(pm.response.json().fieldId).to.eql('CROP-FIELD-02'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List sensors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/sensors?page=0&size=25"
+          }
+        },
+        {
+          "name": "List offline sensors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/sensors?health=OFFLINE"
+          }
+        },
+        {
+          "name": "Sensor summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/sensors/summary"
           }
         }
       ]
@@ -71,33 +334,7 @@
       "name": "Telemetry",
       "item": [
         {
-          "name": "Get Telemetry History",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/telemetry/history?sensorId=SENSOR-001&startTime=2024-01-01T00:00:00Z&endTime=2024-01-31T23:59:59Z",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "telemetry", "history"],
-              "query": [
-                {
-                  "key": "sensorId",
-                  "value": "SENSOR-001"
-                },
-                {
-                  "key": "startTime",
-                  "value": "2024-01-01T00:00:00Z"
-                },
-                {
-                  "key": "endTime",
-                  "value": "2024-01-31T23:59:59Z"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Ingest Telemetry",
+          "name": "Ingest telemetry",
           "request": {
             "method": "POST",
             "header": [
@@ -106,15 +343,87 @@
                 "value": "application/json"
               }
             ],
+            "url": "{{baseUrl}}/api/telemetry/ingest",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sensorId\": \"SENSOR-001\",\n  \"temperature\": 25.5,\n  \"humidity\": 65.0,\n  \"moisture\": 45.2,\n  \"timestamp\": \"2024-01-15T10:30:00Z\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/telemetry/ingest",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "telemetry", "ingest"]
+              "raw": "{\n  \"readings\": [\n    {\n      \"deviceId\": \"SENSOR-FARM01-001\",\n      \"soilMoisture\": 60.2,\n      \"soilTemperature\": 22.5,\n      \"ph\": 6.5,\n      \"batteryPercent\": 88\n    }\n  ]\n}"
             }
+          }
+        },
+        {
+          "name": "Ingest with an empty reading (rejected, not 500)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/telemetry/ingest",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"readings\": [\n    null\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('rejected individually', () => pm.expect(pm.response.json().rejected.length).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Telemetry history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/telemetry/SENSOR-FARM01-001?range=24h"
+          }
+        },
+        {
+          "name": "Latest reading",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/telemetry/SENSOR-FARM01-001/latest"
+          }
+        },
+        {
+          "name": "Field latest",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/telemetry/field/CROP-FIELD-01/latest"
+          }
+        },
+        {
+          "name": "Field series",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/telemetry/field/CROP-FIELD-01/series?range=7d"
+          }
+        },
+        {
+          "name": "Irrigation event",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/telemetry/field/CROP-FIELD-01/irrigation-event?state=CLOSED"
+          }
+        },
+        {
+          "name": "Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/telemetry/stats"
           }
         }
       ]
@@ -123,19 +432,39 @@
       "name": "Crops",
       "item": [
         {
-          "name": "List Crops",
+          "name": "List crops",
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/crops",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "crops"]
-            }
+            "url": "{{baseUrl}}/api/crops"
           }
         },
         {
-          "name": "Analyze Crops",
+          "name": "Get crop",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/crops/CROP-FIELD-01"
+          }
+        },
+        {
+          "name": "Crop health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/crops/CROP-FIELD-01/health"
+          }
+        },
+        {
+          "name": "Crop metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/crops/CROP-FIELD-01/metrics?range=7d"
+          }
+        },
+        {
+          "name": "Analyze one crop",
           "request": {
             "method": "POST",
             "header": [
@@ -144,15 +473,44 @@
                 "value": "application/json"
               }
             ],
+            "url": "{{baseUrl}}/api/crops/analyze",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cropId\": \"CROP-FIELD-01\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Analyze all crops",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/crops/analyze",
             "body": {
               "mode": "raw",
               "raw": "{}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/crops/analyze",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "crops", "analyze"]
             }
+          }
+        },
+        {
+          "name": "Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/crops/alerts"
+          }
+        },
+        {
+          "name": "Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/crops/summary"
           }
         }
       ]
@@ -161,87 +519,51 @@
       "name": "Valves",
       "item": [
         {
-          "name": "List Valves",
+          "name": "List valves",
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/valves",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "valves"]
-            }
+            "url": "{{baseUrl}}/api/valves"
           }
         },
         {
-          "name": "Get Valve Status",
+          "name": "Valve status",
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/valves/VALVE-FIELD-01/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "valves", "VALVE-FIELD-01", "status"]
-            }
+            "url": "{{baseUrl}}/api/valves/VALVE-FIELD-01/status"
           }
         },
         {
-          "name": "Open Valve",
+          "name": "Open valve (expect 200|409)",
           "request": {
             "method": "POST",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/valves/VALVE-FIELD-01/open?durationMinutes=1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "valves", "VALVE-FIELD-01", "open"],
-              "query": [
-                {
-                  "key": "durationMinutes",
-                  "value": "1"
-                }
-              ]
-            }
+            "url": "{{baseUrl}}/api/valves/VALVE-FIELD-01/open?durationMinutes=1"
           }
         },
         {
-          "name": "Close Valve",
+          "name": "Close valve",
           "request": {
             "method": "POST",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/valves/VALVE-FIELD-01/close",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "valves", "VALVE-FIELD-01", "close"]
-            }
+            "url": "{{baseUrl}}/api/valves/VALVE-FIELD-01/close"
           }
         },
         {
-          "name": "Emergency Stop",
+          "name": "Emergency stop",
           "request": {
             "method": "POST",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/valves/emergency-stop?reason=drill",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "valves", "emergency-stop"],
-              "query": [
-                {
-                  "key": "reason",
-                  "value": "drill"
-                }
-              ]
-            }
+            "url": "{{baseUrl}}/api/valves/emergency-stop?reason=postman"
           }
         },
         {
-          "name": "Get Valve Summary",
+          "name": "Valve summary",
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/valves/summary",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "valves", "summary"]
-            }
+            "url": "{{baseUrl}}/api/valves/summary"
           }
         }
       ]
@@ -250,59 +572,464 @@
       "name": "Irrigation",
       "item": [
         {
-          "name": "List Schedules",
+          "name": "Create schedule (expect 201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/irrigation/schedules",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cropId\": \"CROP-FIELD-01\",\n  \"valveId\": \"VALVE-FIELD-01\",\n  \"recurrence\": \"WEEKLY\",\n  \"daysOfWeek\": [\n    \"MONDAY\",\n    \"THURSDAY\"\n  ],\n  \"startTime\": \"06:30\",\n  \"durationMinutes\": 20,\n  \"skipIfMoist\": true\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('scheduleId', pm.response.json().scheduleId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create schedule with bad day name (expect 400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/irrigation/schedules",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cropId\": \"CROP-FIELD-01\",\n  \"valveId\": \"VALVE-FIELD-01\",\n  \"recurrence\": \"WEEKLY\",\n  \"daysOfWeek\": [\n    \"MON\"\n  ],\n  \"startTime\": \"06:30\",\n  \"durationMinutes\": 20\n}"
+            }
+          }
+        },
+        {
+          "name": "Get schedule",
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/irrigation/schedules",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "irrigation", "schedules"]
+            "url": "{{baseUrl}}/api/irrigation/schedules/{{scheduleId}}"
+          }
+        },
+        {
+          "name": "Update schedule (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/irrigation/schedules/{{scheduleId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"startTime\": \"07:15\",\n  \"durationMinutes\": 30\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('startTime updated', () => pm.expect(pm.response.json().startTime).to.eql('07:15'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Toggle schedule off (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/irrigation/schedules/{{scheduleId}}/active",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": false\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('now inactive', () => pm.expect(pm.response.json().active).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List schedules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/irrigation/schedules"
+          }
+        },
+        {
+          "name": "Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/irrigation/events"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Role checks (farmer)",
+      "item": [
+        {
+          "name": "Farmer can read sensors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/sensors",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{farmerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Farmer cannot register sensor (expect 403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/sensors/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"SENSOR-FARMER-X\",\n  \"farmId\": \"FARM-001\",\n  \"sensorType\": \"soil-ph\"\n}"
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{farmerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Farmer cannot open valve (expect 403)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/valves/VALVE-FIELD-01/open?durationMinutes=1",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{farmerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Farmer cannot delete schedule (expect 403)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/irrigation/schedules/SCHEDULE-ANY",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{farmerToken}}",
+                  "type": "string"
+                }
+              ]
             }
           }
         }
       ]
     },
     {
-      "name": "Actuator",
+      "name": "Cleanup",
       "item": [
         {
-          "name": "Health Check",
+          "name": "Delete schedule",
           "request": {
-            "method": "GET",
+            "method": "DELETE",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/actuator/health",
-              "host": ["{{baseUrl}}"],
-              "path": ["actuator", "health"]
-            }
+            "url": "{{baseUrl}}/api/irrigation/schedules/{{scheduleId}}"
           }
         },
         {
-          "name": "Info",
+          "name": "Deleted schedule is gone (expect 404)",
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/actuator/info",
-              "host": ["{{baseUrl}}"],
-              "path": ["actuator", "info"]
-            }
+            "url": "{{baseUrl}}/api/irrigation/schedules/{{scheduleId}}"
           }
         },
         {
-          "name": "Root",
+          "name": "Delete sensor",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/sensors/SENSOR-PM-{{runId}}"
+          }
+        },
+        {
+          "name": "Deleted sensor is gone (expect 404)",
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/actuator",
-              "host": ["{{baseUrl}}"],
-              "path": ["actuator"]
-            }
+            "url": "{{baseUrl}}/api/sensors/SENSOR-PM-{{runId}}"
           }
         }
       ]
+    },
+    {
+      "name": "Service discovery (Eureka)",
+      "item": [
+        {
+          "name": "Registered services",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{eurekaUrl}}/eureka/apps",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const apps = pm.response.json().applications.application;",
+                  "const names = apps.map(a => a.name);",
+                  "['API-GATEWAY','AUTH-SERVICE','SENSOR-SERVICE','CROP-SERVICE','IRRIGATION-SERVICE'].forEach(n =>",
+                  "  pm.test(n + ' is registered', () => pm.expect(names).to.include(n)));",
+                  "apps.forEach(a => a.instance.forEach(i => console.log(a.name, i.instanceId, i.status)));",
+                  "const ids = apps.flatMap(a => a.instance.map(i => i.instanceId));",
+                  "pm.test('instance ids are unique', () => pm.expect(new Set(ids).size).to.eql(ids.length));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sensor service instances",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{eurekaUrl}}/eureka/apps/SENSOR-SERVICE",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('at least one UP instance', () => pm.expect(pm.response.json().application.instance.some(i => i.status === 'UP')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Gateway & Actuator",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/actuator/health",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Gateway status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/status"
+          }
+        },
+        {
+          "name": "Unknown path (expect 404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/sensors/no/such/path"
+          }
+        },
+        {
+          "name": "Actuator info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/actuator/info"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logout",
+      "item": [
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/auth/logout",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// The token is revoked now; clear it so the next request logs in again.",
+                  "pm.collectionVariables.unset('token');",
+                  "if (pm.environment.has('token')) pm.environment.unset('token');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "eurekaUrl",
+      "value": "http://localhost:8761"
+    },
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "farmerToken",
+      "value": ""
+    },
+    {
+      "key": "scheduleId",
+      "value": ""
+    },
+    {
+      "key": "runId",
+      "value": ""
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-login: access tokens last 15 min, so keep {{token}} / {{farmerToken}} fresh and any",
+          "// request can be sent on its own, without running Login first.",
+          "const expiresAt = (t) => { try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp * 1000; } catch (e) { return 0; } };",
+          "const ensure = (name, email, password) => {",
+          "  if (expiresAt(pm.variables.get(name) || '') > Date.now() + 30000) return;",
+          "  pm.sendRequest({",
+          "    url: pm.variables.get('baseUrl') + '/api/auth/login', method: 'POST',",
+          "    header: { 'Content-Type': 'application/json' },",
+          "    body: { mode: 'raw', raw: JSON.stringify({ email, password }) },",
+          "  }, (err, res) => {",
+          "    if (err || res.code !== 200) return console.warn('auto-login failed for ' + email, err || res.code);",
+          "    const j = res.json();",
+          "    pm.collectionVariables.set(name, j.token);",
+          "    if (pm.environment.has(name)) pm.environment.set(name, j.token);",
+          "    if (name === 'token') pm.collectionVariables.set('refreshToken', j.refreshToken);",
+          "  });",
+          "};",
+          "ensure('token', 'admin@agritech.io', 'admin1234');",
+          "ensure('farmerToken', 'farmer@agritech.io', 'farmer1234');"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const m = pm.info.requestName.match(/\\(expect ([\\d|]+)\\)/);",
+          "const ok = m ? m[1].split('|').map(Number) : null;",
+          "pm.test(pm.info.requestName + ' -> ' + pm.response.code, () => ok ? pm.expect(ok).to.include(pm.response.code) : pm.expect(pm.response.code).to.be.within(200, 299));"
+        ]
+      }
     }
   ]
 }

@@ -11,7 +11,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -40,18 +39,18 @@ public class DeviceSimulator implements CommandLineRunner {
     /** Fastest the soil may dry per tick, so a soaked field eases down instead of snapping back. */
     private static final double MAX_DRY_RATE = -0.15;
 
-    /** Fields currently being watered, so the simulated soil actually responds to the valves. */
-    private final Map<String, Instant> wateringUntil = new ConcurrentHashMap<>();
-
     private final SensorDeviceRepository devices;
     private final TelemetryRepository readings;
+    private final FieldWateringRepository watering;
     private final boolean enabled;
 
     public DeviceSimulator(SensorDeviceRepository devices, TelemetryRepository readings,
+                           FieldWateringRepository watering,
                            @org.springframework.beans.factory.annotation.Value(
                                    "${agritech.simulator.enabled:true}") boolean enabled) {
         this.devices = devices;
         this.readings = readings;
+        this.watering = watering;
         this.enabled = enabled;
     }
 
@@ -82,11 +81,12 @@ public class DeviceSimulator implements CommandLineRunner {
     }
 
     /** Two days of 15-minute samples, so 24h/7d chart ranges are not empty on first launch. */
-    private void backfill(List<SensorDevice> fleet) {
+    void backfill(List<SensorDevice> fleet) {
+        if (!enabled) return;
         Instant now = Instant.now();
         List<TelemetryReading> batch = new ArrayList<>();
         for (SensorDevice d : fleet) {
-            double[] base = FIELD_BASELINE.get(d.getFieldId());
+            double[] base = baseline(d.getFieldId());
             for (int minutesAgo = 48 * 60; minutesAgo > 0; minutesAgo -= 15) {
                 Instant at = now.minus(Duration.ofMinutes(minutesAgo));
                 // Daily cycle: soil dries through the afternoon and recovers overnight.
@@ -105,11 +105,17 @@ public class DeviceSimulator implements CommandLineRunner {
 
     /** Called when the irrigation service opens a valve on this field. */
     public void wateringStarted(String fieldId, int durationMinutes) {
-        wateringUntil.put(fieldId, Instant.now().plus(Duration.ofMinutes(Math.max(1, durationMinutes))));
+        setWatering(fieldId, Instant.now().plus(Duration.ofMinutes(Math.max(1, durationMinutes))));
     }
 
     public void wateringStopped(String fieldId) {
-        wateringUntil.remove(fieldId);
+        setWatering(fieldId, null);
+    }
+
+    /** Kept in the DB, not in memory, so it works whichever sensor-service instance gets the call. */
+    private void setWatering(String fieldId, Instant until) {
+        if (until == null) watering.deleteById(fieldId);
+        else watering.save(new FieldWatering(fieldId, until));
     }
 
     /** Live tick - one reading per active device, random-walking from its last value. */
@@ -117,15 +123,17 @@ public class DeviceSimulator implements CommandLineRunner {
     public void emit() {
         if (!enabled) return;
         Instant now = Instant.now();
+        Map<String, Instant> wateredFields = new java.util.HashMap<>();
+        watering.findAll().forEach(w -> wateredFields.put(w.getFieldId(), w.getUntil()));
         for (SensorDevice d : devices.findAll()) {
             if (!"ACTIVE".equals(d.getStatus()) || "SENSOR-FARM01-013".equals(d.getDeviceId())) continue;
             TelemetryReading last = readings.findFirstByDeviceIdOrderByTimestampDesc(d.getDeviceId()).orElse(null);
-            double[] base = FIELD_BASELINE.getOrDefault(d.getFieldId(), new double[]{55, 22, 6.8});
+            double[] base = baseline(d.getFieldId());
             double moisture = last == null ? base[0] : last.getSoilMoisture();
             double temp = last == null ? base[1] : last.getSoilTemperature();
             double ph = last == null ? base[2] : last.getPh();
 
-            Instant until = wateringUntil.get(d.getFieldId());
+            Instant until = wateredFields.get(d.getFieldId());
             boolean watering = until != null && until.isAfter(now);
 
             // Watering pushes moisture up; otherwise it reverts toward this field's baseline.
@@ -146,6 +154,17 @@ public class DeviceSimulator implements CommandLineRunner {
             d.recordReading(now, d.getBatteryPercent());
             devices.save(d);
         }
+    }
+
+    /**
+     * Seeded fields keep their fixed baseline; a field a farmer adds later gets a random one, seeded
+     * by its id so it stays stable across ticks and restarts (some come up dry, some moist).
+     */
+    static double[] baseline(String fieldId) {
+        double[] fixed = FIELD_BASELINE.get(fieldId);
+        if (fixed != null) return fixed;
+        java.util.Random r = new java.util.Random(fieldId == null ? 0 : fieldId.hashCode());
+        return new double[]{25 + r.nextDouble() * 55, 16 + r.nextDouble() * 14, 5.6 + r.nextDouble() * 1.8};
     }
 
     private static double noise(double spread) {

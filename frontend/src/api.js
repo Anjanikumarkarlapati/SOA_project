@@ -26,7 +26,33 @@ export class ApiError extends Error {
   }
 }
 
-async function request(method, path, { body, token } = {}) {
+let refreshing = null
+
+/** Access tokens live 15 minutes: trade the refresh token for a new pair, once, shared by all callers. */
+function refreshSession() {
+  const current = loadSession()
+  if (!current?.refreshToken) return Promise.resolve(null)
+  refreshing ??= fetch('/api/auth/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken: current.refreshToken }),
+  })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((next) => {
+      if (!next?.token) return null
+      saveSession({ ...current, ...next })
+      return next.token
+    })
+    .catch(() => null)
+    .finally(() => {
+      refreshing = null
+    })
+  return refreshing
+}
+
+async function request(method, path, { body, token } = {}, retried = false) {
+  // Components hold the token from login; a silent refresh may have replaced it since.
+  if (token) token = loadSession()?.token || token
   const headers = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
@@ -36,6 +62,11 @@ async function request(method, path, { body, token } = {}) {
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   })
+
+  if (response.status === 401 && token && !retried) {
+    const fresh = await refreshSession()
+    if (fresh) return request(method, path, { body, token: fresh }, true)
+  }
 
   const text = await response.text()
   const payload = text ? JSON.parse(text) : null

@@ -26,9 +26,11 @@ public class RevocationCache {
 
     private final AtomicReference<Set<String>> revoked = new AtomicReference<>(Set.of());
     private final WebClient authService;
+    private final GatewaySigner signer;
 
-    public RevocationCache(WebClient.Builder builder) {
+    public RevocationCache(WebClient.Builder builder, GatewaySigner signer) {
         this.authService = builder.baseUrl("http://auth-service").build();
+        this.signer = signer;
     }
 
     public boolean isRevoked(String jti) {
@@ -38,6 +40,7 @@ public class RevocationCache {
     @Scheduled(fixedRateString = "${agritech.jwt.revocation-poll-ms:15000}", initialDelay = 5000)
     public void refresh() {
         authService.get().uri("/api/auth/revoked")
+                .headers(h -> signer.apply(h, "gateway", "SERVICE", ""))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<Set<String>>() {})
                 .timeout(Duration.ofSeconds(3))

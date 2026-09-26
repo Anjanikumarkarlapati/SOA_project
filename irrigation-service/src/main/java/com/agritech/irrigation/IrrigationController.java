@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.Comparator;
@@ -87,7 +88,7 @@ public class IrrigationController {
         if (!recurrence.equals("DAILY") && !recurrence.equals("WEEKLY")) {
             throw ApiException.badRequest("recurrence must be DAILY or WEEKLY");
         }
-        String days = req.daysOfWeek() == null ? null : String.join(",", req.daysOfWeek());
+        String days = req.daysOfWeek() == null ? null : parseDays(req.daysOfWeek());
         if (recurrence.equals("WEEKLY") && (days == null || days.isBlank())) {
             throw ApiException.badRequest("a WEEKLY schedule needs at least one day in daysOfWeek");
         }
@@ -115,7 +116,7 @@ public class IrrigationController {
             schedule.setValveId(req.valveId());
         }
         if (req.recurrence() != null) schedule.setRecurrence(req.recurrence().toUpperCase());
-        if (req.daysOfWeek() != null) schedule.setDaysOfWeek(String.join(",", req.daysOfWeek()));
+        if (req.daysOfWeek() != null) schedule.setDaysOfWeek(parseDays(req.daysOfWeek()));
         if (req.startTime() != null) schedule.setStartTime(parseTime(req.startTime()));
         if (req.durationMinutes() > 0) schedule.setDurationMinutes(req.durationMinutes());
         if (req.skipIfMoist() != null) schedule.setSkipIfMoist(req.skipIfMoist());
@@ -157,6 +158,16 @@ public class IrrigationController {
                         "message", e.getMessage(),
                         "timestamp", e.getTimestamp().toString()))
                 .toList();
+    }
+
+    /** Rejects bad day names up front; a stored bad name would break every read of the schedule. */
+    private static String parseDays(List<String> values) {
+        try {
+            return String.join(",", values.stream()
+                    .map(d -> DayOfWeek.valueOf(d.trim().toUpperCase()).name()).toList());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw ApiException.badRequest("daysOfWeek must be full day names, e.g. MONDAY, THURSDAY");
+        }
     }
 
     private static LocalTime parseTime(String value) {

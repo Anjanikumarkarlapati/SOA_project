@@ -13,6 +13,15 @@ spring:
       discovery:
         locator:
           enabled: false
+      # Applied to every route: OWASP security response headers and a 1 MB request body cap.
+      default-filters:
+        - SecureHeaders
+        - name: RequestSize
+          args:
+            maxSize: 1MB
+      httpclient:
+        connect-timeout: 2000
+        response-timeout: 10s
       # PRD 7.1 routing table. lb:// targets are resolved through Eureka and round-robined
       # across healthy instances (PRD 8.2).
       routes:
@@ -20,18 +29,98 @@ spring:
           uri: lb://auth-service
           predicates:
             - Path=/api/auth/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: auth-service
+                fallbackUri: forward:/fallback/auth-service
+            # Inside the breaker: a dead instance is retried on the next one from Eureka before
+            # the breaker counts a failure. Connect errors only, so the request never reached
+            # a service and every method is safe to resend.
+            - name: Retry
+              args:
+                retries: 2
+                methods: GET,POST,PUT,PATCH,DELETE
+                series: ""
+                exceptions: java.net.ConnectException
         - id: sensor-service
           uri: lb://sensor-service
           predicates:
             - Path=/api/sensors/**,/api/telemetry/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: sensor-service
+                fallbackUri: forward:/fallback/sensor-service
+            # Inside the breaker: a dead instance is retried on the next one from Eureka before
+            # the breaker counts a failure. Connect errors only, so the request never reached
+            # a service and every method is safe to resend.
+            - name: Retry
+              args:
+                retries: 2
+                methods: GET,POST,PUT,PATCH,DELETE
+                series: ""
+                exceptions: java.net.ConnectException
         - id: crop-service
           uri: lb://crop-service
           predicates:
             - Path=/api/crops/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: crop-service
+                fallbackUri: forward:/fallback/crop-service
+            # Inside the breaker: a dead instance is retried on the next one from Eureka before
+            # the breaker counts a failure. Connect errors only, so the request never reached
+            # a service and every method is safe to resend.
+            - name: Retry
+              args:
+                retries: 2
+                methods: GET,POST,PUT,PATCH,DELETE
+                series: ""
+                exceptions: java.net.ConnectException
         - id: irrigation-service
           uri: lb://irrigation-service
           predicates:
             - Path=/api/irrigation/**,/api/valves/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: irrigation-service
+                fallbackUri: forward:/fallback/irrigation-service
+            # Inside the breaker: a dead instance is retried on the next one from Eureka before
+            # the breaker counts a failure. Connect errors only, so the request never reached
+            # a service and every method is safe to resend.
+            - name: Retry
+              args:
+                retries: 2
+                methods: GET,POST,PUT,PATCH,DELETE
+                series: ""
+                exceptions: java.net.ConnectException
+        - id: auth-service-docs
+          uri: lb://auth-service
+          predicates:
+            - Path=/auth-service/v3/api-docs
+          filters:
+            - SetPath=/v3/api-docs
+        - id: sensor-service-docs
+          uri: lb://sensor-service
+          predicates:
+            - Path=/sensor-service/v3/api-docs
+          filters:
+            - SetPath=/v3/api-docs
+        - id: crop-service-docs
+          uri: lb://crop-service
+          predicates:
+            - Path=/crop-service/v3/api-docs
+          filters:
+            - SetPath=/v3/api-docs
+        - id: irrigation-service-docs
+          uri: lb://irrigation-service
+          predicates:
+            - Path=/irrigation-service/v3/api-docs
+          filters:
+            - SetPath=/v3/api-docs
       globalcors:
         cors-configurations:
           '[/**]':
@@ -40,8 +129,24 @@ spring:
               - "http://127.0.0.1:*"
             allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
             allowedHeaders: "*"
-            exposedHeaders: [X-RateLimit-Limit, X-RateLimit-Remaining]
+            exposedHeaders: [X-RateLimit-Limit, X-RateLimit-Remaining, X-Request-Id]
             allowCredentials: true
+
+    circuitbreaker:
+      resilience4j:
+        # The httpclient response-timeout above bounds each call; the breaker only counts failures.
+        disable-time-limiter: true
+
+# Per-service breaker: opens after 50% of the last 10 calls fail, probes again after 10 s.
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 2
 
 agritech:
   jwt:
@@ -52,6 +157,22 @@ agritech:
     public-per-minute: 100
     authenticated-per-minute: 1000
     device-per-minute: 100
+
+# Aggregated Swagger UI at /swagger-ui.html; each spec is fetched from its service via the routes above.
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    urls-primary-name: auth-service
+    urls:
+      - name: auth-service
+        url: /auth-service/v3/api-docs
+      - name: sensor-service
+        url: /sensor-service/v3/api-docs
+      - name: crop-service
+        url: /crop-service/v3/api-docs
+      - name: irrigation-service
+        url: /irrigation-service/v3/api-docs
 
 eureka:
   client:
@@ -64,7 +185,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway
+        include: health,info,gateway,circuitbreakers
   endpoint:
     health:
       show-details: when-authorized
@@ -72,4 +193,4 @@ management:
 logging:
   level:
     AUDIT: INFO
-    org.springframework.cloud.gateway: DEBUG
+    org.springframework.cloud.gateway: INFO

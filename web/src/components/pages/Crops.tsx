@@ -68,6 +68,8 @@ export default function Crops() {
         </button>
       </div>
 
+      <AddField onAdded={() => setReloadKey((k) => k + 1)} />
+
       {loading && !data ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 4 }, (_, i) => (
@@ -133,6 +135,90 @@ export default function Crops() {
         </div>
       )}
     </>
+  )
+}
+
+const CROP_TYPES = ['Maize', 'Wheat', 'Tomato', 'Soybean', 'Rice', 'Cotton', 'Sugarcane', 'Potato']
+
+/** A farmer adds a field; the backend attaches a simulated sensor so readings appear right away. */
+function AddField({ onAdded }: { onAdded: () => void }) {
+  const { token } = useSession()
+  const [form, setForm] = useState({ name: '', cropType: '', areaHectares: '' })
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((f) => ({ ...f, [key]: e.target.value }))
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!token) return
+    setSaving(true)
+    setError('')
+    try {
+      await api.createCrop(token, {
+        name: form.name.trim(),
+        cropType: form.cropType.trim(),
+        areaHectares: form.areaHectares ? Number(form.areaHectares) : undefined,
+      })
+      setForm({ name: '', cropType: '', areaHectares: '' })
+      onAdded()
+    } catch (err) {
+      setError((err as Error).message || 'Could not add the field')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const input =
+    'min-h-9 rounded-lg border border-hairline-strong bg-surface px-3 text-[13px] outline-none focus:border-brand'
+
+  return (
+    <form onSubmit={submit} className="glass mb-4 flex flex-wrap items-end gap-2 rounded-xl p-4">
+      <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+        Field name
+        <input required className={input} value={form.name} onChange={set('name')} placeholder="East Plot" />
+      </label>
+      <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+        Crop type
+        <input
+          required
+          list="crop-types"
+          className={input}
+          value={form.cropType}
+          onChange={set('cropType')}
+          placeholder="Rice"
+        />
+        <datalist id="crop-types">
+          {CROP_TYPES.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
+      </label>
+      <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+        Area (ha)
+        <input
+          type="number"
+          min="0.1"
+          step="0.1"
+          className={`${input} w-24`}
+          value={form.areaHectares}
+          onChange={set('areaHectares')}
+        />
+      </label>
+      <button
+        type="submit"
+        disabled={saving}
+        className="inline-flex min-h-9 items-center rounded-lg bg-brand px-3.5 text-[13px] font-medium text-white transition active:translate-y-px disabled:opacity-55"
+      >
+        {saving ? 'Adding' : 'Add field'}
+      </button>
+      {error ? (
+        <p role="alert" className="w-full text-xs text-status-critical">
+          {error}
+        </p>
+      ) : null}
+    </form>
   )
 }
 

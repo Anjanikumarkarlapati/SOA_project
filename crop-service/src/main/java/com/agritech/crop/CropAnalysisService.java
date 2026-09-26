@@ -2,6 +2,7 @@ package com.agritech.crop;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,14 @@ public class CropAnalysisService {
     /** Window used to estimate how fast the soil is drying. */
     private static final Duration TREND_WINDOW = Duration.ofHours(6);
 
+    /**
+     * Only one instance per service runs the timed jobs; extra replicas start with
+     * --agritech.jobs.enabled=false and just serve requests.
+     * ponytail: jobs stop if the primary dies; ShedLock on the shared DB if that matters.
+     */
+    @Value("${agritech.jobs.enabled:true}")
+    private boolean jobsEnabled = true;
+
     private final CropRepository crops;
     private final HealthSnapshotRepository snapshots;
     private final SensorClient sensors;
@@ -33,6 +42,7 @@ public class CropAnalysisService {
     /** PRD 5.1: crop health metrics refreshed every 5 minutes. */
     @Scheduled(fixedRateString = "${agritech.analysis.interval-ms:300000}", initialDelay = 15000)
     public void analyzeAll() {
+        if (!jobsEnabled) return;
         for (Crop crop : crops.findAll()) {
             try {
                 if (snapshots.findFirstByCropIdOrderByTimestampDesc(crop.getCropId()).isEmpty()) {

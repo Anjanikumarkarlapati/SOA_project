@@ -2,6 +2,7 @@ package com.agritech.sensor;
 
 import com.agritech.common.ApiException;
 import com.agritech.common.CallerContext;
+import com.agritech.common.InternalAuth;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -23,8 +24,12 @@ public class SensorController {
     private static final Logger audit = LoggerFactory.getLogger("AUDIT");
 
     private final SensorDeviceRepository devices;
+    private final DeviceSimulator simulator;
 
-    public SensorController(SensorDeviceRepository devices) { this.devices = devices; }
+    public SensorController(SensorDeviceRepository devices, DeviceSimulator simulator) {
+        this.devices = devices;
+        this.simulator = simulator;
+    }
 
     public record RegisterRequest(
             @NotBlank String deviceId,
@@ -51,7 +56,9 @@ public class SensorController {
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public SensorView register(@Valid @RequestBody RegisterRequest req, HttpServletRequest http) {
-        CallerContext.requireAdmin(http);
+        // crop-service provisions a sensor when a farmer adds a field; that call is signed as SERVICE.
+        boolean provisioned = InternalAuth.SERVICE_ROLE.equals(CallerContext.role(http));
+        if (!provisioned) CallerContext.requireAdmin(http);
         if (devices.existsById(req.deviceId())) {
             throw new ApiException(HttpStatus.CONFLICT, "device_exists",
                     "Device '" + req.deviceId() + "' is already registered");
@@ -60,7 +67,10 @@ public class SensorController {
                 req.latitude() == null ? 0 : req.latitude(),
                 req.longitude() == null ? 0 : req.longitude());
         audit.info("sensor.register by={} device={}", CallerContext.email(http), req.deviceId());
-        return SensorView.of(devices.save(device));
+        device = devices.save(device);
+        // ponytail: simulated history for auto-provisioned field sensors; a real device posts to /ingest instead.
+        if (provisioned) simulator.backfill(List.of(device));
+        return SensorView.of(device);
     }
 
     @GetMapping("/{deviceId}")

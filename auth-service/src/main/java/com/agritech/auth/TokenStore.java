@@ -3,53 +3,48 @@ package com.agritech.auth;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
- * Refresh tokens and revoked access-token ids (FR-1).
- *
- * ponytail: in-memory, so a restart logs everyone out and a second auth-service
- * instance keeps its own view. Move both maps to Redis if auth is scaled out.
+ * Refresh tokens and revoked access-token ids (FR-1). Stored in the auth DB, not in memory, so
+ * every auth-service instance behind the load balancer sees the same logins and logouts.
  */
 @Component
 public class TokenStore {
 
-    private record Refresh(String email, Instant expiresAt) {}
+    private final StoredTokenRepository tokens;
 
-    private final Map<String, Refresh> refreshTokens = new ConcurrentHashMap<>();
-    private final Map<String, Instant> revokedJti = new ConcurrentHashMap<>();
+    public TokenStore(StoredTokenRepository tokens) { this.tokens = tokens; }
 
     public String issueRefresh(String email) {
         String token = UUID.randomUUID().toString();
-        refreshTokens.put(token, new Refresh(email, Instant.now().plusSeconds(30L * 86400)));
+        tokens.save(new StoredToken(token, email, Instant.now().plusSeconds(30L * 86400), false));
         return token;
     }
 
     /** Returns the owning email, or null if unknown/expired. */
     public String consumeRefresh(String token) {
-        Refresh r = refreshTokens.get(token);
-        if (r == null) return null;
-        if (r.expiresAt().isBefore(Instant.now())) {
-            refreshTokens.remove(token);
-            return null;
-        }
-        return r.email();
+        return tokens.findById(token)
+                .filter(t -> !t.isRevoked() && t.getExpiresAt().isAfter(Instant.now()))
+                .map(StoredToken::getEmail)
+                .orElse(null);
     }
 
     public void dropRefresh(String token) {
-        if (token != null) refreshTokens.remove(token);
+        if (token != null) tokens.deleteById(token);
     }
 
     /** Revoke an access token by its jti until it would have expired anyway. */
     public void revoke(String jti, Instant tokenExpiry) {
-        if (jti != null) revokedJti.put(jti, tokenExpiry);
+        if (jti != null) tokens.save(new StoredToken(jti, null, tokenExpiry, true));
     }
 
     public Set<String> revokedIds() {
-        revokedJti.values().removeIf(exp -> exp.isBefore(Instant.now()));
-        return revokedJti.keySet();
+        Instant now = Instant.now();
+        tokens.deleteByExpiresAtBefore(now);
+        return tokens.findByRevokedTrueAndExpiresAtAfter(now).stream()
+                .map(StoredToken::getId).collect(Collectors.toSet());
     }
 }

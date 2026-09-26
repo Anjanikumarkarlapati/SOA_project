@@ -101,6 +101,58 @@ curl -s -o /dev/null -w '%{http_code}' -X DELETE "$GATEWAY/api/irrigation/schedu
 [ "$(cat "$TMP/code")" = "200" ]; check "schedule deleted (FR-7)" $?
 
 echo
+echo "== Scenario 3: service discovery, token lifecycle, gateway hardening =="
+
+EUREKA="${EUREKA:-http://localhost:8761}"
+curl -s -H 'Accept: application/json' "$EUREKA/eureka/apps" > "$TMP/apps.json"
+[ "$(json "sorted(a['name'] for a in json.load(sys.stdin)['applications']['application'])" "$TMP/apps.json")" \
+  = "['API-GATEWAY', 'AUTH-SERVICE', 'CROP-SERVICE', 'IRRIGATION-SERVICE', 'SENSOR-SERVICE']" ]
+check "all five services are registered in Eureka" $?
+
+[ "$(json "json.load(sys.stdin)['expiresIn']" "$TMP/admin.json")" = "900" ]
+check "access tokens are short-lived (15 min)" $?
+
+REFRESH=$(json "json.load(sys.stdin)['refreshToken']" "$TMP/admin.json")
+curl -s -X POST "$GATEWAY/api/auth/refresh" -H 'Content-Type: application/json' \
+  -d "{\"refreshToken\":\"$REFRESH\"}" > "$TMP/refreshed.json"
+ADMIN=$(json "json.load(sys.stdin)['token']" "$TMP/refreshed.json")
+curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $ADMIN" "$GATEWAY/api/sensors" > "$TMP/code"
+[ -n "$ADMIN" ] && [ "$(cat "$TMP/code")" = "200" ]; check "refresh token yields a working new access token" $?
+
+curl -s -o /dev/null -w '%{http_code}' -X POST "$GATEWAY/api/auth/refresh" -H 'Content-Type: application/json' \
+  -d "{\"refreshToken\":\"$REFRESH\"}" > "$TMP/code"
+[ "$(cat "$TMP/code")" = "401" ]; check "a used refresh token cannot be replayed (rotation)" $?
+
+curl -s -o /dev/null -w '%{http_code}' "$GATEWAY/api/auth/loginX" > "$TMP/code"
+[ "$(cat "$TMP/code")" = "401" ]; check "public paths are exact matches, not prefixes" $?
+
+curl -s -o /dev/null -w '%{http_code}' -H 'X-User-Role: ADMIN' -H 'X-User-Email: evil@x.io' \
+  "http://localhost:8082/api/sensors" > "$TMP/code"
+[ "$(cat "$TMP/code")" = "401" ]; check "direct call to a service with forged ADMIN headers is rejected" $?
+
+curl -s -o /dev/null -w '%{http_code}' -X POST "$GATEWAY/api/sensors/register" \
+  -H "Authorization: Bearer $FARMER" -H 'X-User-Role: ADMIN' -H 'Content-Type: application/json' \
+  -d '{"deviceId":"SENSOR-TEST-998","farmId":"FARM-001","sensorType":"soil-moisture-temperature"}' > "$TMP/code"
+[ "$(cat "$TMP/code")" = "403" ]; check "farmer cannot escalate by sending X-User-Role: ADMIN" $?
+
+curl -s -D "$TMP/headers" -o /dev/null -H "Authorization: Bearer $ADMIN" "$GATEWAY/api/crops"
+hdr() { grep -i "^$1:" "$TMP/headers" > /dev/null; }
+hdr X-Content-Type-Options && hdr X-Frame-Options && hdr Strict-Transport-Security && hdr Content-Security-Policy
+check "OWASP security headers on every routed response" $?
+hdr X-Request-Id; check "correlation id (X-Request-Id) is assigned" $?
+hdr X-RateLimit-Remaining; check "rate-limit headers are returned" $?
+grep -i "^Cache-Control:.*no-store" "$TMP/headers" > /dev/null; check "API responses are marked no-store" $?
+
+head -c 1100000 /dev/zero | tr '\0' 'a' > "$TMP/big.txt"
+curl -s -o /dev/null -w '%{http_code}' -X POST "$GATEWAY/api/telemetry/ingest" -H "Authorization: Bearer $ADMIN" \
+  -H 'Content-Type: application/json' --data-binary "@$TMP/big.txt" > "$TMP/code"
+[ "$(cat "$TMP/code")" = "413" ]; check "request bodies over 1 MB are refused (413)" $?
+
+curl -s -H "Authorization: Bearer $ADMIN" "$GATEWAY/actuator/circuitbreakers" > "$TMP/cb.json"
+[ "$(json "len(json.load(sys.stdin)['circuitBreakers'])" "$TMP/cb.json")" = "4" ]
+check "a circuit breaker guards each of the four routes" $?
+
+echo
 echo "== Cleanup and logout =="
 
 curl -s -o /dev/null -X DELETE "$GATEWAY/api/sensors/SENSOR-TEST-999" -H "Authorization: Bearer $ADMIN"

@@ -1,6 +1,7 @@
 # AgriTech Sensing Solutions
 
-Precision-agriculture platform built to `AGRITECH_PRD.md` and `AGRITECH_UI_UX.md`: soil telemetry
+Precision-agriculture platform built to [`docs/AGRITECH_PRD.md`](docs/AGRITECH_PRD.md) (requirements,
+NFR targets, threat model and traceability matrix): soil telemetry
 comes in from an IoT fleet, the crop service scores each field against its optimal envelope, and
 the irrigation service opens and closes valves from that score.
 
@@ -32,19 +33,25 @@ operations dashboard.
 | Module | Port | Responsibility |
 |--------|------|----------------|
 | `eureka-server` | 8761 | Service registry, 30s health checks, 90s de-registration |
-| `api-gateway` | 8080 | Single entry point: JWT validation, identity headers, rate limiting, CORS |
-| `auth-service` | 8081 | Login, registration, 24h JWTs, refresh tokens, revocation list |
+| `api-gateway` | 8080 | Single entry point: JWT validation, signed identity headers, rate limiting, circuit breakers, security headers, CORS |
+| `auth-service` | 8081 | Login, registration, 15-min JWTs, rotating refresh tokens, revocation list |
 | `sensor-service` | 8082 | Device registry, telemetry ingestion and validation, historical queries |
 | `crop-service` | 8083 | Health scoring, optimal-range evaluation, recommendations, forecasts |
 | `irrigation-service` | 8084 | Schedules, valve control, moisture cut-out, emergency stop |
-| `common` | - | Shared error envelope and caller-identity helpers |
+| `common` | - | Shared error envelope, caller identity, gateway-signature verification |
 | `web` | 3000 | Next.js dashboard (current) |
 | `frontend` | 5173 | Vite dashboard (legacy, kept until the swap is signed off) |
 
-**Security model.** The gateway is the only component that parses a JWT. It strips any
-client-supplied `X-User-*` headers and sets its own from the verified token, so a downstream
-service can trust `X-User-Role` without re-validating. Inter-service calls go direct through
-Eureka and never traverse the gateway.
+**Security model.** The gateway is the only component that parses a JWT. On every request it
+strips any client-supplied `X-User-*` headers, sets its own from the verified token, and
+HMAC-signs them (`X-Gateway-Signature` + timestamp). Every service rejects an `/api` call whose
+signature is missing, wrong or older than 60 s, so calling a service port directly with a forged
+`X-User-Role: ADMIN` gets a 401. Inter-service calls go direct through Eureka and sign themselves
+as the `SERVICE` identity. Access tokens live 15 minutes; both dashboards renew them silently
+with the rotating refresh token.
+
+**Resilience.** Each gateway route has a Resilience4j circuit breaker with a fallback that
+returns a fast 503 plus `Retry-After`, so one dead service never takes the others down.
 
 ---
 
@@ -72,7 +79,16 @@ The Vite app in `frontend/` still runs (`npm run dev --prefix frontend`, port 51
 the same gateway. It is kept only so the two can be compared side by side; delete it once the
 Next app is signed off.
 
-Other actions: `./scripts/stack.ps1 status`, `stop`, `restart`. Logs land in `.run/`.
+Other actions: `./scripts/stack.ps1 status`, `stop`, `restart`. Logs land in `.run/`, data in
+`.run/data/` (one H2 file per service; stop the stack and delete that folder to reseed).
+
+**Load balancing.** `./scripts/stack.ps1 start -Replicas` adds a second sensor, crop and irrigation
+instance (ports 18082-18084) under the same Eureka names. The gateway (`lb://`) and the
+`@LoadBalanced` RestTemplates round-robin across them; all instances of a service share its DB, and
+timed jobs run only on the primary (`--agritech.jobs.enabled=false` on replicas). A connection
+failure to a dead instance is retried on the next one, at the gateway and service to service.
+`bash scripts/lb-test.sh` proves it: registry, 50/50 split, shared state, and failover after
+killing an instance.
 
 Give the services ~30 seconds after startup before the first cross-service call: that is Eureka's
 registry fetch interval, and until it completes the gateway has no route targets.
@@ -102,13 +118,22 @@ Set `SIMULATOR_ENABLED=false` to run against real devices instead - they post to
 ```bash
 ./mvnw test              # unit tests
 bash scripts/smoke-test.sh   # end-to-end against a running stack
+bash scripts/lb-test.sh      # discovery + load balancing + failover (needs start -Replicas)
 ```
 
-The smoke test covers the PRD's section 9.3 scenarios: unauthenticated rejection, login for both
-roles, forged-token rejection, farmer/admin authorization split, device registration, telemetry
-ingestion including out-of-range rejection, health scoring from live telemetry, cross-service
-trend retrieval through Eureka, manual valve control, emergency stop, schedule CRUD, and logout
-revocation taking effect at the gateway.
+The smoke test (31 checks) covers the PRD's section 9.3 scenarios: unauthenticated rejection,
+login for both roles, forged-token rejection, farmer/admin authorization split, device
+registration, telemetry ingestion including out-of-range rejection, health scoring from live
+telemetry, cross-service trend retrieval through Eureka, manual valve control, emergency stop,
+schedule CRUD, and logout revocation taking effect at the gateway. Scenario 3 adds: all five
+services registered in Eureka, 15-min token TTL, refresh rotation and replay rejection,
+exact-match public paths, direct-to-service bypass rejection, header-based role escalation,
+OWASP security headers, correlation ids, rate-limit headers, `no-store`, the 1 MB body cap, and
+a circuit breaker on each route.
+
+Unit tests (30) include `JwtAuthFilterTest` (valid, missing, forged-key, expired, `alg:none`,
+revoked, spoofed headers, exact public paths) and `InternalAuthTest` (signed passes; unsigned,
+escalated, replayed and wrong-secret signatures are rejected).
 
 ---
 
@@ -220,7 +245,7 @@ the Vite app exactly: every foreground/background pair clears WCAG AA in both th
 
 ## Design system notes
 
-The dashboard implements `AGRITECH_UI_UX.md`: its tokens, its status encoding (colour plus shape
+The dashboard follows its design brief: its tokens, its status encoding (colour plus shape
 plus label), its 8px radius scale, its responsive breakpoints, and full dark mode. Icons come from
 Phosphor at the brief's 1.5px/20px spec rather than hand-drawn paths, and Inter plus IBM Plex Mono
 are self-hosted so the interface renders without a font-CDN round trip.
@@ -246,11 +271,11 @@ also marked with `ponytail:` comments at the relevant code.
 
 | Simplification | Ceiling | Upgrade |
 |----------------|---------|---------|
-| H2 in-memory per service | Data is lost on restart | Point `spring.datasource.*` at PostgreSQL; TimescaleDB for the telemetry table |
+| H2 file DB per service, shared by its replicas via `AUTO_SERVER` | Replicas must run on one host | Point `spring.datasource.*` at PostgreSQL; TimescaleDB for the telemetry table |
+| Timed jobs run on the primary instance only | If the primary dies, simulation/analysis/schedules pause until it restarts | ShedLock on the shared DB |
 | In-memory rate-limit counters | N gateway replicas allow N times the quota | Spring Cloud Gateway's Redis rate limiter |
 | Revocation list polled every 15s | A logged-out token works for up to 15 more seconds | Shared Redis revocation set |
-| Refresh tokens in memory | Restart logs everyone out | Move `TokenStore` to Redis or the database |
-| Try/catch fallbacks on inter-service calls | No circuit breaking, just short timeouts | `spring-cloud-starter-circuitbreaker-resilience4j` |
+| Circuit breakers at the gateway only | Service-to-service calls retry the next instance, then degrade by try/catch plus 2 s/4 s timeouts | Resilience4j on `SensorClient` / `FarmClient` too |
 | Device simulator inside sensor-service | Not a real protocol adapter | Delete it; devices already post to the same ingest endpoint |
 | No message queue | Health analysis is a 5-minute poll, not event-driven | Kafka between ingestion and analysis |
 

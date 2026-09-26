@@ -2,8 +2,11 @@ package com.agritech.common;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -38,8 +41,19 @@ public class ApiExceptionHandler {
         return body(HttpStatus.BAD_REQUEST, "validation_error", detail);
     }
 
+    @ExceptionHandler({HttpMessageNotReadableException.class, TypeMismatchException.class})
+    public ResponseEntity<Map<String, Object>> handleBadInput(Exception ex) {
+        return body(HttpStatus.BAD_REQUEST, "bad_request", ex instanceof TypeMismatchException
+                ? "A parameter has the wrong type" : "Request body is missing or not valid JSON");
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleOther(Exception ex) {
+        // Spring's own client errors (unknown path, wrong method, missing param) keep their 4xx.
+        if (ex instanceof ErrorResponse er && er.getStatusCode().is4xxClientError()) {
+            HttpStatus status = HttpStatus.valueOf(er.getStatusCode().value());
+            return body(status, status.name().toLowerCase(), status.getReasonPhrase());
+        }
         log.error("Unhandled error", ex);
         return body(HttpStatus.INTERNAL_SERVER_ERROR, "internal_error", "Unexpected server error");
     }

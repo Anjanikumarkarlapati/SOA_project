@@ -11,6 +11,11 @@
   <artifactId>auth-service</artifactId>
   <dependencies>
     <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
       <groupId>com.agritech</groupId>
       <artifactId>common</artifactId>
       <version>1.0.0</version>

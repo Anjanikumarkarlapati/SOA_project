@@ -24,3 +24,10 @@ web/next-env.d.ts
 # Tooling cache and local backups (not project code)
 .serena/
 *.bak
+/.metadata/
+
+# Eclipse (local IDE files, not project code)
+.classpath
+.project
+.factorypath
+.settings/

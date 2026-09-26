@@ -4,11 +4,14 @@ server:
 spring:
   application:
     name: auth-service
+  # Set DB_URL / DB_USERNAME / DB_PASSWORD (in .env) to use Supabase Postgres; unset = local H2 file.
   datasource:
-    url: jdbc:h2:mem:authdb;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: ""
+    url: ${DB_URL:jdbc:h2:file:${agritech.data-dir:./.run/data}/authdb;AUTO_SERVER=TRUE}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    hikari:
+      # 4 services share Supabase's pooler connection limit.
+      maximum-pool-size: 3
   jpa:
     hibernate:
       ddl-auto: update
@@ -18,7 +21,8 @@ agritech:
   jwt:
     # Override in every real environment: AGRITECH_JWT_SECRET
     secret: ${AGRITECH_JWT_SECRET:agritech-dev-secret-key-change-me-in-production-0123456789}
-    access-ttl-hours: 24
+    # Short-lived access tokens; clients renew silently via POST /api/auth/refresh (30-day refresh token).
+    access-ttl-minutes: 15
   supabase:
     # Supabase project settings (Dashboard -> Project Settings):
     #   SUPABASE_URL      = Project URL, e.g. https://<ref>.supabase.co

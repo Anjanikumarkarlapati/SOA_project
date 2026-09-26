@@ -19,12 +19,12 @@ public class JwtService {
     private final long accessTtlMs;
 
     public JwtService(@Value("${agritech.jwt.secret}") String secret,
-                      @Value("${agritech.jwt.access-ttl-hours:24}") long accessTtlHours) {
+                      @Value("${agritech.jwt.access-ttl-minutes:15}") long accessTtlMinutes) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.accessTtlMs = accessTtlHours * 3600_000L;
+        this.accessTtlMs = accessTtlMinutes * 60_000L;
     }
 
-    /** FR-1: 24h access token carrying role + farm identifier. */
+    /** FR-1: short-lived (default 15 min) access token carrying role + farm identifier. */
     public String issue(User user) {
         Date now = new Date();
         return Jwts.builder()
