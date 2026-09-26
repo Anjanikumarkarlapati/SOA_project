@@ -102,6 +102,7 @@ export const api = {
 
   crops: (token) => request('GET', '/crops', { token }),
   crop: (token, id) => request('GET', `/crops/${id}`, { token }),
+  createCrop: (token, body) => request('POST', '/crops', { body, token }),
   cropMetrics: (token, id, range) => request('GET', `/crops/${id}/metrics?range=${range}`, { token }),
   cropSummary: (token) => request('GET', '/crops/summary', { token }),
   cropAlerts: (token) => request('GET', '/crops/alerts', { token }),

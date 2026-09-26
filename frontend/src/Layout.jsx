@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
+  IconAssistant,
   IconChevron,
   IconClose,
   IconCrop,
@@ -21,7 +22,11 @@ const NAV = [
   { to: '/sensors', label: 'Sensors', Icon: IconSensor },
   { to: '/crops', label: 'Crops', Icon: IconCrop },
   { to: '/irrigation', label: 'Irrigation', Icon: IconValve },
+  { to: '/assistant', label: 'Farm Assistant', Icon: IconAssistant },
 ]
+
+/** The offline demo has no backend, so only the browser-side assistant is reachable. */
+const DEMO_NAV = NAV.filter((item) => item.to === '/assistant')
 
 /** Titles live with the routes so the page heading stays a single source of truth. */
 function pageHeading(pathname) {
@@ -39,6 +44,8 @@ function pageHeading(pathname) {
       return { title: 'Sensors across the farm.', subtitle: 'Registered IoT devices, their health and their last reading.' }
     case '/crops':
       return { title: 'Crop health by field.', subtitle: 'Each field scored against its own optimal range.' }
+    case '/assistant':
+      return { title: 'Water, on its own.', subtitle: 'How much your crop needs, hour by hour, from its stage, the temperature and the rain - and the valves that deliver it.' }
     case '/irrigation':
       return { title: 'Irrigation schedules and valves.', subtitle: 'Set when zones water, or open and close a valve by hand.' }
     default:
@@ -60,7 +67,8 @@ function roleLabel(role) {
 }
 
 export default function Layout() {
-  const { session, signOut } = useSession()
+  const { session, isDemo, signOut } = useSession()
+  const nav = isDemo ? DEMO_NAV : NAV
   const [theme, toggleTheme] = useTheme()
   const { title, subtitle } = pageHeading(useLocation().pathname)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -80,7 +88,7 @@ export default function Layout() {
         </Link>
 
         <nav className="nav-links" aria-label="Primary">
-          {NAV.map(({ to, label, end }) => (
+          {nav.map(({ to, label, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -118,7 +126,7 @@ export default function Layout() {
       </header>
 
       {menuOpen ? (
-        <NavDrawer session={session} signOut={signOut} initials={initials} onNavigate={closeMenu} />
+        <NavDrawer nav={nav} session={session} signOut={signOut} initials={initials} onNavigate={closeMenu} />
       ) : null}
 
       <main className="content" id="main-content" tabIndex={-1}>
@@ -178,12 +186,12 @@ function AccountMenu({ session, signOut, initials }) {
  * scrim, no scroll lock and no focus trap, and tab order stays in document order. It is a
  * disclosure region, not a dialog, so it deliberately carries no role="dialog"/aria-modal.
  */
-function NavDrawer({ session, signOut, initials, onNavigate }) {
+function NavDrawer({ nav, session, signOut, initials, onNavigate }) {
   const ref = useClickAway(true, onNavigate)
 
   return (
     <nav id="nav-drawer" className="nav-drawer" aria-label="Menu" ref={ref}>
-      {NAV.map(({ to, label, Icon, end }) => (
+      {nav.map(({ to, label, Icon, end }) => (
         <NavLink
           key={to}
           to={to}

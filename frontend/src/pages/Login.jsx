@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import farmland from '../assets/farmland.jpg'
 import {
   IconArrowRight,
+  IconAssistant,
   IconEye,
   IconEyeSlash,
   IconGauge,
@@ -76,7 +77,7 @@ function Feature({ icon, title, body }) {
 }
 
 function SignIn({ onCreateAccount }) {
-  const { signIn, signInWithGoogle, exchangeSupabaseToken } = useSession()
+  const { signIn, signInDemo, signInWithGoogle, exchangeSupabaseToken } = useSession()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -232,6 +233,18 @@ function SignIn({ onCreateAccount }) {
           Lost your password? Ask your farm administrator to reset it.
         </p>
       </form>
+
+      <div className="auth-hint farm-demo-hint">
+        <p className="hint-title">Try the India farm demo</p>
+        <p className="muted">
+          No server needed. Set up a farm as a new farmer - crop, location, sensors - and watch the
+          irrigation automation run a simulated day.
+        </p>
+        <button type="button" className="btn btn-primary btn-block" onClick={signInDemo} data-testid="demo-login">
+          <IconAssistant width={16} height={16} />
+          Start India demo as a new farmer
+        </button>
+      </div>
 
       <div className="auth-hint">
         <p className="hint-title">Demo accounts</p>

@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { api, clearSession, loadSession, saveSession } from './api'
 import { startGoogleSignIn, supabaseSignOut } from './supabase'
+import { demoSession, isDemoSession } from './farm/demo'
+import { clearProfile } from './farm/engine'
 
 const SessionContext = createContext(null)
 
@@ -35,8 +37,17 @@ export function SessionProvider({ children }) {
     return result
   }, [])
 
+  /** Offline India demo: every start is a brand-new farmer, so onboarding always runs. */
+  const signInDemo = useCallback(() => {
+    const result = demoSession()
+    clearProfile(result.email)
+    saveSession(result)
+    setSession(result)
+    return result
+  }, [])
+
   const signOut = useCallback(async () => {
-    if (session?.token) {
+    if (session?.token && !isDemoSession(session)) {
       // Best effort - the local session goes either way.
       await api.logout(session.token).catch(() => {})
     }
@@ -51,13 +62,15 @@ export function SessionProvider({ children }) {
       token: session?.token,
       // Role comes from the JWT the server issued, never from a client-side choice (doc 4.1).
       isAdmin: session?.role === 'ADMIN',
+      isDemo: isDemoSession(session),
       signIn,
+      signInDemo,
       signUp,
       signInWithGoogle,
       exchangeSupabaseToken,
       signOut,
     }),
-    [session, signIn, signUp, signInWithGoogle, exchangeSupabaseToken, signOut],
+    [session, signIn, signInDemo, signUp, signInWithGoogle, exchangeSupabaseToken, signOut],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

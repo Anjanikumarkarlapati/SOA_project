@@ -217,8 +217,9 @@ exists only for the simulator; real deployments learn it from the sensors.
 
 ## Farm onboarding and India automation demo
 
-A farmer who signs in for the first time (role `FARMER`, no farm set up yet) is sent to
-`/onboarding` in the `web` dashboard, a five-step wizard:
+Both dashboards (`web` on port 3000 and the Vite `frontend` on port 5173) have this feature, each
+in its own design system. A farmer who signs in for the first time (role `FARMER`, no farm set up
+yet) is sent to `/onboarding`, a five-step wizard:
 
 1. **Crop** - 48 Indian crops across cereals, millets, pulses, oilseeds, cash crops, vegetables,
    fruits, spices and plantation crops, with Hindi names and Kharif/Rabi/Zaid seasons.
@@ -252,7 +253,8 @@ A farmer who signs in for the first time (role `FARMER`, no farm set up yet) is 
 **Offline demo:** on the login screen, **Start India demo as a new farmer** needs no Spring
 services. It creates a local demo session and always starts the onboarding from scratch. The
 farm profile is kept in the browser (`localStorage`, per user email). The engine is in
-`web/src/lib/farm/` (`india.ts` data, `engine.ts` calculations, `simulator.ts` controller).
+`web/src/lib/farm/` (`india.ts` data, `engine.ts` calculations, `simulator.ts` controller), and
+the Vite app keeps an identical copy in `frontend/src/farm/`. Change them together.
 
 ## Frontend stack
 

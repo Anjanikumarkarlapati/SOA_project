@@ -9,7 +9,22 @@
  * asks for a solid shape (the healthy status dot).
  */
 import {
+  ArrowCounterClockwise,
+  ArrowLeft,
   ArrowRight,
+  CheckCircle,
+  CloudRain,
+  Cpu,
+  Crosshair,
+  Fire,
+  MagnifyingGlass,
+  MapPin,
+  Pause,
+  Play,
+  Robot,
+  Ruler,
+  Snowflake,
+  Thermometer,
   ArrowsClockwise,
   BatteryLow,
   Broadcast,
@@ -89,3 +104,24 @@ export const IconMenu = icon(List, UI)
 export const IconLeaf = icon(Leaf, UI)
 export const IconGauge = icon(Gauge, UI)
 export const IconShield = icon(ShieldCheck, UI)
+
+// Farm onboarding and assistant
+export const IconAssistant = icon(Robot, UI)
+export const IconArrowLeft = icon(ArrowLeft, STATUS)
+export const IconCheck = icon(CheckCircle, { ...STATUS, weight: 'fill' })
+export const IconSearch = icon(MagnifyingGlass, STATUS)
+export const IconMapPin = icon(MapPin, STATUS)
+export const IconLocate = icon(Crosshair, STATUS)
+export const IconRuler = icon(Ruler, STATUS)
+export const IconChip = icon(Cpu, STATUS)
+export const IconPlant = icon(Plant, STATUS)
+export const IconPlay = icon(Play, STATUS)
+export const IconPause = icon(Pause, STATUS)
+export const IconRestart = icon(ArrowCounterClockwise, STATUS)
+export const IconThermometer = icon(Thermometer, STATUS)
+export const IconRain = icon(CloudRain, STATUS)
+export const IconDrop = icon(Drop, STATUS)
+export const IconHeat = icon(Fire, STATUS)
+export const IconCold = icon(Snowflake, STATUS)
+export const IconSunSmall = icon(Sun, STATUS)
+export const IconFlow = icon(Gauge, STATUS)
