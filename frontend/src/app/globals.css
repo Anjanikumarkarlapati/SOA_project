@@ -1,0 +1,354 @@
+@layer reset, theme, base, astryx-base, astryx-theme, components, utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&family=Noto+Serif+Gurmukhi:wght@400;500;600&family=Noto+Sans+Gurmukhi:wght@400;500;600&family=Noto+Serif+Telugu:wght@400;500;600&family=Noto+Sans+Telugu:wght@400;500;600&family=Noto+Serif+Tamil:wght@400;500;600&family=Noto+Sans+Tamil:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Kannada:wght@400;500;600&family=Noto+Sans+Kannada:wght@400;500;600&family=Noto+Serif+Bengali:wght@400;500;600&family=Noto+Sans+Bengali:wght@400;500;600&family=Noto+Serif+Gujarati:wght@400;500;600&family=Noto+Sans+Gujarati:wght@400;500;600&family=Noto+Serif+Odia:wght@400;500;600&family=Noto+Sans+Odia:wght@400;500;600&family=Noto+Serif+Malayalam:wght@400;500;600&family=Noto+Sans+Malayalam:wght@400;500;600&display=swap');
+@import "leaflet/dist/leaflet.css";
+@import "tailwindcss";
+@import "@astryxdesign/core/reset.css";
+@import "@astryxdesign/core/astryx.css";
+
+/* Area Editorial Botanical Design Tokens */
+:root {
+  --bg-base: #FFFFFF;
+  --bg-surface: #FFFFFF;
+  --bg-raised: #F7F8F5;
+  --bg-bezel: #F2F4EE;
+  --text-primary: #000000;
+  --text-secondary: #6F6F6F;
+  --text-muted: #767676;
+  --border-default: #E9E9E9;
+  --border-strong: #C7C9C2;
+  --accent: #485C11;
+  --accent-hover: #38480D;
+  --accent-wash: #DFECC6;
+  --accent-brass: #8E9C78;
+  --on-accent: #FFFFFF;
+  --block: #8E9C78;
+  --hero-ink: #000000;
+
+  --status-good: #485C11;
+  --status-warning: #9A6300;
+  --status-critical: #B3261E;
+  --status-info: #2C5E8A;
+  --status-muted: #6F6F6F;
+
+  --font-serif: "Crimson Text", Georgia, serif;
+  --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: "DM Mono", "Courier New", monospace;
+  --indic-line-height: 1.5;
+  --indic-tracking: -0.025em;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.dark {
+  --bg-base: #0E110B;
+  --bg-surface: #151911;
+  --bg-raised: #1D2318;
+  --bg-bezel: #11150E;
+  --text-primary: #F5F7F2;
+  --text-secondary: #A6B09D;
+  --text-muted: #8A9580;
+  --border-default: #262E20;
+  --border-strong: #47543B;
+  --accent: #9AB556;
+  --accent-hover: #B0C96E;
+  --accent-wash: #242F18;
+  --accent-brass: #C5D69A;
+  --on-accent: #0E110B;
+  --block: #3C4829;
+  --hero-ink: #080A06;
+
+  --status-good: #9AB556;
+  --status-warning: #E0B243;
+  --status-critical: #F07A72;
+  --status-info: #78B1DB;
+  --status-muted: #98A38F;
+}
+
+/* Individual Script Font Classes for Specimen Cards */
+.font-latin-serif { font-family: "Crimson Text", Georgia, serif !important; }
+.font-latin-sans { font-family: "DM Sans", system-ui, sans-serif !important; }
+.font-devanagari-serif { font-family: "Noto Serif Devanagari", serif !important; }
+.font-devanagari-sans { font-family: "Noto Sans Devanagari", sans-serif !important; }
+.font-gurmukhi-serif { font-family: "Noto Serif Gurmukhi", serif !important; }
+.font-gurmukhi-sans { font-family: "Noto Sans Gurmukhi", sans-serif !important; }
+.font-telugu-serif { font-family: "Noto Serif Telugu", serif !important; }
+.font-telugu-sans { font-family: "Noto Sans Telugu", sans-serif !important; }
+.font-tamil-serif { font-family: "Noto Serif Tamil", serif !important; }
+.font-tamil-sans { font-family: "Noto Sans Tamil", sans-serif !important; }
+.font-kannada-serif { font-family: "Noto Serif Kannada", serif !important; }
+.font-kannada-sans { font-family: "Noto Sans Kannada", sans-serif !important; }
+.font-bengali-serif { font-family: "Noto Serif Bengali", serif !important; }
+.font-bengali-sans { font-family: "Noto Sans Bengali", sans-serif !important; }
+.font-gujarati-serif { font-family: "Noto Serif Gujarati", serif !important; }
+.font-gujarati-sans { font-family: "Noto Sans Gujarati", sans-serif !important; }
+.font-odia-serif { font-family: "Noto Serif Odia", serif !important; }
+.font-odia-sans { font-family: "Noto Sans Odia", sans-serif !important; }
+.font-malayalam-serif { font-family: "Noto Serif Malayalam", serif !important; }
+.font-malayalam-sans { font-family: "Noto Sans Malayalam", sans-serif !important; }
+
+/* Dynamic Indic Script Overrides on Root */
+html[data-lang-script="devanagari"] {
+  --font-serif: "Noto Serif Devanagari", serif;
+  --font-sans: "Noto Sans Devanagari", "DM Sans", sans-serif;
+  --indic-line-height: 1.65;
+  --indic-tracking: 0;
+}
+html[data-lang-script="gurmukhi"] {
+  --font-serif: "Noto Serif Gurmukhi", serif;
+  --font-sans: "Noto Sans Gurmukhi", "DM Sans", sans-serif;
+  --indic-line-height: 1.65;
+  --indic-tracking: 0;
+}
+html[data-lang-script="telugu"] {
+  --font-serif: "Noto Serif Telugu", serif;
+  --font-sans: "Noto Sans Telugu", "DM Sans", sans-serif;
+  --indic-line-height: 1.7;
+  --indic-tracking: 0;
+}
+html[data-lang-script="tamil"] {
+  --font-serif: "Noto Serif Tamil", serif;
+  --font-sans: "Noto Sans Tamil", "DM Sans", sans-serif;
+  --indic-line-height: 1.65;
+  --indic-tracking: 0;
+}
+html[data-lang-script="kannada"] {
+  --font-serif: "Noto Serif Kannada", serif;
+  --font-sans: "Noto Sans Kannada", "DM Sans", sans-serif;
+  --indic-line-height: 1.7;
+  --indic-tracking: 0;
+}
+html[data-lang-script="bengali"] {
+  --font-serif: "Noto Serif Bengali", serif;
+  --font-sans: "Noto Sans Bengali", "DM Sans", sans-serif;
+  --indic-line-height: 1.65;
+  --indic-tracking: 0;
+}
+html[data-lang-script="gujarati"] {
+  --font-serif: "Noto Serif Gujarati", serif;
+  --font-sans: "Noto Sans Gujarati", "DM Sans", sans-serif;
+  --indic-line-height: 1.65;
+  --indic-tracking: 0;
+}
+html[data-lang-script="odia"] {
+  --font-serif: "Noto Serif Odia", serif;
+  --font-sans: "Noto Sans Odia", "DM Sans", sans-serif;
+  --indic-line-height: 1.7;
+  --indic-tracking: 0;
+}
+html[data-lang-script="malayalam"] {
+  --font-serif: "Noto Serif Malayalam", serif;
+  --font-sans: "Noto Sans Malayalam", "DM Sans", sans-serif;
+  --indic-line-height: 1.7;
+  --indic-tracking: 0;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: var(--indic-line-height, 1.5);
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 200ms var(--ease-out), color 200ms var(--ease-out), font-family 150ms ease, line-height 150ms ease;
+  }
+
+  /* Serif display headings (Crimson Text editorial regular weight) */
+  h1, h2, h3, .font-serif-display {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: var(--indic-tracking, -0.025em);
+  }
+
+  /* Tabular mono numbers and identifiers */
+  code, pre, .mono, [data-mono="true"] {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum" on, "zero" on;
+  }
+}
+
+@layer components {
+  /* Signature Offset Slab Device */
+  .slab-parent {
+    position: relative;
+  }
+  .slab-shadow {
+    position: absolute;
+    top: 14px;
+    left: -14px;
+    right: 14px;
+    bottom: -14px;
+    background-color: var(--block);
+    border-radius: 30px;
+    z-index: 0;
+  }
+  .slab-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Editorial Botanical Photography Frame */
+  .photo-frame {
+    position: relative;
+    overflow: hidden;
+    border-radius: 28px;
+    border: 1px solid var(--border-default);
+    background-color: var(--bg-raised);
+  }
+  .photo-duotone {
+    filter: contrast(102%) saturate(98%);
+    transition: transform 420ms var(--ease-out), filter 420ms var(--ease-out);
+  }
+  .photo-duotone:hover {
+    filter: contrast(105%) saturate(102%);
+    transform: scale(1.015);
+  }
+}
+
+/* Zone hotspot pulse */
+@keyframes zone-ping {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.35); opacity: 0.3; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+.zone-pulse {
+  animation: zone-ping 2.5s infinite ease-in-out;
+}
+
+/* Print styling for physical field reports */
+@media print {
+  header, nav, button, select, input, .no-print {
+    display: none !important;
+  }
+  body, .field-card, .slab-content {
+    background: #ffffff !important;
+    color: #111111 !important;
+    border: 1px solid #cccccc !important;
+    box-shadow: none !important;
+  }
+  .slab-shadow {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+
+@layer components {
+  /* Area Pill Components */
+  .pill-btn {
+    border-radius: 9999px;
+    padding: 10px 22px;
+    font-weight: 600;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 150ms var(--ease-out), border-color 150ms var(--ease-out), color 150ms var(--ease-out), transform 100ms var(--ease-out);
+    font-family: var(--font-sans);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .pill-btn:active {
+    transform: translateY(1px);
+  }
+  .pill-btn-primary {
+    background-color: var(--accent);
+    color: var(--on-accent);
+    border: 1px solid var(--accent);
+  }
+  .pill-btn-primary:hover {
+    background-color: var(--accent-hover);
+  }
+  .pill-btn-secondary {
+    background-color: var(--accent-wash);
+    color: var(--text-primary);
+    border: 1px solid color-mix(in oklab, var(--accent) 18%, var(--border-default));
+  }
+  .pill-btn-secondary:hover {
+    background-color: color-mix(in oklab, var(--accent-wash) 75%, var(--accent));
+  }
+
+  /* Clean Editorial Cards */
+  .field-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: 24px;
+    box-shadow: none !important;
+  }
+
+  /* Whisper-subtle Editorial Surface Treatments */
+  .bg-archival-grain {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.012'/%3E%3C/svg%3E");
+  }
+
+  .bg-topographic-field {
+    background-image:
+      radial-gradient(circle at 20% 10%, color-mix(in oklab, var(--accent-wash) 26%, transparent) 0%, transparent 50%),
+      radial-gradient(circle at 85% 90%, color-mix(in oklab, var(--block) 10%, transparent) 0%, transparent 45%);
+  }
+
+  .bg-oklch-wash {
+    background: linear-gradient(
+      135deg in oklch,
+      var(--bg-base) 0%,
+      var(--bg-raised) 55%,
+      var(--accent-wash) 100%
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Map container styling */
+.map-canvas-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  font-family: var(--font-sans) !important;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
