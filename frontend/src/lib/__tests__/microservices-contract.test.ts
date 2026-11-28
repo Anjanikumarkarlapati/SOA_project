@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ApiError, authApi, cropApi, sensorApi, valveApi } from "@/lib/api";
+import { ApiError, authApi, cropApi, sensorApi } from "@/lib/api";
 
 const REPO_ROOT = path.resolve(__dirname, "../../../..");
 

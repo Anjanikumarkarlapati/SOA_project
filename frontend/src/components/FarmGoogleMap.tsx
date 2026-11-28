@@ -47,10 +47,11 @@ interface FarmGoogleMapProps {
  */
 function MapCameraController({ center }: { center: { lat: number; lng: number } }) {
   const map = useMap();
+  const { lat, lng } = center;
   useEffect(() => {
     if (!map) return;
-    map.panTo(center);
-  }, [map, center.lat, center.lng]);
+    map.panTo({ lat, lng });
+  }, [map, lat, lng]);
   return null;
 }
 
@@ -66,17 +67,19 @@ function FarmAcreageCircle({
 }) {
   const map = useMap();
   const circleRef = useRef<google.maps.Circle | null>(null);
+  const { lat, lng } = center;
 
   useEffect(() => {
     if (!map) return;
 
     // 1 hectare = 10,000 m2 => r = sqrt(Area / pi)
     const radiusMeters = Math.sqrt((areaHectares * 10000) / Math.PI);
+    const point = { lat, lng };
 
     if (!circleRef.current) {
       circleRef.current = new google.maps.Circle({
         map,
-        center,
+        center: point,
         radius: radiusMeters,
         strokeColor: "#485C11",
         strokeOpacity: 0.85,
@@ -86,7 +89,7 @@ function FarmAcreageCircle({
         clickable: false,
       });
     } else {
-      circleRef.current.setCenter(center);
+      circleRef.current.setCenter(point);
       circleRef.current.setRadius(radiusMeters);
     }
 
@@ -96,7 +99,7 @@ function FarmAcreageCircle({
         circleRef.current = null;
       }
     };
-  }, [map, center.lat, center.lng, areaHectares]);
+  }, [map, lat, lng, areaHectares]);
 
   return null;
 }
@@ -210,7 +213,7 @@ function GoogleMapInner({
                 <Check className="w-2.5 h-2.5" aria-hidden="true" />
               </span>
             </div>
-            <div className="mt-1 bg-black/85 text-white text-[10px] font-sans px-2 py-0.5 rounded-full whitespace-nowrap shadow-sm border border-[#DFECC6]/40">
+            <div className="mt-1 bg-black/85 text-white text-[11px] font-sans font-medium tracking-[0.01em] px-2 py-0.5 rounded-full whitespace-nowrap shadow-sm border border-[#DFECC6]/40">
               {farmName}
             </div>
           </div>
@@ -224,7 +227,7 @@ function GoogleMapInner({
             pixelOffset={[0, -45]}
           >
             <div className="p-2 text-xs font-sans text-black max-w-[240px]">
-              <div className="font-semibold text-sm text-[#485C11] mb-1 font-serif">
+              <div className="font-semibold text-[15px] leading-snug tracking-[-0.015em] text-[#485C11] mb-1 font-serif">
                 {farmName}
               </div>
               <div className="text-[11px] text-[#485C11] mb-1.5">
@@ -299,7 +302,7 @@ function GoogleMapInner({
               <div className="bg-[#F7F8F5] p-2 rounded-lg border border-[#E9E9E9] my-1 font-mono text-[11px] text-black">
                 {selectedSensor.value}
               </div>
-              <div className="flex items-center justify-between mt-1 text-[10px] text-[#6F6F6F]">
+              <div className="flex items-center justify-between mt-1 text-[11px] text-[#6F6F6F]">
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#DFECC6] text-[#485C11] font-semibold">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#485C11]" />
                   {selectedSensor.status}

@@ -3,12 +3,22 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Sun, Moon, ShieldCheck, Activity, Sprout } from "lucide-react";
+import {
+  Sun,
+  Moon,
+  ShieldCheck,
+  Activity,
+  Sprout,
+  Home,
+  LogIn,
+  UserPlus,
+} from "lucide-react";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { MEDIA_MANIFEST, type MediaId } from "@/lib/media-manifest";
 import { AgriTechLogo } from "@/components/brand/AgriTechLogo";
 import { LiquidMetalLogo } from "@/components/brand/LiquidMetalLogo";
 import { AuthSlabFrame, BezelCard } from "@/components/ui/BezelCard";
+import { Button } from "@/components/ui/Button";
 import { FieldShaderBackdrop } from "@/components/ui/FieldShaderBackdrop";
 import { useTheme } from "@/components/providers/ThemeProvider";
 
@@ -17,6 +27,7 @@ export interface AuthSplitShellProps {
   editorialBadge: string;
   editorialTitle: string;
   editorialCopy: string;
+  mode?: "login" | "signup";
   children: React.ReactNode;
 }
 
@@ -25,37 +36,63 @@ export function AuthSplitShell({
   editorialBadge,
   editorialTitle,
   editorialCopy,
+  mode = "login",
   children,
 }: AuthSplitShellProps) {
   const media = MEDIA_MANIFEST[mediaId];
   const { theme, toggleTheme } = useTheme();
+  const isSignup = mode === "signup";
 
   return (
     <div
       data-testid="auth-split-shell"
-      className="relative min-h-screen overflow-hidden bg-[var(--bg-base)] text-[var(--text-primary)] flex flex-col justify-between px-5 py-6 sm:px-8 lg:px-10"
+      className="relative min-h-screen overflow-x-clip bg-[var(--bg-base)] text-[var(--text-primary)] flex flex-col justify-between px-5 pb-6 sm:px-8 lg:px-10"
     >
       <FieldShaderBackdrop
         className="absolute inset-x-0 top-0 h-[420px] [mask-image:linear-gradient(to_bottom,black_25%,transparent_100%)]"
         intensity="ambient"
       />
-      {/* Clean Editorial Top Bar */}
-      <header className="relative z-10 mx-auto flex w-full max-w-[1200px] items-center justify-between border-b border-[var(--border-default)] pb-4">
+      {/* Sticky Top Bar: Home + Login/Signup always near the screen */}
+      <header className="sticky top-0 z-30 -mx-5 sm:-mx-8 lg:-mx-10 px-5 sm:px-8 lg:px-10 py-3 bg-[var(--bg-base)]/95 backdrop-blur-md flex items-center justify-between gap-2 border-b border-[var(--border-default)]">
         <Link
           href="/"
-          className="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
+          className="rounded-xl shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
         >
           <AgriTechLogo size="md" subtitle="" />
         </Link>
 
-        <div className="flex items-center gap-3">
-          <span className="hidden sm:inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] bg-[var(--bg-raised)] px-3.5 py-1.5 font-mono text-[11px] text-[var(--text-secondary)]">
+        <div className="flex items-center gap-2">
+          <span className="hidden md:inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] bg-[var(--bg-raised)] px-3.5 py-1.5 font-mono text-[11px] text-[var(--text-secondary)]">
             <span
               className="h-2 w-2 rounded-full bg-[var(--status-good)]"
               aria-hidden="true"
             />
             CLOUD SYNC · OFFLINE FIELD READY
           </span>
+
+          <Button
+            href="/"
+            label="Home"
+            variant="ghost"
+            size="sm"
+            icon={<Home className="h-3.5 w-3.5" aria-hidden="true" />}
+            className="hidden sm:inline-flex"
+          />
+
+          <Button
+            href={isSignup ? "/login" : "/signup"}
+            label={isSignup ? "Log in" : "Create account"}
+            variant="secondary"
+            size="sm"
+            data-testid="auth-topbar-switch"
+            icon={
+              isSignup ? (
+                <LogIn className="h-3.5 w-3.5" aria-hidden="true" />
+              ) : (
+                <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
+              )
+            }
+          />
 
           <IconButton
             onClick={toggleTheme}
@@ -77,7 +114,7 @@ export function AuthSplitShell({
       </header>
 
       {/* 12-Column Split-Screen Core */}
-      <div className="relative z-10 mx-auto my-auto grid w-full max-w-[1200px] grid-cols-1 items-center gap-10 py-10 lg:grid-cols-12 lg:gap-14 surface-enter">
+      <div className="relative z-10 mx-auto my-auto grid w-full max-w-[1200px] grid-cols-1 items-center gap-8 py-5 lg:grid-cols-12 lg:gap-12 lg:py-8 surface-enter">
         {/* Left 6 Columns: Editorial Field Showcase */}
         <aside
           aria-label="AgriTech field telemetry preview"
@@ -86,11 +123,11 @@ export function AuthSplitShell({
           <div className="flex items-center gap-4">
             <LiquidMetalLogo size={64} className="shrink-0" />
             <div className="min-w-0">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-default)] bg-[var(--accent-wash)] px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-primary)]">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-default)] bg-[var(--accent-wash)] px-3 py-1 type-eyebrow !text-[var(--text-primary)]">
                 <Sprout className="h-3 w-3 text-[var(--accent)]" aria-hidden="true" />
                 {editorialBadge}
               </span>
-              <h2 className="mt-2 font-serif-display text-2xl sm:text-3xl leading-tight text-[var(--text-primary)]">
+              <h2 className="mt-2 type-section-title text-2xl sm:text-3xl leading-[1.16]">
                 {editorialTitle}
               </h2>
             </div>
@@ -125,7 +162,7 @@ export function AuthSplitShell({
           {/* Clean Telemetry Strip */}
           <div className="grid grid-cols-3 gap-3">
             <BezelCard innerClassName="p-3.5">
-              <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--text-secondary)]">
+              <div className="flex items-center gap-1.5 type-eyebrow text-[var(--text-secondary)]">
                 <Activity className="h-3 w-3 text-[var(--accent)]" aria-hidden="true" />
                 Root Moisture
               </div>
@@ -134,7 +171,7 @@ export function AuthSplitShell({
               </p>
             </BezelCard>
             <BezelCard innerClassName="p-3.5">
-              <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--text-secondary)]">
+              <div className="flex items-center gap-1.5 type-eyebrow text-[var(--text-secondary)]">
                 <Sprout className="h-3 w-3 text-[var(--accent)]" aria-hidden="true" />
                 Canopy VPD
               </div>
@@ -143,7 +180,7 @@ export function AuthSplitShell({
               </p>
             </BezelCard>
             <BezelCard innerClassName="p-3.5">
-              <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-[var(--text-secondary)]">
+              <div className="flex items-center gap-1.5 type-eyebrow text-[var(--text-secondary)]">
                 <ShieldCheck className="h-3 w-3 text-[var(--accent)]" aria-hidden="true" />
                 FieldShield
               </div>
@@ -166,7 +203,7 @@ export function AuthSplitShell({
         </main>
       </div>
 
-      <footer className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-between gap-2 border-t border-[var(--border-default)] pt-4 font-mono text-[11px] text-[var(--text-secondary)]">
+      <footer className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-between gap-2 border-t border-[var(--border-default)] pt-4 font-mono text-xs text-[var(--text-secondary)]">
         <span>AGRITECH FIELD HUB · FOR FARMERS &amp; FIELD ORGANIZERS</span>
         <span>WCAG 2.2 AA · LOCAL-FIRST TELEMETRY</span>
       </footer>

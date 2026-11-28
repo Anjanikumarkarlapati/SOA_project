@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { Heading } from "@astryxdesign/core/Heading";
 import { isOfflineToken, useAuthStore } from "@/lib/auth";
 import {
   useFarmStore,
@@ -13,6 +14,7 @@ import { computeWaterBudget, evaluateValveInterlock } from "@/lib/fieldshield";
 import { BezelCard } from "@/components/ui/BezelCard";
 import { Button } from "@/components/ui/Button";
 import { EditorialPhotoFrame } from "@/components/ui/EditorialPhotoFrame";
+import { toast } from "@/components/ui/Toaster";
 import { Banner } from "@astryxdesign/core/Banner";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import {
@@ -59,6 +61,7 @@ export default function IrrigationPage() {
   const activeFarm = getActiveProperty({ properties, activePropertyId });
   const farmId = activeFarm?.id ?? "farm-ludhiana-1";
   const activeCrop = getCropById(activeFarm?.selectedCropId || "wheat");
+  const isReadOnlyFarmer = Boolean(token && !isOfflineToken(token) && userRole !== "ADMIN");
 
   const [stats, setStats] = useState<ClimateStats | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -70,6 +73,7 @@ export default function IrrigationPage() {
 
   // New Schedule Modal State
   const [schedModalOpen, setSchedModalOpen] = useState(false);
+  const [schedFormError, setSchedFormError] = useState<string | null>(null);
   const [selectedValveId, setSelectedValveId] = useState("");
   const [zoneName, setZoneName] = useState("");
   const [startTime, setStartTime] = useState("06:00");
@@ -216,6 +220,7 @@ export default function IrrigationPage() {
       bankedLitres,
       interlock.reasons.join("; ") || "FieldShield Rain-Hold Interlock"
     );
+    toast(`Deferred 24h and banked ${bankedLitres.toLocaleString("en-US")} L`, "success");
     setInterlockValveId(null);
   };
 
@@ -231,6 +236,7 @@ export default function IrrigationPage() {
         token
       );
       if (token && !isOfflineToken(token)) await syncIrrigationFromBackend(farmId, token);
+      toast(`Opened ${interlockValveId} (${overrideReason})`, "info");
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Failed to override and open valve");
     } finally {
@@ -241,6 +247,7 @@ export default function IrrigationPage() {
   const handleCreateSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionError(null);
+    setSchedFormError(null);
     const chosenValve =
       valves.find((v) => v.valveId === selectedValveId) ?? valves[0];
     try {
@@ -256,10 +263,13 @@ export default function IrrigationPage() {
         token
       );
       if (token && !isOfflineToken(token)) await syncIrrigationFromBackend(farmId, token);
+      toast("Irrigation schedule saved", "success");
       setZoneName("");
       setSchedModalOpen(false);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : "Failed to create schedule");
+      const msg = err instanceof Error ? err.message : "Failed to create schedule";
+      setSchedFormError(msg);
+      setActionError(msg);
     }
   };
 
@@ -268,6 +278,7 @@ export default function IrrigationPage() {
     try {
       await emergencyStopValves(farmId, "Operator manual stop", token);
       if (token && !isOfflineToken(token)) await syncIrrigationFromBackend(farmId, token);
+      toast("Emergency stop sent to all valves", "info");
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Emergency stop failed");
     }
@@ -286,21 +297,31 @@ export default function IrrigationPage() {
     setActionError(null);
     try {
       await deleteSchedule(farmId, scheduleId, token);
+      toast("Schedule removed", "info");
     } catch (err) {
       setActionError(err instanceof Error ? err.message : "Failed to delete schedule");
     }
   };
 
+  useEffect(() => {
+    if (!interlockValveId && !schedModalOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setInterlockValveId(null);
+        setSchedModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [interlockValveId, schedModalOpen]);
+
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1
-            className="text-2xl font-semibold"
-            style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-          >
+          <Heading level={1} weight="normal" textWrap="balance" className="type-page-title">
             Irrigation &amp; Valve Control
-          </h1>
+          </Heading>
           <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
             Closed-loop FAO-56 ET₀ water budget, Rain-Hold safety interlock, and schedules for{" "}
             <strong style={{ color: "var(--text-primary)" }}>
@@ -346,9 +367,12 @@ export default function IrrigationPage() {
             variant="primary"
             size="sm"
             elevation="low"
+            disabled={isReadOnlyFarmer}
+            tooltip={isReadOnlyFarmer ? "Requires Field Organizer (ADMIN) account" : undefined}
             icon={<Plus className="w-4 h-4" />}
             onClick={() => {
               setSelectedValveId(valves[0]?.valveId ?? "");
+              setSchedFormError(null);
               setSchedModalOpen(true);
             }}
           />
@@ -405,9 +429,9 @@ export default function IrrigationPage() {
               <span className="text-[12px] font-medium text-[var(--accent)]">
                 Closed-loop hydraulic telemetry
               </span>
-              <h2 className="text-lg font-serif-display text-[var(--text-primary)]">
+              <Heading level={2} weight="normal" className="type-section-title !text-xl">
                 Borewell Header → Solenoid Manifold → Drip Laterals
-              </h2>
+              </Heading>
             </div>
             <span className="rounded-full border border-[var(--border-default)] bg-[var(--bg-raised)] px-3 py-1 font-mono text-[11px] tabular-nums text-[var(--text-primary)]">
               {valves.some((v) => v.state === "OPEN") ? "Flow active" : "Standby lock"}
@@ -478,12 +502,9 @@ export default function IrrigationPage() {
       >
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div>
-            <h2
-              className="text-base font-semibold"
-              style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-            >
+            <Heading level={2} weight="semibold" className="type-card-title !text-lg">
               FAO-56 ET₀ Daily Water Budget Calculator
-            </h2>
+            </Heading>
             <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
               Crop: {activeCrop.name} (Kc = {activeCrop.kc[1]}) · System:{" "}
               {activeFarm?.irrigationType || "drip"} ({Math.round(waterBudget.efficiency * 100)}%
@@ -523,7 +544,7 @@ export default function IrrigationPage() {
             <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
               Crop ETc Demand
             </div>
-            <div className="text-lg font-bold mt-0.5" style={{ color: "var(--text-primary)" }}>
+            <div className="type-kpi-sm mt-0.5" style={{ color: "var(--text-primary)" }}>
               {waterBudget.etcMm} mm
             </div>
             <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
@@ -538,7 +559,7 @@ export default function IrrigationPage() {
             <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
               Effective Rain Credit
             </div>
-            <div className="text-lg font-bold mt-0.5" style={{ color: "var(--status-info)" }}>
+            <div className="type-kpi-sm mt-0.5" style={{ color: "var(--status-info)" }}>
               {waterBudget.effectiveRainCreditLitres.toLocaleString("en-US")} Litres
             </div>
             <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
@@ -553,7 +574,7 @@ export default function IrrigationPage() {
             <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
               Net Delivery Target
             </div>
-            <div className="text-lg font-bold mt-0.5" style={{ color: "var(--accent)" }}>
+            <div className="type-kpi-sm mt-0.5" style={{ color: "var(--accent)" }}>
               {waterBudget.netDeliveryLitres.toLocaleString("en-US")} Litres
             </div>
             <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
@@ -568,7 +589,7 @@ export default function IrrigationPage() {
             <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
               Recommended Runtime
             </div>
-            <div className="text-lg font-bold mt-0.5" style={{ color: "var(--text-primary)" }}>
+            <div className="type-kpi-sm mt-0.5" style={{ color: "var(--text-primary)" }}>
               {waterBudget.recommendedMinutes} min
             </div>
             <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
@@ -582,13 +603,10 @@ export default function IrrigationPage() {
       <div className="grid md:grid-cols-2 gap-6">
         {/* Valves */}
         <section className="space-y-3">
-          <h2
-            className="text-sm font-semibold flex items-center gap-2"
-            style={{ color: "var(--text-primary)" }}
-          >
+          <Heading level={2} weight="semibold" className="type-card-title !text-lg flex items-center gap-2">
             <Power className="w-4 h-4" style={{ color: "var(--accent)" }} />
             Solenoid Valves
-          </h2>
+          </Heading>
 
           <div className="space-y-3">
             {valves.map((v) => {
@@ -634,13 +652,10 @@ export default function IrrigationPage() {
 
         {/* Schedules */}
         <section className="space-y-3">
-          <h2
-            className="text-sm font-semibold flex items-center gap-2"
-            style={{ color: "var(--text-primary)" }}
-          >
+          <Heading level={2} weight="semibold" className="type-card-title !text-lg flex items-center gap-2">
             <Calendar className="w-4 h-4" style={{ color: "var(--status-info)" }} />
             Schedules
-          </h2>
+          </Heading>
 
           <div className="space-y-3">
             {schedules.map((s) => (
@@ -704,13 +719,10 @@ export default function IrrigationPage() {
 
       {/* Recent Irrigation & Interlock Events Ledger */}
       <section className="space-y-3">
-        <h2
-          className="text-sm font-semibold flex items-center gap-2"
-          style={{ color: "var(--text-primary)" }}
-        >
+        <Heading level={2} weight="semibold" className="type-card-title !text-lg flex items-center gap-2">
           <Droplets className="w-4 h-4" style={{ color: "var(--status-info)" }} />
           Field Irrigation &amp; Interlock Event Ledger
-        </h2>
+        </Heading>
 
         {events.length === 0 ? (
           <div
@@ -767,10 +779,13 @@ export default function IrrigationPage() {
       {/* Rain-Hold & Soil-Saturation Interlock Dialog */}
       {interlockValveId && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 overflow-y-auto"
           role="dialog"
           aria-modal="true"
           aria-labelledby="interlock-dialog-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setInterlockValveId(null);
+          }}
         >
           <div
             className="w-full max-w-lg rounded-2xl border p-6 space-y-4"
@@ -779,13 +794,14 @@ export default function IrrigationPage() {
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5" style={{ color: "var(--status-warning)" }} />
-                <h2
+                <Heading
+                  level={2}
                   id="interlock-dialog-title"
-                  className="text-lg font-semibold"
-                  style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
+                  weight="semibold"
+                  className="type-card-title !text-xl"
                 >
                   FieldShield Rain-Hold &amp; Soil-Saturation Interlock
-                </h2>
+                </Heading>
               </div>
               <IconButton
                 label="Close interlock dialog"
@@ -856,23 +872,27 @@ export default function IrrigationPage() {
       {/* Create Schedule Dialog */}
       {schedModalOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 overflow-y-auto"
           role="dialog"
           aria-modal="true"
           aria-labelledby="new-schedule-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSchedModalOpen(false);
+          }}
         >
           <div
-            className="w-full max-w-md rounded-2xl border p-6 space-y-4"
+            className="w-full max-w-md rounded-2xl border p-6 space-y-4 my-auto"
             style={{ background: "var(--bg-surface)", borderColor: "var(--border-default)" }}
           >
             <div className="flex items-center justify-between">
-              <h2
+              <Heading
+                level={2}
                 id="new-schedule-title"
-                className="text-lg font-semibold"
-                style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
+                weight="semibold"
+                className="type-card-title !text-xl"
               >
                 Create Irrigation Schedule
-              </h2>
+              </Heading>
               <IconButton
                 label="Close schedule modal"
                 icon={<X className="w-5 h-5" />}
@@ -881,6 +901,20 @@ export default function IrrigationPage() {
                 onClick={() => setSchedModalOpen(false)}
               />
             </div>
+
+            {schedFormError && (
+              <div
+                className="text-xs px-3 py-2 rounded-lg border"
+                role="alert"
+                style={{
+                  background: "rgba(179,38,30,0.08)",
+                  borderColor: "rgba(179,38,30,0.3)",
+                  color: "var(--status-critical)",
+                }}
+              >
+                {schedFormError}
+              </div>
+            )}
 
             <form onSubmit={(e) => void handleCreateSchedule(e)} className="space-y-4">
               {valves.length > 1 && (

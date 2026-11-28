@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { Heading } from "@astryxdesign/core/Heading";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { isOfflineToken, useAuthStore } from "@/lib/auth";
@@ -111,16 +112,23 @@ export default function ProfilePage() {
 
   return (
     <div className="p-6 sm:p-8 max-w-3xl mx-auto space-y-8">
-      <div className="border-b border-[var(--border-default)] pb-5">
-        <h1
-          className="text-3xl font-normal"
-          style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-        >
-          Profile &amp; Field Preferences
-        </h1>
-        <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
-          Operator account details, display units, appearance, and FieldShield outbox synchronization.
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap border-b border-[var(--border-default)] pb-5">
+        <div>
+          <Heading level={1} weight="normal" textWrap="balance" className="type-page-title">
+            Profile &amp; Field Preferences
+          </Heading>
+          <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+            Operator account details, display units, appearance, and FieldShield outbox synchronization.
+          </p>
+        </div>
+
+        <Button
+          label="Sign out"
+          variant="destructive"
+          size="md"
+          icon={<LogOut className="w-4 h-4" />}
+          onClick={handleLogout}
+        />
       </div>
 
       {/* Account Card */}
@@ -174,12 +182,9 @@ export default function ProfilePage() {
         className="rounded-xl border p-6 space-y-5"
         style={{ background: "var(--bg-surface)", borderColor: "var(--border-default)" }}
       >
-        <h2
-          className="text-base font-semibold"
-          style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-        >
+        <Heading level={2} weight="semibold" className="type-card-title">
           Display &amp; Unit Preferences
-        </h2>
+        </Heading>
 
         {/* Area Units */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -242,12 +247,9 @@ export default function ProfilePage() {
         innerClassName="p-6 space-y-3"
       >
         <div className="flex items-center justify-between gap-2">
-          <h2
-            className="text-base font-semibold"
-            style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-          >
+          <Heading level={2} weight="semibold" className="type-card-title">
             Organizer &amp; Field Team Capabilities
-          </h2>
+          </Heading>
           <span className="rounded-full border border-[var(--border-default)] bg-[var(--bg-raised)] px-3 py-0.5 font-mono text-[11px] text-[var(--accent)]">
             {user?.role === "ADMIN" ? "ORGANIZER" : user?.role ?? "FARMER"}
           </span>
@@ -277,12 +279,9 @@ export default function ProfilePage() {
       >
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h2
-              className="text-base font-semibold"
-              style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-            >
+            <Heading level={2} weight="semibold" className="type-card-title">
               FieldShield Offline Sync Outbox
-            </h2>
+            </Heading>
             <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
               {syncOutbox.length} queued field update(s) ready to sync to your farm workspace.
             </p>
@@ -334,17 +333,6 @@ export default function ProfilePage() {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Sign out button */}
-      <div>
-        <Button
-          label="Sign out"
-          variant="destructive"
-          size="md"
-          icon={<LogOut className="w-4 h-4" />}
-          onClick={handleLogout}
-        />
       </div>
     </div>
   );

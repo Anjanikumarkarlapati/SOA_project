@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { Heading } from "@astryxdesign/core/Heading";
 import {
   AreaChart,
   Area,
@@ -30,15 +31,17 @@ import { useFarmStore, getActiveProperty } from "@/lib/property-store";
 import { BezelCard } from "@/components/ui/BezelCard";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@astryxdesign/core/Badge";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Skeleton } from "@astryxdesign/core/Skeleton";
 import { SlidingTabs } from "@/components/ui/SlidingTabs";
 import {
-  Loader2,
   Thermometer,
   Droplets,
   Wind,
   AlertTriangle,
   MapPin,
   Sprout,
+  RefreshCw,
 } from "lucide-react";
 
 const FARM_PRESETS = [
@@ -69,6 +72,7 @@ export default function ClimatePage() {
   const [historicalNote, setHistoricalNote] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const targetLat = activeFarm ? activeFarm.lat : FARM_PRESETS[preset].lat;
   const targetLon = activeFarm ? activeFarm.lon : FARM_PRESETS[preset].lon;
@@ -78,6 +82,7 @@ export default function ClimatePage() {
     let cancelled = false;
 
     async function load() {
+      setLoading(true);
       try {
         const d = await fetchClimate(targetLat, targetLon);
         if (cancelled) return;
@@ -136,7 +141,7 @@ export default function ClimatePage() {
     return () => {
       cancelled = true;
     };
-  }, [targetLat, targetLon, token, activeFarm?.id, activeFarm?.syncedToBackend]);
+  }, [targetLat, targetLon, token, activeFarm?.id, activeFarm?.syncedToBackend, reloadKey]);
 
   const dailyChart = data?.daily
     ? data.daily.time.map((t, i) => ({
@@ -200,13 +205,10 @@ export default function ClimatePage() {
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1
-            className="text-2xl font-semibold"
-            style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-          >
+          <Heading level={1} weight="normal" textWrap="balance" className="type-page-title">
             Climate &amp; Analytics
-          </h1>
-          <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+          </Heading>
+          <p className="type-lead mt-1">
             14-day forecast &amp; soil data via Open-Meteo (ECMWF) for{" "}
             <strong style={{ color: "var(--text-primary)" }}>{targetName}</strong>.
           </p>
@@ -277,23 +279,39 @@ export default function ClimatePage() {
       )}
 
       {loading && (
-        <div className="flex items-center gap-2 my-12" style={{ color: "var(--text-secondary)" }}>
-          <Loader2 className="w-5 h-5 animate-spin" /> Fetching climate data…
+        <div role="status" aria-busy="true" aria-label="Loading climate forecast" className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[0, 1, 2, 3, 4, 5].map((idx) => (
+              <BezelCard key={idx} innerClassName="p-4 space-y-2">
+                <Skeleton width={20} height={20} radius="rounded" index={idx} />
+                <Skeleton width="65%" height={12} radius={2} index={idx} />
+                <Skeleton width="50%" height={18} radius={2} index={idx} />
+              </BezelCard>
+            ))}
+          </div>
+          <BezelCard innerClassName="p-5 space-y-3">
+            <Skeleton width="40%" height={18} radius={2} index={0} />
+            <Skeleton width="100%" height={220} radius={3} index={1} />
+          </BezelCard>
         </div>
       )}
 
       {error && (
-        <div
-          className="text-sm px-4 py-3 rounded-lg border"
+        <Banner
+          status="error"
           role="alert"
-          style={{
-            background: "rgba(179,38,30,0.08)",
-            borderColor: "rgba(179,38,30,0.3)",
-            color: "var(--status-critical)",
-          }}
-        >
-          Failed to load climate data: {error}
-        </div>
+          title="Failed to load climate data"
+          description={error}
+          endContent={
+            <Button
+              label="Retry"
+              variant="secondary"
+              size="sm"
+              icon={<RefreshCw className="w-3.5 h-3.5" />}
+              onClick={() => setReloadKey((k) => k + 1)}
+            />
+          }
+        />
       )}
 
       {!loading && stats && (
@@ -307,7 +325,7 @@ export default function ClimatePage() {
                   {label}
                 </div>
                 <div
-                  className="font-bold font-mono tabular-nums text-sm mt-0.5"
+                  className="font-medium font-mono tabular-nums text-[15px] mt-0.5"
                   style={{ color: "var(--text-primary)" }}
                 >
                   {value}
@@ -337,9 +355,9 @@ export default function ClimatePage() {
 
           {viewMode === "table" ? (
             <BezelCard innerClassName="p-5 overflow-x-auto">
-              <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
+              <Heading level={2} weight="semibold" className="type-card-title !text-lg mb-3">
                 14-Day Agro-Meteorological Telemetry Ledger
-              </h2>
+              </Heading>
               <table
                 data-testid="climate-data-table"
                 className="w-full text-left text-xs border-collapse font-mono tabular-nums"
@@ -383,9 +401,9 @@ export default function ClimatePage() {
             <>
               {/* Temperature chart */}
               <BezelCard innerClassName="p-5">
-                <h2 className="text-sm font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+                <Heading level={2} weight="semibold" className="type-card-title !text-lg mb-4">
                   Daily Temperature Range (°C)
-                </h2>
+                </Heading>
                 <ResponsiveContainer width="100%" height={220}>
                   <AreaChart data={dailyChart}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" />
@@ -423,9 +441,9 @@ export default function ClimatePage() {
 
               {/* Rainfall vs ET₀ */}
               <BezelCard innerClassName="p-5">
-                <h2 className="text-sm font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+                <Heading level={2} weight="semibold" className="type-card-title !text-lg mb-4">
                   Rainfall vs Reference ET₀ (mm/day)
-                </h2>
+                </Heading>
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={dailyChart}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border-default)" />
@@ -457,9 +475,9 @@ export default function ClimatePage() {
 
               {/* Water balance */}
               <BezelCard innerClassName="p-5">
-                <h2 className="text-sm font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+                <Heading level={2} weight="semibold" className="type-card-title !text-lg mb-1">
                   Daily Water Balance (Rain − ET₀, mm)
-                </h2>
+                </Heading>
                 <p className="text-xs mb-4" style={{ color: "var(--text-secondary)" }}>
                   Negative values indicate net moisture deficit — irrigation required.
                 </p>
@@ -493,15 +511,12 @@ export default function ClimatePage() {
             <BezelCard data-testid="historical-climate-gateway" innerClassName="p-5 space-y-4">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
-                  <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+                  <span className="type-eyebrow !text-[var(--text-secondary)]">
                     REGIONAL CLIMATE ANALYTICS · {historical.startDate} TO {historical.endDate}
                   </span>
-                  <h2
-                    className="text-base font-semibold mt-0.5"
-                    style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-                  >
+                  <Heading level={2} weight="semibold" className="type-card-title mt-0.5">
                     Historical Reanalysis &amp; Risk Trends
-                  </h2>
+                  </Heading>
                 </div>
                 <Badge
                   variant={historical.dataAvailable && !historical.fallback ? "green" : "warning"}
@@ -521,7 +536,7 @@ export default function ClimatePage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs tabular-nums">
                   <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-raised)] p-3">
                     <div className="text-[var(--text-secondary)]">Mean Temp</div>
-                    <div className="text-sm font-bold mt-0.5 text-[var(--text-primary)]">
+                    <div className="text-[15px] font-medium mt-0.5 text-[var(--text-primary)]">
                       {historical.statistics.temperatureC?.mean !== null &&
                       historical.statistics.temperatureC?.mean !== undefined
                         ? `${historical.statistics.temperatureC.mean.toFixed(1)} °C`
@@ -530,7 +545,7 @@ export default function ClimatePage() {
                   </div>
                   <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-raised)] p-3">
                     <div className="text-[var(--text-secondary)]">Warming Trend</div>
-                    <div className="text-sm font-bold mt-0.5 text-[var(--text-primary)]">
+                    <div className="text-[15px] font-medium mt-0.5 text-[var(--text-primary)]">
                       {historical.statistics.temperatureTrendCPerDecade !== null &&
                       historical.statistics.temperatureTrendCPerDecade !== undefined
                         ? `${historical.statistics.temperatureTrendCPerDecade.toFixed(2)} °C/dec`
@@ -539,7 +554,7 @@ export default function ClimatePage() {
                   </div>
                   <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-raised)] p-3">
                     <div className="text-[var(--text-secondary)]">Drought Risk</div>
-                    <div className="text-sm font-bold mt-0.5 text-[var(--status-warning)]">
+                    <div className="text-[15px] font-medium mt-0.5 text-[var(--status-warning)]">
                       {historical.statistics.droughtRiskPercent !== null &&
                       historical.statistics.droughtRiskPercent !== undefined
                         ? `${historical.statistics.droughtRiskPercent.toFixed(1)}%`
@@ -548,7 +563,7 @@ export default function ClimatePage() {
                   </div>
                   <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-raised)] p-3">
                     <div className="text-[var(--text-secondary)]">Heat Stress Risk</div>
-                    <div className="text-sm font-bold mt-0.5 text-[var(--status-critical)]">
+                    <div className="text-[15px] font-medium mt-0.5 text-[var(--status-critical)]">
                       {historical.statistics.heatStressRiskPercent !== null &&
                       historical.statistics.heatStressRiskPercent !== undefined
                         ? `${historical.statistics.heatStressRiskPercent.toFixed(1)}%`
@@ -589,7 +604,7 @@ export default function ClimatePage() {
               )}
 
               {historical.attribution && (
-                <p className="text-[11px] text-[var(--text-secondary)]">
+                <p className="type-caption !text-[var(--text-secondary)]">
                   {historical.attribution}
                 </p>
               )}

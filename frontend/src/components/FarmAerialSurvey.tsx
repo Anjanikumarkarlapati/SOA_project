@@ -70,6 +70,15 @@ export function FarmAerialSurvey({
       {/* Interactive Drone Survey Viewer */}
       <EditorialPhotoFrame
         innerClassName="h-[360px] sm:h-[420px] select-none"
+        lightbox={
+          viewMode === "photo"
+            ? {
+                src: "/images/aerial-farm.jpg",
+                alt: "High-altitude drone aerial survey of agricultural fields",
+                caption: `${farmName} · ${cropName} (${areaHectares} ha) — ${selectedZone.name} (NDVI ${selectedZone.ndvi.toFixed(2)}, ${selectedZone.moisture}% moisture)`,
+              }
+            : undefined
+        }
         topLeft={
           <>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-black/70 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-md">
@@ -174,7 +183,7 @@ export function FarmAerialSurvey({
                       }`}
                     />
                     <div
-                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-[10px] font-bold transition-transform ${
+                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-[11px] font-mono font-medium transition-transform ${
                         isSelected
                           ? "scale-125 bg-[var(--accent)] text-[var(--on-accent)] border-[var(--on-accent)]"
                           : "bg-[var(--bg-surface)] text-[var(--text-primary)] border-[var(--accent)] hover:scale-110"
@@ -210,34 +219,34 @@ export function FarmAerialSurvey({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
         <div className="p-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-raised)]/50 flex flex-col gap-0.5">
           <span className="text-[11px] text-[var(--text-secondary)]">Mean Canopy NDVI</span>
-          <span className="text-lg font-mono tabular-nums text-[var(--text-primary)] font-semibold">
+          <span className="type-kpi-sm text-lg">
             0.78 / 1.0
           </span>
-          <span className="text-[10px] text-[var(--text-secondary)]">Dense photosynthetic mass</span>
+          <span className="type-caption !text-[var(--text-secondary)]">Dense photosynthetic mass</span>
         </div>
 
         <div className="p-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-raised)]/50 flex flex-col gap-0.5">
           <span className="text-[11px] text-[var(--text-secondary)]">Field Drainage Slope</span>
-          <span className="text-lg font-mono tabular-nums text-[var(--text-primary)] font-semibold">
+          <span className="type-kpi-sm text-lg">
             1.4% SW
           </span>
-          <span className="text-[10px] text-[var(--text-secondary)]">Zero ponding hazard</span>
+          <span className="type-caption !text-[var(--text-secondary)]">Zero ponding hazard</span>
         </div>
 
         <div className="p-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-raised)]/50 flex flex-col gap-0.5">
           <span className="text-[11px] text-[var(--text-secondary)]">Canopy Uniformity</span>
-          <span className="text-lg font-mono tabular-nums text-[var(--text-primary)] font-semibold">
+          <span className="type-kpi-sm text-lg">
             94.2%
           </span>
-          <span className="text-[10px] text-[var(--text-secondary)]">Even seed emergence</span>
+          <span className="type-caption !text-[var(--text-secondary)]">Even seed emergence</span>
         </div>
 
         <div className="p-3 rounded-xl border border-[var(--border-default)] bg-[var(--bg-raised)]/50 flex flex-col gap-0.5">
           <span className="text-[11px] text-[var(--text-secondary)]">Water Stress Index</span>
-          <span className="text-lg font-mono tabular-nums text-[var(--accent)] font-semibold">
+          <span className="type-kpi-sm text-lg !text-[var(--accent)]">
             0.14 CWSI
           </span>
-          <span className="text-[10px] text-[var(--text-secondary)]">Normal transpiration</span>
+          <span className="type-caption !text-[var(--text-secondary)]">Normal transpiration</span>
         </div>
       </div>
     </BezelCard>

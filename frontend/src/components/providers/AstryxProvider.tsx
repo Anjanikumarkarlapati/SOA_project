@@ -7,6 +7,13 @@ import { useTheme } from "./ThemeProvider";
 
 const agritechFieldTheme = defineTheme({
   name: "agritech-field",
+  typography: {
+    scale: { base: 15.5, ratio: 1.225 },
+    heading: {
+      weight: "normal",
+      weights: { 3: "semibold", 4: "semibold", 5: "semibold", 6: "semibold" },
+    },
+  },
   tokens: {
     "--color-background-body": ["#FFFFFF", "#0E110B"],
     "--color-background-surface": ["#FFFFFF", "#151911"],
@@ -68,6 +75,42 @@ const agritechFieldTheme = defineTheme({
     "banner-frame": {
       base: {
         borderRadius: "16px",
+      },
+    },
+    "button-group": {
+      base: {
+        borderRadius: "9999px",
+      },
+    },
+    thumbnail: {
+      base: {
+        borderRadius: "14px",
+      },
+    },
+    heading: {
+      base: {
+        fontKerning: "normal",
+        letterSpacing: "var(--indic-tracking, -0.025em)",
+        color: "var(--text-primary)",
+      },
+    },
+    text: {
+      base: {
+        fontKerning: "normal",
+      },
+    },
+  },
+  onDark: {
+    components: {
+      button: {
+        base: {
+          borderColor: "rgba(255,255,255,0.24)",
+        },
+      },
+      "icon-button": {
+        base: {
+          borderColor: "rgba(255,255,255,0.24)",
+        },
       },
     },
   },

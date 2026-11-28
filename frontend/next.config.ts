@@ -7,6 +7,7 @@ const contentSecurityPolicy = [
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org https://*.tile.opentopomap.org https://*.arcgisonline.com https://maps.gstatic.com https://maps.googleapis.com",
   "connect-src 'self' http://localhost:* http://127.0.0.1:* https://*.supabase.co https://api.open-meteo.com https://archive-api.open-meteo.com https://nominatim.openstreetmap.org https://api.openweathermap.org https://maps.googleapis.com",
+  "media-src 'self' blob:",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -35,7 +36,7 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(self)",
+            value: "camera=(self), microphone=(self), geolocation=(self)",
           },
         ],
       },

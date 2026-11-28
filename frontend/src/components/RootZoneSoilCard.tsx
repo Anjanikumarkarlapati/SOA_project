@@ -37,7 +37,7 @@ export function RootZoneSoilCard({
         <div>
           <div className="flex items-center gap-2">
             <Sprout className="w-5 h-5 text-[var(--accent)]" />
-            <h3 className="text-xl font-serif-display text-[var(--text-primary)]">
+            <h3 className="type-card-title text-xl">
               In-Situ Root-Zone Telemetry &amp; Soil Health
             </h3>
           </div>
@@ -58,6 +58,11 @@ export function RootZoneSoilCard({
         <div className="flex flex-col gap-2.5 min-w-0">
           <EditorialPhotoFrame
             innerClassName="h-56 sm:h-64"
+            lightbox={{
+              src: "/images/soil-sensing.jpg",
+              alt: "Macro photograph of fertile loam soil with emergent sprout and dielectric soil probe",
+              caption: `Sensor #SZ-04 · 6 cm depth · ${soilMoisturePct}% moisture · ${soilTempC.toFixed(1)} °C (${crop.name})`,
+            }}
             topLeft={
               <span className="rounded-full border border-white/25 bg-black/65 px-2.5 py-1 font-mono text-[11px] tabular-nums text-white backdrop-blur-md">
                 6 cm depth
@@ -94,7 +99,7 @@ export function RootZoneSoilCard({
                 <span>Volumetric Moisture</span>
                 <Droplets className="w-3.5 h-3.5 text-[var(--accent)]" />
               </span>
-              <span className="text-2xl font-mono tabular-nums text-[var(--text-primary)] font-bold">
+              <span className="type-kpi !text-2xl">
                 {soilMoisturePct}%
               </span>
               <span className="text-[11px] font-mono tabular-nums text-[var(--text-secondary)]">
@@ -107,7 +112,7 @@ export function RootZoneSoilCard({
                 <span>Root Zone Temperature</span>
                 <Thermometer className="w-3.5 h-3.5 text-[var(--accent)]" />
               </span>
-              <span className="text-2xl font-mono tabular-nums text-[var(--text-primary)] font-bold">
+              <span className="type-kpi !text-2xl">
                 {soilTempC.toFixed(1)} °C
               </span>
               <span className="text-[11px] font-mono tabular-nums text-[var(--text-secondary)]">
@@ -147,7 +152,7 @@ export function RootZoneSoilCard({
                 className="absolute top-0 -translate-x-1/2 flex flex-col items-center transition-[left] duration-500 z-10"
                 style={{ left: `${clampedMoisture}%` }}
               >
-                <div className="bg-[var(--text-primary)] text-[var(--bg-base)] text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded">
+                <div className="bg-[var(--text-primary)] text-[var(--bg-base)] text-[11px] font-mono font-medium tabular-nums px-2 py-0.5 rounded">
                   {soilMoisturePct}%
                 </div>
                 <div
@@ -177,7 +182,7 @@ export function RootZoneSoilCard({
             </div>
 
             {/* Scale Labels */}
-            <div className="flex justify-between text-[10px] font-mono tabular-nums text-[var(--text-secondary)] px-1">
+            <div className="flex justify-between text-[11px] font-mono tabular-nums text-[var(--text-secondary)] px-1">
               <span>0% Wilting</span>
               <span>20% Stress</span>
               <span className="font-bold text-[var(--text-primary)]">

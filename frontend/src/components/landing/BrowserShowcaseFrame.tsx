@@ -33,7 +33,7 @@ export function BrowserShowcaseFrame({
       {/* Rising Hardware Bezel */}
       <div className="relative z-10 mx-auto w-[90%] sm:w-[82%] max-w-[920px] rounded-t-[26px] sm:rounded-t-[32px] border-[8px] sm:border-[12px] border-b-0 border-[#12140E] bg-[#12140E] shadow-[0_-8px_40px_-14px_rgba(16,24,6,0.28)]">
         {/* Minimal top camera/status bar */}
-        <div className="flex items-center justify-between px-4 py-1.5 text-[10px] font-mono text-white/65">
+        <div className="flex items-center justify-between px-4 py-1.5 text-[11px] tracking-[0.02em] font-mono text-white/75">
           <span className="truncate">{url}</span>
           <span className="hidden sm:inline uppercase tracking-wider">Field Hub · Live</span>
         </div>

@@ -20,7 +20,7 @@ export function DemoAccountPicker({ onSelect }: DemoAccountPickerProps) {
       className="mt-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-raised)] p-3.5"
     >
       <div className="mb-2.5 flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+        <span className="inline-flex items-center gap-1.5 type-eyebrow text-[var(--text-secondary)]">
           <KeyRound className="h-3 w-3 text-[var(--accent)]" aria-hidden="true" />
           Quick Demo Accounts
         </span>
@@ -45,7 +45,7 @@ export function DemoAccountPicker({ onSelect }: DemoAccountPickerProps) {
           <span className="text-xs font-semibold text-[var(--text-primary)]">
             Farmer Account
           </span>
-          <span className="font-mono text-[10px] text-[var(--text-secondary)]">
+          <span className="font-mono text-[11px] text-[var(--text-secondary)]">
             farmer@agritech.io
           </span>
         </button>
@@ -66,7 +66,7 @@ export function DemoAccountPicker({ onSelect }: DemoAccountPickerProps) {
           <span className="text-xs font-semibold text-[var(--text-primary)]">
             Field Organizer
           </span>
-          <span className="font-mono text-[10px] text-[var(--text-secondary)]">
+          <span className="font-mono text-[11px] text-[var(--text-secondary)]">
             admin@agritech.io
           </span>
         </button>

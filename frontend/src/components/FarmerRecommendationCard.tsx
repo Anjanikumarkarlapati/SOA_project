@@ -111,7 +111,7 @@ export function FarmerRecommendationCard({
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Sprout className="w-6 h-6 text-[var(--accent)]" aria-hidden="true" />
-            <h2 className="text-2xl font-serif-display text-[var(--text-primary)]">
+            <h2 className="type-section-title text-2xl sm:text-[28px]">
               {t("advisory.title", "Farmer's Field Advisory")} &bull; {crop.name}
             </h2>
           </div>
@@ -140,6 +140,11 @@ export function FarmerRecommendationCard({
       {/* Visual Field Scouting Editorial Card (Zero-Human crop-canopy.webp) */}
       <EditorialPhotoFrame
         innerClassName="h-52 sm:h-56 select-none"
+        lightbox={{
+          src: "/images/crop-canopy.webp",
+          alt: "Sunlit golden-green cultivated wheat ears and terraced crop furrows in morning mist",
+          caption: `In-Situ Crop Scouting & Advisory Protocol · ${crop.name} (${date})`,
+        }}
         topRight={
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-black/65 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-md">
             <ShieldCheck className="w-3.5 h-3.5 text-[#DFECC6]" />
@@ -151,9 +156,9 @@ export function FarmerRecommendationCard({
             <span className="block text-[11px] font-medium text-[#DFECC6]">
               Agronomic field observation
             </span>
-            <h4 className="font-serif-display text-lg sm:text-xl text-white">
+            <h3 className="type-card-title text-lg sm:text-xl !text-white">
               In-Situ Crop Scouting &amp; Advisory Protocol
-            </h4>
+            </h3>
           </div>
         }
       >
@@ -174,7 +179,7 @@ export function FarmerRecommendationCard({
             Kc Mid: {crop.kc[1]} &bull; High Transpiration
           </span>
         </div>
-        <div className="grid grid-cols-4 gap-1.5 text-center text-[10px]">
+        <div className="grid grid-cols-4 gap-1.5 text-center text-[11px] font-medium">
           <div className="p-1.5 rounded-lg bg-[var(--accent-wash)] border border-[var(--border-default)] text-[var(--text-secondary)]">
             1. Germination
           </div>
@@ -325,7 +330,7 @@ export function FarmerRecommendationCard({
               <span className="text-[var(--text-secondary)] font-medium">
                 {t("irrigation.netNeed", "Net Water To Deliver")}
               </span>
-              <span className="text-xl font-mono tabular-nums text-[var(--accent)] font-bold">
+              <span className="type-kpi !text-xl !text-[var(--accent)]">
                 {irrigation.netIrrigationNeedMm} mm
               </span>
               <span className="text-[11px] font-mono tabular-nums text-[var(--text-secondary)]">
@@ -469,7 +474,7 @@ export function FarmerRecommendationCard({
                   {cropProtection.diseasesAtRisk.map((d, i) => (
                     <span
                       key={i}
-                      className="px-2 py-0.5 rounded-full bg-[var(--bg-raised)] text-[10px] text-[var(--text-secondary)] border border-[var(--border-default)]"
+                      className="px-2 py-0.5 rounded-full bg-[var(--bg-raised)] text-[11px] font-medium text-[var(--text-secondary)] border border-[var(--border-default)]"
                     >
                       {d}
                     </span>
@@ -507,7 +512,7 @@ export function FarmerRecommendationCard({
                   {cropProtection.pestsAtRisk.map((p, i) => (
                     <span
                       key={i}
-                      className="px-2 py-0.5 rounded-full bg-[var(--bg-raised)] text-[10px] text-[var(--text-secondary)] border border-[var(--border-default)]"
+                      className="px-2 py-0.5 rounded-full bg-[var(--bg-raised)] text-[11px] font-medium text-[var(--text-secondary)] border border-[var(--border-default)]"
                     >
                       {p}
                     </span>
@@ -627,7 +632,7 @@ export function FarmerRecommendationCard({
                 </span>
               </div>
               <span
-                className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
                   item.priority === "HIGH"
                     ? "bg-[var(--status-critical)]/15 text-[var(--status-critical)]"
                     : item.priority === "MEDIUM"

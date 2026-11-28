@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { Heading } from "@astryxdesign/core/Heading";
 import { useAuthStore, isOfflineToken } from "@/lib/auth";
 import { telemetryApi, type TelemetryReading } from "@/lib/api";
 import {
@@ -14,6 +15,7 @@ import { RootZoneSoilCard } from "@/components/RootZoneSoilCard";
 import { BezelCard } from "@/components/ui/BezelCard";
 import { Button } from "@/components/ui/Button";
 import { EditorialPhotoFrame } from "@/components/ui/EditorialPhotoFrame";
+import { toast } from "@/components/ui/Toaster";
 import { Banner } from "@astryxdesign/core/Banner";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import {
@@ -51,6 +53,7 @@ export default function SensorsPage() {
   const activeFarm = getActiveProperty({ properties, activePropertyId });
   const activeFarmId = activeFarm?.id ?? "farm-ludhiana-1";
   const activeCrop = getCropById(activeFarm?.selectedCropId || "wheat");
+  const isReadOnlyFarmer = Boolean(token && !isOfflineToken(token) && userRole !== "ADMIN");
 
   const [climateStats, setClimateStats] = useState<ClimateStats | null>(null);
   const [liveReading, setLiveReading] = useState<TelemetryReading | null>(null);
@@ -184,6 +187,15 @@ export default function SensorsPage() {
     setDialogOpen(true);
   };
 
+  useEffect(() => {
+    if (!dialogOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDialogOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [dialogOpen]);
+
   const handleSaveSensor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!deviceId.trim()) {
@@ -208,6 +220,7 @@ export default function SensorsPage() {
         },
         token
       );
+      toast("Sensor registered", "success");
       setDialogOpen(false);
     } catch (err) {
       setFormError(
@@ -237,6 +250,7 @@ export default function SensorsPage() {
         },
         token
       );
+      toast("Recommended sensor deployed", "success");
     } catch (err) {
       setActionError(
         err instanceof Error ? err.message : "Failed to quick-register sensor"
@@ -248,6 +262,7 @@ export default function SensorsPage() {
     setActionError(null);
     try {
       await removeSensor(activeFarmId, targetDeviceId, token);
+      toast("Sensor removed", "info");
     } catch (err) {
       setActionError(
         err instanceof Error ? err.message : "Failed to deregister sensor"
@@ -259,12 +274,9 @@ export default function SensorsPage() {
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1
-            className="text-2xl font-semibold"
-            style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-          >
+          <Heading level={1} weight="normal" textWrap="balance" className="type-page-title">
             Sensors &amp; Root-Zone Telemetry
-          </h1>
+          </Heading>
           <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
             Live status of registered field sensors for{" "}
             <strong style={{ color: "var(--text-primary)" }}>
@@ -289,6 +301,8 @@ export default function SensorsPage() {
             variant="primary"
             size="sm"
             elevation="low"
+            disabled={isReadOnlyFarmer}
+            tooltip={isReadOnlyFarmer ? "Requires Field Organizer (ADMIN) account" : undefined}
             icon={<Plus className="w-4 h-4" />}
             onClick={handleOpenDialog}
           />
@@ -305,7 +319,7 @@ export default function SensorsPage() {
             <div className="text-xs mb-1" style={{ color: "var(--text-secondary)" }}>
               {label}
             </div>
-            <div className="text-2xl font-bold font-mono tabular-nums" style={{ color }}>
+            <div className="type-kpi !text-2xl" style={{ color }}>
               {value}
             </div>
           </BezelCard>
@@ -332,7 +346,7 @@ export default function SensorsPage() {
       {liveReading && (
         <BezelCard data-testid="live-sensor-telemetry" innerClassName="p-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+            <span className="type-eyebrow !text-[var(--text-secondary)]">
               LIVE FIELD SENSOR TELEMETRY · {selectedSensorId ?? liveReading.deviceId}
             </span>
             <div className="mt-1 flex flex-wrap gap-4 font-mono text-xs tabular-nums text-[var(--text-primary)]">
@@ -373,9 +387,9 @@ export default function SensorsPage() {
           <span className="text-[12px] font-medium text-[var(--accent)]">
             FAO-56 calibration protocol
           </span>
-          <h2 className="text-lg font-serif-display text-[var(--text-primary)]">
+          <Heading level={2} weight="normal" className="type-section-title !text-xl">
             Multi-Depth Dielectric Probe Placement Guide
-          </h2>
+          </Heading>
           <p className="text-[var(--text-secondary)] leading-relaxed">
             Insert the primary volumetric moisture waveguide at <strong>15 cm</strong> (germination &amp; feeder root zone) and the secondary tensiometer at <strong>30–60 cm</strong> (deep root extraction zone), 12 cm laterally from the active drip emitter to prevent channeling artifacts.
           </p>
@@ -396,9 +410,9 @@ export default function SensorsPage() {
           style={{ borderColor: "var(--border-default)", background: "var(--bg-surface)" }}
         >
           <Activity className="w-10 h-10 mx-auto mb-3" style={{ color: "var(--border-strong)" }} />
-          <h3 className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+          <Heading level={3} weight="semibold" className="type-card-title mb-1">
             No sensors registered
-          </h3>
+          </Heading>
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
             Use the Add sensor button above or deploy one of the recommended FAO field probes below.
           </p>
@@ -492,6 +506,7 @@ export default function SensorsPage() {
                       label="Remove"
                       variant="destructive"
                       size="sm"
+                      disabled={isReadOnlyFarmer}
                       aria-label={`Remove sensor ${s.deviceId}`}
                       icon={<Trash2 className="w-3.5 h-3.5" />}
                       onClick={() => void handleRemoveSensor(s.deviceId)}
@@ -511,9 +526,9 @@ export default function SensorsPage() {
       >
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4" style={{ color: "var(--accent)" }} />
-          <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+          <Heading level={2} weight="semibold" className="type-card-title !text-lg">
             Recommended FAO Sensor Blueprint for {activeFarm?.name ?? "Active Farm"}
-          </h2>
+          </Heading>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {recommendedBlueprint.slice(0, 3).map((rec, idx) => (
@@ -534,6 +549,7 @@ export default function SensorsPage() {
                 label={`+ Quick Register ${rec.type}`}
                 variant="secondary"
                 size="sm"
+                disabled={isReadOnlyFarmer}
                 className="self-start"
                 onClick={() => void handleQuickDeploy(rec.type, idx)}
               />
@@ -561,23 +577,27 @@ export default function SensorsPage() {
       {/* Add Sensor Modal Dialog */}
       {dialogOpen && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4 overflow-y-auto"
           role="dialog"
           aria-modal="true"
           aria-labelledby="add-sensor-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDialogOpen(false);
+          }}
         >
           <div
             className="w-full max-w-md rounded-2xl border p-6 space-y-4"
             style={{ background: "var(--bg-surface)", borderColor: "var(--border-default)" }}
           >
             <div className="flex items-center justify-between">
-              <h2
+              <Heading
+                level={2}
                 id="add-sensor-title"
-                className="text-lg font-semibold"
-                style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
+                weight="semibold"
+                className="type-card-title !text-xl"
               >
                 Register Field Sensor
-              </h2>
+              </Heading>
               <IconButton
                 label="Close modal"
                 icon={<X className="w-5 h-5" />}

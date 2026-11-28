@@ -11,9 +11,9 @@ export interface AgriTechLogoProps {
 }
 
 const SIZE_MAP = {
-  sm: { box: 32, icon: 22, title: "text-[20px]", sub: "text-[9px]" },
-  md: { box: 36, icon: 24, title: "text-[23px]", sub: "text-[10px]" },
-  lg: { box: 44, icon: 30, title: "text-[26px]", sub: "text-[11px]" },
+  sm: { box: 32, icon: 22, title: "text-[21px] tracking-[-0.025em]", sub: "text-[11px] tracking-[0.04em]" },
+  md: { box: 36, icon: 24, title: "text-[24px] tracking-[-0.025em]", sub: "text-[11px] tracking-[0.04em]" },
+  lg: { box: 44, icon: 30, title: "text-[28px] tracking-[-0.03em]", sub: "text-[12px] tracking-[0.04em]" },
 };
 
 /**

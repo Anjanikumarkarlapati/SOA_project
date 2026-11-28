@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { Heading } from "@astryxdesign/core/Heading";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -81,16 +82,13 @@ export default function LoginPage() {
       editorialCopy="AgriTech Field Hub — live climate intelligence, multi-depth soil moisture telemetry, and offline-ready irrigation control across 11 Indian script locales."
     >
       <div className="mb-5">
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-secondary)]">
+        <span className="type-eyebrow text-[var(--text-secondary)]">
           FARMER &amp; ORGANIZER SIGN-IN
         </span>
-        <h1
-          className="mt-1 text-2xl sm:text-3xl"
-          style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-        >
+        <Heading level={1} weight="normal" textWrap="balance" className="type-page-title mt-1 !text-2xl sm:!text-3xl">
           Sign in to your farm
-        </h1>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+        </Heading>
+        <p className="mt-1 type-lead !text-sm">
           Continue with your Google account or sign in with email and password.
         </p>
       </div>
@@ -108,7 +106,7 @@ export default function LoginPage() {
         <div className="mb-5 space-y-3" data-testid="preferred-google-auth">
           <div className="rounded-2xl border border-[var(--accent)]/25 bg-[var(--accent-wash)]/45 p-3.5 space-y-2.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+              <span className="type-eyebrow !font-semibold !text-[var(--accent)]">
                 Recommended · One-Tap Farmer &amp; Organizer Sign-In
               </span>
             </div>
@@ -246,7 +244,7 @@ export default function LoginPage() {
             <span>Continue in Offline Field Mode</span>
           </span>
         </TactileButton>
-        <p className="mt-2 text-center font-mono text-[11px] text-[var(--text-secondary)]">
+        <p className="mt-2 text-center font-mono text-xs text-[var(--text-secondary)]">
           No internet in the field? Offline mode saves all farm updates on your device.
         </p>
       </div>

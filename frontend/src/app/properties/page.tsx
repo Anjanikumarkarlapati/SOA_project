@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import { Heading } from "@astryxdesign/core/Heading";
 import {
   MapPin,
   Plus,
@@ -19,6 +20,8 @@ import { FarmMap } from "@/components/FarmMap";
 import { BezelCard } from "@/components/ui/BezelCard";
 import { Button } from "@/components/ui/Button";
 import { EditorialPhotoFrame } from "@/components/ui/EditorialPhotoFrame";
+import { toast } from "@/components/ui/Toaster";
+import { AlertDialog } from "@astryxdesign/core/AlertDialog";
 import { Banner } from "@astryxdesign/core/Banner";
 
 const PARCEL_GALLERY = [
@@ -39,6 +42,24 @@ export default function PropertiesPage() {
   const token = useAuthStore((s) => s.user?.token ?? "");
   const [syncing, setSyncing] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [farmToRemove, setFarmToRemove] = useState<{ id: string; name: string } | null>(null);
+  const [removing, setRemoving] = useState(false);
+
+  const handleConfirmRemove = async () => {
+    if (!farmToRemove) return;
+    setRemoving(true);
+    setActionError(null);
+    try {
+      await deleteProperty(farmToRemove.id, token);
+      toast(`Removed ${farmToRemove.name}`, "info");
+      setFarmToRemove(null);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Failed to remove farm");
+      setFarmToRemove(null);
+    } finally {
+      setRemoving(false);
+    }
+  };
 
   useEffect(() => {
     if (token && !isOfflineToken(token)) {
@@ -72,12 +93,9 @@ export default function PropertiesPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1
-            className="text-2xl font-semibold"
-            style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-          >
+          <Heading level={1} weight="normal" textWrap="balance" className="type-page-title">
             My Farms &amp; Field Portfolio
-          </h1>
+          </Heading>
           <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
             Select an active farm to drive climate analytics, soil telemetry, and irrigation schedules.
           </p>
@@ -123,6 +141,11 @@ export default function PropertiesPage() {
             data-testid="property-aerial-cover"
             className="mx-auto max-w-xl"
             innerClassName="h-52 sm:h-56"
+            lightbox={{
+              src: aerialMedia.src,
+              alt: aerialMedia.alt,
+              caption: "Parcel aerial survey · 20.296°N · 85.825°E",
+            }}
             caption={
               <>
                 <span className="rounded-full border border-white/25 bg-black/65 px-2.5 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
@@ -144,9 +167,9 @@ export default function PropertiesPage() {
           </EditorialPhotoFrame>
 
           <div>
-            <h2 className="font-semibold text-lg mb-1" style={{ color: "var(--text-primary)", fontFamily: "var(--font-serif)" }}>
+            <Heading level={2} weight="semibold" className="type-card-title mb-1">
               No properties yet
-            </h2>
+            </Heading>
             <p className="text-sm max-w-md mx-auto" style={{ color: "var(--text-secondary)" }}>
               Register your first farm parcel to activate local climate models, soil probes, and irrigation rules.
             </p>
@@ -183,6 +206,11 @@ export default function PropertiesPage() {
                       data-testid="property-aerial-cover"
                       className="mb-4"
                       innerClassName="h-44 w-full"
+                      lightbox={{
+                        src: parcelMedia.src,
+                        alt: parcelMedia.alt,
+                        caption: `${farm.name} · ${crop.name} parcel (${farm.lat.toFixed(3)}°N · ${farm.lon.toFixed(3)}°E)`,
+                      }}
                       caption={
                         <>
                           <span className="rounded-full border border-white/25 bg-black/65 px-2.5 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
@@ -205,12 +233,9 @@ export default function PropertiesPage() {
 
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div>
-                        <h2
-                          className="text-lg font-semibold"
-                          style={{ color: "var(--text-primary)", fontFamily: "var(--font-serif)" }}
-                        >
+                        <Heading level={2} weight="semibold" className="type-card-title !text-xl">
                           {farm.name}
-                        </h2>
+                        </Heading>
                         <div className="text-xs mt-0.5 flex items-center gap-1.5" style={{ color: "var(--text-secondary)" }}>
                           <MapPin className="w-3.5 h-3.5 shrink-0" />
                           <span className="font-mono tabular-nums">
@@ -267,7 +292,10 @@ export default function PropertiesPage() {
                         label={isActive ? "Active Farm" : "Set Active"}
                         variant={isActive ? "primary" : "secondary"}
                         size="sm"
-                        onClick={() => setActiveProperty(farm.id)}
+                        onClick={() => {
+                          setActiveProperty(farm.id);
+                          toast(`Active farm set to ${farm.name}`, "success");
+                        }}
                       />
 
                       <Button
@@ -287,12 +315,7 @@ export default function PropertiesPage() {
                         size="sm"
                         aria-label={`Remove ${farm.name}`}
                         icon={<Trash2 className="w-3.5 h-3.5" />}
-                        onClick={() => {
-                          setActionError(null);
-                          void deleteProperty(farm.id, token).catch((err) =>
-                            setActionError(err instanceof Error ? err.message : "Failed to remove farm")
-                          );
-                        }}
+                        onClick={() => setFarmToRemove({ id: farm.id, name: farm.name })}
                       />
                     )}
                   </div>
@@ -342,6 +365,24 @@ export default function PropertiesPage() {
           </div>
         </>
       )}
+
+      <AlertDialog
+        isOpen={Boolean(farmToRemove)}
+        onOpenChange={(open) => {
+          if (!open && !removing) setFarmToRemove(null);
+        }}
+        title="Remove farm parcel?"
+        description={
+          farmToRemove
+            ? `Removing "${farmToRemove.name}" will delete this parcel and its local sensor or schedule links from your portfolio.`
+            : ""
+        }
+        actionLabel="Remove Farm"
+        cancelLabel="Keep Farm"
+        actionVariant="destructive"
+        isActionLoading={removing}
+        onAction={() => void handleConfirmRemove()}
+      />
     </div>
   );
 }

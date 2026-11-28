@@ -5,11 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  Activity,
   ArrowUpRight,
   Check,
   CloudSun,
   Droplets,
+  LogIn,
+  LogOut,
   Menu,
   Moon,
   Sprout,
@@ -122,7 +123,7 @@ const STACK_MARKS = [
 
 export default function RootPage() {
   const router = useRouter();
-  const { isAuthenticated, isHydrated, googleError, clearGoogleError } = useAuth();
+  const { isAuthenticated, isHydrated, googleError, clearGoogleError, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -160,7 +161,7 @@ export default function RootPage() {
             </a>
           </nav>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <IconButton
               onClick={toggleTheme}
               label={
@@ -178,15 +179,47 @@ export default function RootPage() {
               className="min-h-[44px] min-w-[44px] rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)]"
             />
 
-            <div className="hidden sm:block">
-              <Button
-                label={isHydrated && isAuthenticated ? "Open Field Hub" : "Launch Hub"}
-                variant="primary"
-                size="md"
-                onClick={() => router.push(primaryHref)}
-                endContent={<ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />}
-              />
-            </div>
+            {isHydrated && isAuthenticated ? (
+              <>
+                <div className="hidden sm:block">
+                  <Button
+                    label="Open Field Hub"
+                    variant="primary"
+                    size="md"
+                    onClick={() => router.push(primaryHref)}
+                    endContent={<ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />}
+                  />
+                </div>
+                <Button
+                  label="Log out"
+                  variant="outline"
+                  size="md"
+                  data-testid="landing-logout-button"
+                  onClick={() => logout()}
+                  icon={<LogOut className="h-3.5 w-3.5" aria-hidden="true" />}
+                />
+              </>
+            ) : (
+              <>
+                <Button
+                  href="/login"
+                  label="Log in"
+                  variant="secondary"
+                  size="md"
+                  data-testid="landing-login-button"
+                  icon={<LogIn className="h-3.5 w-3.5" aria-hidden="true" />}
+                />
+                <div className="hidden sm:block">
+                  <Button
+                    label="Launch Hub"
+                    variant="primary"
+                    size="md"
+                    onClick={() => router.push(primaryHref)}
+                    endContent={<ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />}
+                  />
+                </div>
+              </>
+            )}
 
             <div className="md:hidden">
               <IconButton
@@ -225,6 +258,27 @@ export default function RootPage() {
                 onClick={() => setMobileMenuOpen(false)}
                 endContent={<ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />}
               />
+              {isHydrated && isAuthenticated ? (
+                <Button
+                  label="Log out"
+                  variant="outline"
+                  fullWidth
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
+                  icon={<LogOut className="h-3.5 w-3.5" aria-hidden="true" />}
+                />
+              ) : (
+                <Button
+                  href="/login"
+                  label="Log in"
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => setMobileMenuOpen(false)}
+                  icon={<LogIn className="h-3.5 w-3.5" aria-hidden="true" />}
+                />
+              )}
             </div>
           </div>
         )}
@@ -238,10 +292,10 @@ export default function RootPage() {
             intensity="ambient"
           />
           <div className="relative z-10 surface-enter">
-          <h1 className="mx-auto max-w-4xl font-serif-display text-5xl sm:text-7xl lg:text-[92px] leading-[0.98] tracking-[-0.035em] text-[var(--text-primary)]">
+          <h1 className="mx-auto max-w-4xl font-serif-display text-[44px] sm:text-7xl lg:text-[88px] leading-[1.04] lg:leading-[0.98] tracking-[-0.035em] text-[var(--text-primary)]">
             Sense everything.
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-sm sm:text-base text-[var(--text-secondary)]">
+          <p className="mx-auto mt-4 max-w-xl type-lead sm:text-[17px] leading-[1.6]">
             Daily soil moisture, 14-day rainfall outlook, crop advisory, and smart valve scheduling built for farmers and field organizers.
           </p>
 
@@ -298,14 +352,14 @@ export default function RootPage() {
                     <LiquidMetalLogo size={44} className="shrink-0" />
                     <div>
                       <div className="flex items-baseline gap-2.5">
-                        <span className="font-serif-display text-3xl sm:text-5xl leading-none">
+                        <span className="font-serif-display tabular-nums text-3xl sm:text-5xl leading-none tracking-[-0.03em]">
                           78%
                         </span>
-                        <span className="text-xs sm:text-sm font-medium text-white/90">
+                        <span className="text-xs sm:text-sm font-medium text-white/95">
                           Root-Zone Moisture Optimal
                         </span>
                       </div>
-                      <p className="mt-1 hidden sm:block font-mono text-[11px] text-white/80">
+                      <p className="mt-1 hidden sm:block font-mono text-[11px] tracking-[0.01em] text-white/85">
                         Soil Probes &rarr; Weather Forecast &rarr; Scheduled Morning Drip
                       </p>
                     </div>
@@ -346,7 +400,7 @@ export default function RootPage() {
         <section id="benefits" className="border-t border-[var(--border-default)] py-16 sm:py-24">
           <div className="max-w-2xl">
             <p className="font-mono text-xs text-[var(--text-secondary)]">Benefits</p>
-            <h2 className="mt-4 font-serif-display text-4xl sm:text-5xl lg:text-[56px] leading-[1.05] text-[var(--text-primary)]">
+            <h2 className="mt-4 type-section-title text-3xl sm:text-5xl lg:text-[54px] leading-[1.06]">
               We&apos;ve cracked the soil.
             </h2>
             <p className="mt-4 text-sm sm:text-base leading-relaxed text-[var(--text-secondary)]">
@@ -361,7 +415,7 @@ export default function RootPage() {
                 className="border-t border-[var(--border-default)] pt-6"
               >
                 <Icon className="h-5 w-5 text-[var(--text-primary)]" aria-hidden="true" />
-                <h3 className="mt-4 font-serif-display text-xl text-[var(--text-primary)]">
+                <h3 className="mt-4 type-card-title text-xl">
                   {title}
                 </h3>
                 <p className="mt-2.5 text-sm leading-relaxed text-[var(--text-secondary)]">
@@ -388,7 +442,7 @@ export default function RootPage() {
           className="grid grid-cols-1 items-center gap-12 border-t border-[var(--border-default)] py-16 sm:py-24 lg:grid-cols-12"
         >
           <div className="lg:col-span-6">
-            <h2 className="font-serif-display text-4xl sm:text-5xl leading-[1.06] text-[var(--text-primary)]">
+            <h2 className="type-section-title text-3xl sm:text-5xl leading-[1.08]">
               See the Big Picture
             </h2>
             <p className="mt-4 text-sm sm:text-base leading-relaxed text-[var(--text-secondary)]">
@@ -440,7 +494,7 @@ export default function RootPage() {
         >
           <div className="mx-auto max-w-2xl text-center">
             <p className="font-mono text-xs text-[var(--text-secondary)]">Comparison</p>
-            <h2 className="mt-3 font-serif-display text-4xl sm:text-5xl text-[var(--text-primary)]">
+            <h2 className="mt-3 type-section-title text-3xl sm:text-5xl leading-[1.08]">
               Why Choose AgriTech?
             </h2>
             <p className="mt-4 text-sm sm:text-base text-[var(--text-secondary)]">
@@ -466,7 +520,7 @@ export default function RootPage() {
                     : "rounded-[24px] border border-[var(--border-default)] bg-[var(--bg-raised)]/40 p-6"
                 }
               >
-                <h3 className="pb-4 text-center font-sans text-lg font-semibold text-[var(--text-primary)] border-b border-[var(--border-default)]">
+                <h3 className="pb-4 text-center font-sans text-lg font-semibold tracking-[-0.015em] text-[var(--text-primary)] border-b border-[var(--border-default)]">
                   {col.name}
                 </h3>
                 <ul className="divide-y divide-[var(--border-default)]">
@@ -504,7 +558,7 @@ export default function RootPage() {
           </div>
 
           <div className="lg:col-span-6">
-            <blockquote className="font-serif-display text-2xl sm:text-4xl leading-[1.22] text-[var(--text-primary)]">
+            <blockquote className="font-serif-display text-2xl sm:text-4xl leading-[1.24] tracking-[-0.02em] text-[var(--text-primary)]">
               &ldquo;Moving to AgriTech transformed how our agronomists manage regional acreage. Root-zone visualizations are effortless to read, and automated valve triggers protect every Kharif and Rabi cycle.&rdquo;
             </blockquote>
             <div className="mt-8">
@@ -520,7 +574,7 @@ export default function RootPage() {
 
         {/* Connect With Us CTA */}
         <section className="border-t border-[var(--border-default)] py-20 text-center">
-          <h2 className="font-serif-display text-4xl sm:text-5xl text-[var(--text-primary)]">
+          <h2 className="type-section-title text-3xl sm:text-5xl leading-[1.08]">
             Connect with us
           </h2>
           <p className="mx-auto mt-4 max-w-md text-sm sm:text-base text-[var(--text-secondary)]">

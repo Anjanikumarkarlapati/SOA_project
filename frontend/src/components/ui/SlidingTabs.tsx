@@ -53,7 +53,7 @@ export function SlidingTabs<T extends string>({
             {opt.badge !== undefined && (
               <span
                 className={cn(
-                  "rounded-full px-1.5 py-0.5 font-mono text-[10px] tabular-nums",
+                  "rounded-full px-2 py-0.5 font-mono text-[11px] tabular-nums",
                   active
                     ? "bg-black/20 text-[var(--on-accent)]"
                     : "bg-[var(--bg-surface)] text-[var(--text-secondary)]"

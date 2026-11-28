@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { Heading } from "@astryxdesign/core/Heading";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -175,21 +176,19 @@ export default function SignupPage() {
   return (
     <AuthSplitShell
       mediaId="irrigation-drip"
+      mode="signup"
       editorialBadge="SPECIMEN 02 · ROOT-ZONE IRRIGATION"
       editorialTitle="Register your parcel boundary, soil horizon, and telemetry nodes."
       editorialCopy="Configure your farm boundary, soil profile, and drip irrigation zones in minutes — even without mobile connectivity."
     >
       <div className="mb-5">
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--text-secondary)]">
+        <span className="type-eyebrow text-[var(--text-secondary)]">
           NEW PARCEL ENROLLMENT
         </span>
-        <h1
-          className="mt-1 text-2xl sm:text-3xl"
-          style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-        >
+        <Heading level={1} weight="normal" textWrap="balance" className="type-page-title mt-1 !text-2xl sm:!text-3xl">
           Create your account
-        </h1>
-        <p className="mt-1 text-sm text-[var(--text-secondary)]">
+        </Heading>
+        <p className="mt-1 type-lead !text-sm">
           Start managing your farm in minutes with Google or email.
         </p>
       </div>
@@ -207,7 +206,7 @@ export default function SignupPage() {
         <div className="mb-5 space-y-3" data-testid="preferred-google-auth">
           <div className="rounded-2xl border border-[var(--accent)]/25 bg-[var(--accent-wash)]/45 p-3.5 space-y-2.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent)]">
+              <span className="type-eyebrow !font-semibold !text-[var(--accent)]">
                 Recommended · Instant Google Enrollment
               </span>
             </div>
@@ -254,7 +253,7 @@ export default function SignupPage() {
             data-testid="password-strength-meter"
             className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-raised)]/60 px-3 py-2"
           >
-            <div className="flex items-center justify-between font-mono text-[10px] text-[var(--text-secondary)]">
+            <div className="flex items-center justify-between font-mono text-[11px] text-[var(--text-secondary)]">
               <span>CREDENTIAL STRENGTH</span>
               <span className="font-medium text-[var(--text-primary)]">
                 {strength.label}
@@ -319,7 +318,7 @@ export default function SignupPage() {
             <span>Continue in Offline Field Mode</span>
           </span>
         </TactileButton>
-        <p className="mt-2 text-center font-mono text-[11px] text-[var(--text-secondary)]">
+        <p className="mt-2 text-center font-mono text-xs text-[var(--text-secondary)]">
           Works offline in the field — your farm parcel syncs automatically when connected.
         </p>
       </div>

@@ -585,7 +585,7 @@ export function FarmMap({
           <div className="absolute top-3 left-3 z-[1000] bg-[var(--bg-surface)]/95 backdrop-blur-sm border border-[var(--border-default)] rounded-full px-3 py-1.5 flex items-center gap-3 text-xs">
             <div className="flex items-center gap-1.5">
               <CloudSun className="w-4 h-4 text-[var(--accent)]" />
-              <span className="font-semibold font-mono tabular-nums text-[var(--text-primary)]">
+              <span className="font-medium font-mono tabular-nums text-[var(--text-primary)]">
                 {currentWeather.temperature_2m.toFixed(1)}°C
               </span>
               <span className="text-[var(--text-secondary)] hidden sm:inline">

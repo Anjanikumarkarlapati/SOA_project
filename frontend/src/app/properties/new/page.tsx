@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Heading } from "@astryxdesign/core/Heading";
 import {
   MapPin,
   Droplets,
@@ -9,8 +10,8 @@ import {
   CheckCircle2,
   ChevronRight,
   ChevronLeft,
-  Loader2,
 } from "lucide-react";
+import { Breadcrumbs, BreadcrumbItem } from "@astryxdesign/core/Breadcrumbs";
 import {
   usePropertyWizard,
   useFarmStore,
@@ -179,9 +180,9 @@ function Step1() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+      <Heading level={2} weight="semibold" className="type-card-title !text-xl">
         Farm Location
-      </h2>
+      </Heading>
       <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
         Name your farm and set its coordinates or click directly on the interactive satellite map below.
       </p>
@@ -261,9 +262,9 @@ function Step2() {
 
   return (
     <div className="space-y-5">
-      <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+      <Heading level={2} weight="semibold" className="type-card-title !text-xl">
         Water &amp; Land Details
-      </h2>
+      </Heading>
       {err && (
         <p className="text-sm" role="alert" style={{ color: "var(--status-critical)" }}>
           {err}
@@ -331,9 +332,9 @@ function Step3() {
 
   return (
     <div className="space-y-5">
-      <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+      <Heading level={2} weight="semibold" className="type-card-title !text-xl">
         Crop Intent
-      </h2>
+      </Heading>
       {err && (
         <p className="text-sm" role="alert" style={{ color: "var(--status-critical)" }}>
           {err}
@@ -418,9 +419,9 @@ function Step4() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+      <Heading level={2} weight="semibold" className="type-card-title !text-xl">
         Sensor Recommendations
-      </h2>
+      </Heading>
       <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
         Based on your farm area ({(location?.areaHa ?? 1).toFixed(1)} ha), {water.waterSource} water source, and crop intent.
       </p>
@@ -522,9 +523,9 @@ function Step5() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+      <Heading level={2} weight="semibold" className="type-card-title !text-xl">
         Review &amp; Confirm
-      </h2>
+      </Heading>
       {saveErr && (
         <div
           className="text-sm px-4 py-3 rounded-lg border"
@@ -573,12 +574,16 @@ export default function NewPropertyPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <h1
-        className="text-2xl font-semibold mb-2"
-        style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-      >
+      <div className="mb-3">
+        <Breadcrumbs variant="supporting" label="Farm registration path">
+          <BreadcrumbItem href="/dashboard">Field Hub</BreadcrumbItem>
+          <BreadcrumbItem href="/properties">My Farms</BreadcrumbItem>
+          <BreadcrumbItem isCurrent>Register a Farm</BreadcrumbItem>
+        </Breadcrumbs>
+      </div>
+      <Heading level={1} weight="normal" textWrap="balance" className="type-page-title mb-2">
         Register a Farm
-      </h1>
+      </Heading>
       <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>
         Answer 4 quick steps to configure climate analysis and sensor recommendations for your land.
       </p>

@@ -1,8 +1,5 @@
 @layer reset, theme, base, astryx-base, astryx-theme, components, utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Devanagari:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600&family=Noto+Serif+Gurmukhi:wght@400;500;600&family=Noto+Sans+Gurmukhi:wght@400;500;600&family=Noto+Serif+Telugu:wght@400;500;600&family=Noto+Sans+Telugu:wght@400;500;600&family=Noto+Serif+Tamil:wght@400;500;600&family=Noto+Sans+Tamil:wght@400;500;600&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+Kannada:wght@400;500;600&family=Noto+Sans+Kannada:wght@400;500;600&family=Noto+Serif+Bengali:wght@400;500;600&family=Noto+Sans+Bengali:wght@400;500;600&family=Noto+Serif+Gujarati:wght@400;500;600&family=Noto+Sans+Gujarati:wght@400;500;600&family=Noto+Serif+Odia:wght@400;500;600&family=Noto+Sans+Odia:wght@400;500;600&family=Noto+Serif+Malayalam:wght@400;500;600&family=Noto+Sans+Malayalam:wght@400;500;600&display=swap');
 @import "leaflet/dist/leaflet.css";
 @import "tailwindcss";
 @import "@astryxdesign/core/reset.css";
@@ -39,9 +36,9 @@
   --status-info: #2C5E8A;
   --status-muted: #6F6F6F;
 
-  --font-serif: "Crimson Text", Georgia, serif;
-  --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --font-mono: "DM Mono", "Courier New", monospace;
+  --font-serif: "Fraunces", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --indic-line-height: 1.5;
   --indic-tracking: -0.025em;
 
@@ -82,8 +79,8 @@
 }
 
 /* Individual Script Font Classes for Specimen Cards */
-.font-latin-serif { font-family: "Crimson Text", Georgia, serif !important; }
-.font-latin-sans { font-family: "DM Sans", system-ui, sans-serif !important; }
+.font-latin-serif { font-family: "Fraunces", Georgia, serif !important; font-variation-settings: "SOFT" 50, "WONK" 0; }
+.font-latin-sans { font-family: "Plus Jakarta Sans", system-ui, sans-serif !important; }
 .font-devanagari-serif { font-family: "Noto Serif Devanagari", serif !important; }
 .font-devanagari-sans { font-family: "Noto Sans Devanagari", sans-serif !important; }
 .font-gurmukhi-serif { font-family: "Noto Serif Gurmukhi", serif !important; }
@@ -106,55 +103,55 @@
 /* Dynamic Indic Script Overrides on Root */
 html[data-lang-script="devanagari"] {
   --font-serif: "Noto Serif Devanagari", serif;
-  --font-sans: "Noto Sans Devanagari", "DM Sans", sans-serif;
+  --font-sans: "Noto Sans Devanagari", "Plus Jakarta Sans", sans-serif;
   --indic-line-height: 1.65;
   --indic-tracking: 0;
 }
 html[data-lang-script="gurmukhi"] {
   --font-serif: "Noto Serif Gurmukhi", serif;
-  --font-sans: "Noto Sans Gurmukhi", "DM Sans", sans-serif;
+  --font-sans: "Noto Sans Gurmukhi", "Plus Jakarta Sans", sans-serif;
   --indic-line-height: 1.65;
   --indic-tracking: 0;
 }
 html[data-lang-script="telugu"] {
   --font-serif: "Noto Serif Telugu", serif;
-  --font-sans: "Noto Sans Telugu", "DM Sans", sans-serif;
+  --font-sans: "Noto Sans Telugu", "Plus Jakarta Sans", sans-serif;
   --indic-line-height: 1.7;
   --indic-tracking: 0;
 }
 html[data-lang-script="tamil"] {
   --font-serif: "Noto Serif Tamil", serif;
-  --font-sans: "Noto Sans Tamil", "DM Sans", sans-serif;
+  --font-sans: "Noto Sans Tamil", "Plus Jakarta Sans", sans-serif;
   --indic-line-height: 1.65;
   --indic-tracking: 0;
 }
 html[data-lang-script="kannada"] {
   --font-serif: "Noto Serif Kannada", serif;
-  --font-sans: "Noto Sans Kannada", "DM Sans", sans-serif;
+  --font-sans: "Noto Sans Kannada", "Plus Jakarta Sans", sans-serif;
   --indic-line-height: 1.7;
   --indic-tracking: 0;
 }
 html[data-lang-script="bengali"] {
   --font-serif: "Noto Serif Bengali", serif;
-  --font-sans: "Noto Sans Bengali", "DM Sans", sans-serif;
+  --font-sans: "Noto Sans Bengali", "Plus Jakarta Sans", sans-serif;
   --indic-line-height: 1.65;
   --indic-tracking: 0;
 }
 html[data-lang-script="gujarati"] {
   --font-serif: "Noto Serif Gujarati", serif;
-  --font-sans: "Noto Sans Gujarati", "DM Sans", sans-serif;
+  --font-sans: "Noto Sans Gujarati", "Plus Jakarta Sans", sans-serif;
   --indic-line-height: 1.65;
   --indic-tracking: 0;
 }
 html[data-lang-script="odia"] {
   --font-serif: "Noto Serif Odia", serif;
-  --font-sans: "Noto Sans Odia", "DM Sans", sans-serif;
+  --font-sans: "Noto Sans Odia", "Plus Jakarta Sans", sans-serif;
   --indic-line-height: 1.7;
   --indic-tracking: 0;
 }
 html[data-lang-script="malayalam"] {
   --font-serif: "Noto Serif Malayalam", serif;
-  --font-sans: "Noto Sans Malayalam", "DM Sans", sans-serif;
+  --font-sans: "Noto Sans Malayalam", "Plus Jakarta Sans", sans-serif;
   --indic-line-height: 1.7;
   --indic-tracking: 0;
 }
@@ -177,22 +174,141 @@ html[data-lang-script="malayalam"] {
     font-family: var(--font-sans);
     font-size: 15px;
     line-height: var(--indic-line-height, 1.5);
+    font-kerning: normal;
+    font-optical-sizing: auto;
+    text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     transition: background-color 200ms var(--ease-out), color 200ms var(--ease-out), font-family 150ms ease, line-height 150ms ease;
   }
 
-  /* Serif display headings (Crimson Text editorial regular weight) */
+  p, li, blockquote {
+    text-wrap: pretty;
+  }
+
+  /* Serif display headings (Fraunces optical editorial soft serif) */
   h1, h2, h3, .font-serif-display {
     font-family: var(--font-serif);
     font-weight: 400;
     letter-spacing: var(--indic-tracking, -0.025em);
+    font-kerning: normal;
+    font-optical-sizing: auto;
+    font-variation-settings: "SOFT" 50, "WONK" 0;
+    text-wrap: balance;
+  }
+
+  h4, h5, h6 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    font-kerning: normal;
     text-wrap: balance;
   }
 
   /* Tabular mono numbers and identifiers */
-  code, pre, .mono, [data-mono="true"] {
+  code, pre, .mono, .font-mono, [data-mono="true"] {
     font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum" on, "zero" on;
+  }
+}
+
+@layer components {
+  .type-page-title {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(1.75rem, 2.5vw, 2.25rem);
+    line-height: 1.12;
+    letter-spacing: var(--indic-tracking, -0.025em);
+    color: var(--text-primary);
+    font-kerning: normal;
+    font-variation-settings: "SOFT" 50, "WONK" 0;
+    text-wrap: balance;
+  }
+
+  .type-section-title {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: clamp(1.375rem, 1.8vw, 1.625rem);
+    line-height: 1.2;
+    letter-spacing: var(--indic-tracking, -0.02em);
+    color: var(--text-primary);
+    font-kerning: normal;
+    font-variation-settings: "SOFT" 50, "WONK" 0;
+    text-wrap: balance;
+  }
+
+  .type-card-title {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 1.1875rem;
+    line-height: 1.28;
+    letter-spacing: var(--indic-tracking, -0.015em);
+    color: var(--text-primary);
+    font-kerning: normal;
+    font-variation-settings: "SOFT" 50, "WONK" 0;
+    text-wrap: balance;
+  }
+
+  .type-eyebrow {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 0.6875rem;
+    line-height: 1.35;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .type-lead {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-size: 0.9375rem;
+    line-height: var(--indic-line-height, 1.58);
+    letter-spacing: -0.005em;
+    color: var(--text-secondary);
+    text-wrap: pretty;
+  }
+
+  .type-kpi {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: clamp(1.5rem, 2.1vw, 1.875rem);
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" on, "zero" on;
+    color: var(--text-primary);
+  }
+
+  .type-kpi-sm {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 1.125rem;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" on, "zero" on;
+    color: var(--text-primary);
+  }
+
+  .type-caption {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+  }
+
+  html[data-lang-script]:not([data-lang-script="latin"]) :is(h1, h2, h3, .font-serif-display, .type-page-title, .type-section-title, .type-card-title) {
+    font-variation-settings: normal;
+  }
+
+  html[data-lang-script]:not([data-lang-script="latin"]) .type-eyebrow {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
   }
 }
 
@@ -234,14 +350,20 @@ html[data-lang-script="malayalam"] {
   }
   .photo-frame-bezel:hover {
     border-color: var(--border-strong);
+    box-shadow: var(--shadow-med);
   }
   .photo-duotone {
     filter: contrast(103%) saturate(102%);
-    transition: filter 320ms var(--ease-out);
+    transition: filter 320ms var(--ease-out), transform 320ms var(--ease-out);
   }
   .group:hover .photo-duotone,
   .photo-duotone:hover {
     filter: contrast(106%) saturate(105%);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .photo-frame-bezel:hover .photo-duotone {
+      transform: scale(1.02);
+    }
   }
 
   /* Tactile Botanical Button Surfaces (shared by Button.tsx over @astryxdesign/core/Button) */
@@ -258,6 +380,7 @@ html[data-lang-script="malayalam"] {
     transform: translateY(-1px);
   }
   .btn-tactile:not(:disabled):active {
+    box-shadow: inset 0 1px 0 var(--btn-rim), 0 0 0 transparent !important;
     transform: translateY(1px) scale(0.985);
   }
   .btn-tactile-primary {
@@ -323,6 +446,9 @@ html[data-lang-script="malayalam"] {
     background-color: color-mix(in oklab, var(--accent-wash) 65%, transparent) !important;
     color: var(--text-primary) !important;
     border-color: color-mix(in oklab, var(--accent) 18%, var(--border-default)) !important;
+  }
+  .btn-tactile-ghost:not(:disabled):active {
+    box-shadow: none !important;
   }
 }
 

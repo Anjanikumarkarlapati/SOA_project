@@ -17,6 +17,12 @@ import {
   type ValveStatus,
 } from "@/lib/api";
 import { isOfflineToken, useAuthStore } from "@/lib/auth";
+import {
+  DEFAULT_FARM_LOCATION,
+  inferLocationFromAddress,
+  type FarmLocationProfile,
+} from "@/lib/indian-locations";
+import { getDefaultMediaStore } from "@/lib/media-queue";
 
 export interface PropertyLocation {
   lat: number;
@@ -310,6 +316,8 @@ export type FarmEvent = IrrigationEvent & {
   syncedToBackend?: boolean;
 };
 
+export type FarmerMode = "simple" | "full";
+
 export type SyncOutboxKind =
   | "PROPERTY_CREATE"
   | "PROPERTY_UPDATE"
@@ -321,7 +329,10 @@ export type SyncOutboxKind =
   | "VALVE_EMERGENCY_STOP"
   | "SCHEDULE_CREATE"
   | "SCHEDULE_TOGGLE"
-  | "SCHEDULE_DELETE";
+  | "SCHEDULE_DELETE"
+  | "crop_diagnosis"
+  | "pmfby_evidence"
+  | "roznamcha_entry";
 
 export interface SyncOutboxItem {
   id: string;
@@ -397,9 +408,13 @@ export interface FarmStoreState {
   waterSavedLitres: number;
   syncOutbox: SyncOutboxItem[];
   preferences: FarmPreferences;
+  farmerMode: FarmerMode;
+  farmLocation: FarmLocationProfile;
   _hasHydrated: boolean;
 
   setHasHydrated: (v: boolean) => void;
+  setFarmerMode: (mode: FarmerMode) => void;
+  setFarmLocation: (loc: FarmLocationProfile) => void;
   addProperty: (input: AddPropertyInput, token?: string | null) => Promise<FarmProperty>;
   updateProperty: (
     id: string,
@@ -588,11 +603,21 @@ export const useFarmStore = create<FarmStoreState>()(
       waterSavedLitres: 0,
       syncOutbox: [],
       preferences: { areaUnit: "ha", theme: "light", pumpFlowLpm: 120 },
+      farmerMode: "full",
+      farmLocation: DEFAULT_FARM_LOCATION,
       _hasHydrated: false,
 
       setHasHydrated: (v) => set({ _hasHydrated: v }),
+      setFarmerMode: (farmerMode) => set({ farmerMode }),
+      setFarmLocation: (farmLocation) => set({ farmLocation }),
 
-      clearSessionData: () =>
+      clearSessionData: () => {
+        void getDefaultMediaStore()
+          .clearAll()
+          .catch(() => {});
+        safeStateStorage.removeItem("agritech-roznamcha-v1");
+        safeStateStorage.removeItem("agritech-pmfby-v1");
+        safeStateStorage.removeItem("agritech-truth-history-v1");
         set({
           properties: [],
           activePropertyId: null,
@@ -603,7 +628,8 @@ export const useFarmStore = create<FarmStoreState>()(
           checklistByFarm: {},
           waterSavedLitres: 0,
           syncOutbox: [],
-        }),
+        });
+      },
 
       addProperty: async (input, token) => {
         const now = new Date().toISOString();
@@ -949,8 +975,21 @@ export const useFarmStore = create<FarmStoreState>()(
       },
 
       setActiveProperty: (id) => {
-        if (id === null || get().properties.some((p) => p.id === id)) {
-          set({ activePropertyId: id });
+        if (id === null) {
+          set({ activePropertyId: null });
+          return;
+        }
+        const target = get().properties.find((p) => p.id === id);
+        if (target) {
+          const inferred = inferLocationFromAddress(target.address);
+          set((s) => ({
+            activePropertyId: id,
+            ...(inferred &&
+            s.farmLocation.stateCode === DEFAULT_FARM_LOCATION.stateCode &&
+            s.farmLocation.districtName === DEFAULT_FARM_LOCATION.districtName
+              ? { farmLocation: inferred }
+              : {}),
+          }));
         }
       },
 
@@ -1990,6 +2029,27 @@ export const useFarmStore = create<FarmStoreState>()(
               case "SCHEDULE_DELETE":
                 await irrigationApi.deleteSchedule(item.resourceId, token);
                 break;
+              case "crop_diagnosis": {
+                const mediaId = item.payload.mediaId ? String(item.payload.mediaId) : "";
+                if (mediaId && typeof FormData !== "undefined") {
+                  const blob = await getDefaultMediaStore().get(mediaId);
+                  if (blob) {
+                    const body = new FormData();
+                    body.append("image", blob, String(item.payload.fileName ?? "leaf.jpg"));
+                    if (item.payload.crop) body.append("crop", String(item.payload.crop));
+                    if (item.payload.locale) body.append("locale", String(item.payload.locale));
+                    const res = await fetch("/api/ai/diagnose", { method: "POST", body });
+                    if (!res.ok) {
+                      throw new Error(`Crop diagnosis sync failed (${res.status})`);
+                    }
+                  }
+                }
+                break;
+              }
+              case "pmfby_evidence":
+              case "roznamcha_entry":
+                // Local-first companion ledgers do not have a Java backend endpoint yet.
+                break;
             }
             flushed += 1;
           } catch (err) {
@@ -2039,6 +2099,8 @@ export const useFarmStore = create<FarmStoreState>()(
         waterSavedLitres: state.waterSavedLitres,
         syncOutbox: state.syncOutbox,
         preferences: state.preferences,
+        farmerMode: state.farmerMode,
+        farmLocation: state.farmLocation,
       }),
       onRehydrateStorage: (preState) => (state) => {
         (state ?? preState)?.setHasHydrated(true);

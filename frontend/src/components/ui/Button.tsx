@@ -20,6 +20,8 @@ export interface ButtonProps
   fullWidth?: boolean;
   elevation?: "none" | "low" | "med" | "high";
   tooltip?: string;
+  clickAction?: (e: React.MouseEvent<HTMLButtonElement>) => void | Promise<void>;
+  isInterruptible?: boolean;
 }
 
 export function Button({
@@ -34,6 +36,8 @@ export function Button({
   fullWidth = false,
   elevation,
   tooltip,
+  clickAction,
+  isInterruptible,
   type = "button",
   className,
   children,
@@ -88,6 +92,8 @@ export function Button({
       href={href}
       width={fullWidth ? "100%" : undefined}
       tooltip={tooltip}
+      clickAction={clickAction}
+      isInterruptible={isInterruptible}
       type={type}
       onClick={onClick}
       className={cn("rounded-full btn-tactile", variantClass, className)}

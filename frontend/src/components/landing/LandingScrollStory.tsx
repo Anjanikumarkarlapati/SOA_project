@@ -35,7 +35,7 @@ export function LandingScrollStory() {
       <div className="mb-12 flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
         <h2
           id="scroll-story-heading"
-          className="font-serif-display text-4xl sm:text-5xl text-[var(--text-primary)]"
+          className="type-section-title text-3xl sm:text-5xl leading-[1.08]"
         >
           Map Your Harvest
         </h2>
@@ -53,13 +53,13 @@ export function LandingScrollStory() {
             key={step.num}
             className="border-t border-[var(--border-default)] pt-8"
           >
-            <div className="font-sans text-5xl sm:text-6xl font-normal tracking-[-0.04em] text-[var(--text-secondary)]/75 tabular-nums">
+            <div className="font-sans text-5xl sm:text-6xl font-normal leading-none tracking-[-0.045em] text-[var(--text-muted)] tabular-nums">
               {step.num}
             </div>
-            <h3 className="mt-8 font-serif-display text-xl text-[var(--text-primary)]">
+            <h3 className="mt-7 type-card-title text-2xl !font-normal">
               {step.title}
             </h3>
-            <p className="mt-2.5 text-sm leading-relaxed text-[var(--text-secondary)]">
+            <p className="mt-2.5 type-lead leading-relaxed">
               {step.copy}
             </p>
           </div>

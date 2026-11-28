@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { Heading } from "@astryxdesign/core/Heading";
 import {
   fetchClimate,
   computeClimateStats,
@@ -27,8 +28,8 @@ import { BezelCard } from "@/components/ui/BezelCard";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Banner } from "@astryxdesign/core/Banner";
+import { Skeleton } from "@astryxdesign/core/Skeleton";
 import {
-  Loader2,
   Sprout,
   Droplets,
   Thermometer,
@@ -36,6 +37,7 @@ import {
   AlertTriangle,
   Wind,
   MapPin,
+  RefreshCw,
 } from "lucide-react";
 
 function pastIsoDate(daysAgo: number, yearsAgo = 0): string {
@@ -87,6 +89,7 @@ export default function RecommendationsPage() {
   const [backendRecsError, setBackendRecsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const targetLat = activeFarm ? activeFarm.lat : FARMS[presetIdx].lat;
   const targetLon = activeFarm ? activeFarm.lon : FARMS[presetIdx].lon;
@@ -97,6 +100,7 @@ export default function RecommendationsPage() {
     let cancelled = false;
 
     async function load() {
+      setLoading(true);
       try {
         const d = await fetchClimate(targetLat, targetLon);
         if (cancelled) return;
@@ -179,6 +183,7 @@ export default function RecommendationsPage() {
     activeFarm?.waterAvailability,
     activeFarm?.cropIntent,
     activeFarm?.plannedDateStart,
+    reloadKey,
   ]);
 
   const handleSelectCrop = async (cropId: string) => {
@@ -204,13 +209,10 @@ export default function RecommendationsPage() {
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1
-            className="text-2xl font-semibold"
-            style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-          >
+          <Heading level={1} weight="normal" textWrap="balance" className="type-page-title">
             Crop Recommendations &amp; Daily Advisory
-          </h1>
-          <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
+          </Heading>
+          <p className="type-lead mt-1">
             Scored by temperature fit, water availability, season match, and humidity for{" "}
             <strong style={{ color: "var(--text-primary)" }}>{targetName}</strong>.
           </p>
@@ -269,23 +271,31 @@ export default function RecommendationsPage() {
       )}
 
       {loading && (
-        <div className="flex items-center gap-2 my-12" style={{ color: "var(--text-secondary)" }}>
-          <Loader2 className="w-5 h-5 animate-spin" /> Calculating recommendations…
+        <div role="status" aria-busy="true" aria-label="Calculating crop recommendations" className="space-y-4">
+          <BezelCard innerClassName="p-5 space-y-3">
+            <Skeleton width="45%" height={22} radius={2} index={0} />
+            <Skeleton width="75%" height={14} radius={2} index={1} />
+            <Skeleton width="100%" height={140} radius={3} index={2} />
+          </BezelCard>
         </div>
       )}
 
       {error && (
-        <div
-          className="text-sm px-4 py-3 rounded-lg border"
+        <Banner
+          status="error"
           role="alert"
-          style={{
-            background: "rgba(179,38,30,0.08)",
-            borderColor: "rgba(179,38,30,0.3)",
-            color: "var(--status-critical)",
-          }}
-        >
-          {error}
-        </div>
+          title="Unable to load crop recommendations"
+          description={error}
+          endContent={
+            <Button
+              label="Retry"
+              variant="secondary"
+              size="sm"
+              icon={<RefreshCw className="w-3.5 h-3.5" />}
+              onClick={() => setReloadKey((k) => k + 1)}
+            />
+          }
+        />
       )}
 
       {/* Mounted Interactive FarmerRecommendationCard */}
@@ -307,12 +317,9 @@ export default function RecommendationsPage() {
         >
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <h2
-                className="text-base font-semibold"
-                style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-              >
+              <Heading level={2} weight="semibold" className="type-card-title !text-lg">
                 Regional Crop Advisory Engine (Climate + Soil/Water Fit)
-              </h2>
+              </Heading>
               <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
                 Live multi-factor suitability score from synced climate &amp; soil profiles
                 {backendRecs.period ? ` (${backendRecs.period.start} to ${backendRecs.period.end})` : ""}.
@@ -354,7 +361,7 @@ export default function RecommendationsPage() {
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-xl font-bold font-mono tabular-nums" style={{ color: "var(--accent)" }}>
+                      <div className="type-kpi-sm !text-xl !text-[var(--accent)]">
                         {rec.score.toFixed(1)}
                       </div>
                       <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
@@ -411,12 +418,9 @@ export default function RecommendationsPage() {
       {/* Ranked Crop Suitability List */}
       {!loading && results.length > 0 && (
         <div className="space-y-4">
-          <h2
-            className="text-lg font-semibold"
-            style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-          >
+          <Heading level={2} weight="normal" className="type-section-title">
             Top Crop Suitability Ranking
-          </h2>
+          </Heading>
           {results.map((r, idx) => {
             const color = suitabilityColor(r.suitability);
             const isSelected = selectedCrop.id === r.crop.id;
@@ -434,9 +438,9 @@ export default function RecommendationsPage() {
                     </span>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                        <Heading level={3} weight="semibold" className="type-card-title">
                           {r.crop.name}
-                        </h3>
+                        </Heading>
                         {idx === 0 && (
                           <span
                             className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"
@@ -461,7 +465,7 @@ export default function RecommendationsPage() {
                       />
                     )}
                     <div className="text-right">
-                      <div className="text-2xl font-bold font-mono tabular-nums" style={{ color }}>
+                      <div className="type-kpi !text-2xl" style={{ color }}>
                         {r.score}
                       </div>
                       <div className="text-xs font-medium" style={{ color }}>

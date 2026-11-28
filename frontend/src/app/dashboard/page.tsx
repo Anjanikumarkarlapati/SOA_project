@@ -1,6 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { Heading } from "@astryxdesign/core/Heading";
+import {
+  SegmentedControl,
+  SegmentedControlItem,
+} from "@astryxdesign/core/SegmentedControl";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useAuthStore, isOfflineToken } from "@/lib/auth";
 import {
@@ -18,12 +23,25 @@ import {
   type ClimateStats,
 } from "@/lib/climate";
 import { getCropById } from "@/lib/crops";
-import { useFarmStore, getActiveProperty } from "@/lib/property-store";
+import {
+  useFarmStore,
+  getActiveProperty,
+  type FarmerMode,
+} from "@/lib/property-store";
 import {
   computeWaterBudget,
   buildVernacularShiftBriefing,
 } from "@/lib/fieldshield";
+import type {
+  DailyActionBriefing,
+  DailyBriefingMandiInput,
+} from "@/lib/daily-briefing";
+import { appendRoznamchaEntry } from "@/lib/roznamcha";
 import { useLanguage } from "@/lib/i18n";
+import { DailyActionCard } from "@/components/farmer/DailyActionCard";
+import { RoznamchaDrawer } from "@/components/farmer/RoznamchaDrawer";
+import { SimpleFarmerHome } from "@/components/farmer/SimpleFarmerHome";
+import { FpoBroadcastPanel } from "@/components/fpo/FpoBroadcastPanel";
 import { RootZoneSoilCard } from "@/components/RootZoneSoilCard";
 import { FarmAerialSurvey } from "@/components/FarmAerialSurvey";
 import { FarmMap } from "@/components/FarmMap";
@@ -33,19 +51,24 @@ import { Banner } from "@astryxdesign/core/Banner";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Divider } from "@astryxdesign/core/Divider";
 import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { Skeleton } from "@astryxdesign/core/Skeleton";
+import {
+  DEFAULT_FARM_LOCATION,
+  inferLocationFromAddress,
+} from "@/lib/indian-locations";
 import {
   CloudSun,
   Droplets,
   Activity,
   Sprout,
   CheckCircle2,
-  Loader2,
   Plus,
   MapPin,
   Copy,
   Send,
   FileText,
   ArrowRight,
+  BookOpen,
 } from "lucide-react";
 
 interface WeatherSummary {
@@ -65,12 +88,27 @@ export default function DashboardPage() {
   const sensorsByFarm = useFarmStore((s) => s.sensorsByFarm);
   const preferences = useFarmStore((s) => s.preferences);
   const waterSavedLitres = useFarmStore((s) => s.waterSavedLitres);
+  const farmerMode = useFarmStore((s) => s.farmerMode);
+  const setFarmerMode = useFarmStore((s) => s.setFarmerMode);
+  const farmLocation = useFarmStore((s) => s.farmLocation);
+  const setFarmLocation = useFarmStore((s) => s.setFarmLocation);
   const logShiftDispatch = useFarmStore((s) => s.logShiftDispatch);
   const updateProperty = useFarmStore((s) => s.updateProperty);
   const syncPropertiesFromBackend = useFarmStore((s) => s.syncPropertiesFromBackend);
 
   const activeFarm = getActiveProperty({ properties, activePropertyId });
   const activeCrop = getCropById(activeFarm?.selectedCropId || "wheat");
+
+  useEffect(() => {
+    if (
+      activeFarm?.address &&
+      farmLocation.stateCode === DEFAULT_FARM_LOCATION.stateCode &&
+      farmLocation.districtName === DEFAULT_FARM_LOCATION.districtName
+    ) {
+      const inferred = inferLocationFromAddress(activeFarm.address);
+      if (inferred) setFarmLocation(inferred);
+    }
+  }, [activeFarm?.address, farmLocation.stateCode, farmLocation.districtName, setFarmLocation]);
 
   const [sensorSummary, setSensorSummary] = useState<{
     total: number;
@@ -98,9 +136,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [dispatched, setDispatched] = useState(false);
+  const [roznamchaOpen, setRoznamchaOpen] = useState(false);
+  const [topMandi, setTopMandi] = useState<DailyBriefingMandiInput | null>(null);
 
-  const lat = activeFarm?.lat ?? 30.901;
-  const lon = activeFarm?.lon ?? 75.857;
+  const lat = activeFarm?.lat ?? farmLocation.lat ?? 30.901;
+  const lon = activeFarm?.lon ?? farmLocation.lon ?? 75.857;
 
   useEffect(() => {
     let cancelled = false;
@@ -156,6 +196,46 @@ export default function DashboardPage() {
       cancelled = true;
     };
   }, [token, lat, lon, syncPropertiesFromBackend]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadMandi() {
+      try {
+        const params = new URLSearchParams({
+          stateCode: farmLocation.stateCode,
+          district: farmLocation.districtName,
+          crop: activeCrop.name,
+        });
+        const res = await fetch(`/api/mandi?${params.toString()}`);
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          rates?: Array<{
+            crop?: string;
+            mandiName?: string;
+            modalPriceInr?: number;
+            mspInr?: number;
+            verdict?: "SELL_NOW" | "HOLD" | "WATCH";
+          }>;
+        };
+        const first = data?.rates?.[0];
+        if (!cancelled && first) {
+          setTopMandi({
+            cropName: first.crop ?? activeCrop.name,
+            mandiName: first.mandiName,
+            modalPriceInr: first.modalPriceInr,
+            mspInr: first.mspInr,
+            verdict: first.verdict,
+          });
+        }
+      } catch {
+        /* offline or route unavailable */
+      }
+    }
+    void loadMandi();
+    return () => {
+      cancelled = true;
+    };
+  }, [farmLocation.stateCode, farmLocation.districtName, activeCrop.name]);
 
   const handleAnalyzeAll = async () => {
     if (!token || isOfflineToken(token)) return;
@@ -241,6 +321,31 @@ export default function DashboardPage() {
     setDispatched(true);
   };
 
+  const briefingWeather = {
+    todayEt0: stats?.todayEt0 ?? 4.2,
+    todayRainMm: stats?.todayRainMm ?? weather?.precip ?? 0,
+    rainProbMax: stats?.rainProbMax ?? 10,
+    currentWindKmh: stats?.currentWindKmh ?? weather?.windSpeed ?? 8,
+    currentSoilMoisturePct:
+      primaryLiveCrop?.soilMoisture ?? stats?.currentSoilMoisturePct ?? 62,
+    pumpFlowLpm: preferences.pumpFlowLpm,
+  };
+
+  const handleLogBriefingToRoznamcha = (briefing: DailyActionBriefing) => {
+    appendRoznamchaEntry({
+      farmId: activeFarm?.id ?? "farm-default",
+      category: "irrigation",
+      title: `6 AM Brief · ${briefing.irrigationVerdict.action}`,
+      details: `${briefing.irrigationVerdict.headline} | Spray ${briefing.sprayWindow.status} (${briefing.sprayWindow.windKmh} km/h)`,
+      soilMoisturePct: briefingWeather.currentSoilMoisturePct,
+      rainMm: briefingWeather.todayRainMm,
+      waterLitres:
+        briefing.irrigationVerdict.netLitres ||
+        briefing.irrigationVerdict.estimatedWasteLitres,
+    });
+    setRoznamchaOpen(true);
+  };
+
   const cards = [
     {
       label: "Sensors",
@@ -295,12 +400,9 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap border-b border-[var(--border-default)] pb-6">
         <div>
-          <h1
-            className="text-3xl sm:text-4xl font-normal"
-            style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-          >
-            Good morning{user?.name ? `, ${user.name.split(" ")[0]}` : ""}
-          </h1>
+          <Heading level={1} weight="normal" textWrap="balance" className="type-page-title">
+            {t("dashboard.goodMorning", "Good morning")}{user?.name ? `, ${user.name.split(" ")[0]}` : ""}
+          </Heading>
           <p className="text-sm mt-1.5" style={{ color: "var(--text-secondary)" }}>
             {activeFarm ? (
               <>
@@ -319,6 +421,22 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
+          <SegmentedControl
+            label="Farmer view mode"
+            value={farmerMode}
+            onChange={(val) => setFarmerMode(val as FarmerMode)}
+            size="sm"
+          >
+            <SegmentedControlItem value="simple" label={t("companion.simpleMode", "Simple")} />
+            <SegmentedControlItem value="full" label={t("companion.fullMode", "Full")} />
+          </SegmentedControl>
+          <Button
+            label={t("dashboard.roznamcha", "Roznamcha")}
+            variant="outline"
+            size="sm"
+            icon={<BookOpen className="w-4 h-4" />}
+            onClick={() => setRoznamchaOpen(true)}
+          />
           {waterSavedLitres > 0 && (
             <span
               className="text-xs font-medium px-3.5 py-2 rounded-full border"
@@ -333,7 +451,7 @@ export default function DashboardPage() {
           )}
           <Button
             href="/properties/new"
-            label="Add Property"
+            label={t("dashboard.addProperty", "Add Property")}
             variant="primary"
             icon={<Plus className="w-4 h-4" />}
           />
@@ -343,9 +461,9 @@ export default function DashboardPage() {
       {/* Urgent Active Alerts first */}
       {alerts.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold mb-3" style={{ color: "var(--text-primary)" }}>
-            Active Alerts
-          </h2>
+          <Heading level={2} weight="normal" className="type-section-title !text-xl mb-3">
+            {t("dashboard.activeAlerts", "Active Alerts")}
+          </Heading>
           <div className="space-y-2.5">
             {alerts.map((a, i) => (
               <Banner
@@ -358,10 +476,38 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Stat cards */}
+      {farmerMode === "simple" ? (
+        <SimpleFarmerHome
+          property={activeFarm}
+          weather={briefingWeather}
+          topMandi={topMandi}
+          onOpenRoznamcha={() => setRoznamchaOpen(true)}
+          onLogBriefing={handleLogBriefingToRoznamcha}
+        />
+      ) : (
+        <>
+          <DailyActionCard
+            property={activeFarm}
+            weather={briefingWeather}
+            topMandi={topMandi}
+            onLogToRoznamcha={handleLogBriefingToRoznamcha}
+          />
+
+          {/* Stat cards */}
       {loading ? (
-        <div className="flex items-center gap-2 my-8" style={{ color: "var(--text-secondary)" }}>
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading dashboard…
+        <div
+          role="status"
+          aria-busy="true"
+          aria-label="Loading dashboard metrics"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+        >
+          {[0, 1, 2, 3].map((idx) => (
+            <BezelCard key={idx} innerClassName="p-4 space-y-2.5">
+              <Skeleton width="55%" height={14} radius={2} index={idx} />
+              <Skeleton width="45%" height={28} radius={2} index={idx} />
+              <Skeleton width="75%" height={12} radius={2} index={idx} />
+            </BezelCard>
+          ))}
         </div>
       ) : (
         <div data-testid="dashboard-kpi-grid" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -374,7 +520,7 @@ export default function DashboardPage() {
                 </span>
               </div>
               <div
-                className="text-2xl font-bold font-mono tabular-nums"
+                className="type-kpi !text-2xl"
                 style={{ color: "var(--text-primary)" }}
               >
                 {main}
@@ -418,12 +564,9 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5" style={{ color: "var(--accent)" }} />
             <div>
-              <h2
-                className="text-base font-semibold"
-                style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-              >
+              <Heading level={2} weight="semibold" className="type-card-title">
                 {t("briefing.title", "FieldShield Shift Brief")}
-              </h2>
+              </Heading>
               <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
                 Ready-to-dispatch morning instructions for field crews in {language.toUpperCase()}
               </p>
@@ -478,12 +621,9 @@ export default function DashboardPage() {
         >
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <h2
-                className="text-base font-semibold"
-                style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
-              >
+              <Heading level={2} weight="semibold" className="type-card-title">
                 Live Field Health &amp; Telemetry Ledger
-              </h2>
+              </Heading>
               <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
                 Live crop fields &amp; root-zone activity
                 {valveSummary
@@ -584,15 +724,18 @@ export default function DashboardPage() {
         areaHectares={activeFarm?.areaHa ?? 2.5}
       />
 
+      {/* FPO 1-to-50 Broadcast Command Center */}
+      <FpoBroadcastPanel />
+
       <Divider variant="subtle" />
 
       {/* Climate quick view + Direct Next-Step Workflow Shortcuts */}
       {stats && (
         <div className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+            <Heading level={2} weight="normal" className="type-section-title !text-xl">
               Climate snapshot (14-day)
-            </h2>
+            </Heading>
             <div className="flex items-center gap-2 flex-wrap">
               <Button
                 href="/climate"
@@ -637,7 +780,7 @@ export default function DashboardPage() {
                   {label}
                 </div>
                 <div
-                  className="font-semibold font-mono tabular-nums text-sm mt-0.5"
+                  className="font-medium font-mono tabular-nums text-[15px] mt-0.5"
                   style={{ color: "var(--text-primary)" }}
                 >
                   {value}
@@ -654,6 +797,14 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+        </>
+      )}
+
+      <RoznamchaDrawer
+        open={roznamchaOpen}
+        onClose={() => setRoznamchaOpen(false)}
+        property={activeFarm}
+      />
     </div>
   );
 }

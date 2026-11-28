@@ -113,7 +113,7 @@ export function LanguageSelectorModal({
             </div>
             <h2
               id="lang-modal-title"
-              className="text-2xl sm:text-3xl font-serif-display text-[var(--text-primary)]"
+              className="type-section-title text-2xl sm:text-3xl"
             >
               {t("langModal.title", "Select Regional Language & Typography")}
             </h2>
@@ -248,7 +248,7 @@ export function LanguageSelectorModal({
                           <span>{t("langModal.activeBadge", "Active Language")}</span>
                         </span>
                       ) : (
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[var(--bg-raised)] text-[var(--text-secondary)] border border-[var(--border-default)]">
+                        <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-[var(--bg-raised)] text-[var(--text-secondary)] border border-[var(--border-default)]">
                           {item.script.toUpperCase()}
                         </span>
                       )}
@@ -257,12 +257,12 @@ export function LanguageSelectorModal({
 
                   {/* Typography Specimen Box */}
                   <div className="bg-[var(--bg-base)]/80 p-3 rounded-xl border border-[var(--border-default)] flex flex-col gap-1.5">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[10px] text-[var(--text-secondary)] gap-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-[var(--text-secondary)] gap-1">
                       <span className="font-semibold uppercase tracking-wider flex items-center gap-1">
                         <Type className="w-3 h-3 text-[var(--accent)]" />
                         Typography Specimen
                       </span>
-                      <span className="font-mono text-[9px] text-[var(--text-secondary)] bg-[var(--bg-raised)] px-2 py-0.5 rounded-full border border-[var(--border-default)] self-start sm:self-auto">
+                      <span className="font-mono text-[11px] text-[var(--text-secondary)] bg-[var(--bg-raised)] px-2 py-0.5 rounded-full border border-[var(--border-default)] self-start sm:self-auto">
                         {item.scriptLabel}
                       </span>
                     </div>
@@ -343,7 +343,7 @@ export function LanguageSelectorModal({
             <span className="font-semibold text-[var(--text-primary)]">Active Typography:</span>
             <span className="font-mono text-[11px] bg-[var(--bg-surface)] px-2.5 py-0.5 rounded-full border border-[var(--border-default)] text-[var(--text-primary)]">
               {activeMeta.script === "latin"
-                ? "Crimson Text 400 • DM Sans"
+                ? "Crimson Text 400/600 • DM Sans • DM Mono"
                 : `Noto Serif ${activeMeta.script.charAt(0).toUpperCase() + activeMeta.script.slice(1)} 400 • Noto Sans`}
             </span>
           </div>

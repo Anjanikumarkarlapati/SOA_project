@@ -1,32 +1,46 @@
-target/
-node_modules/
-dist/
-.run/
-*.log
-.idea/
-.vscode/
-*.iml
-
-# Local environment configuration and credentials
+# Environment variables (NEVER commit)
 .env
 .env.local
 .env.*.local
-**/.env
-**/.env.local
-**/.env.*.local
-!**/.env.example
 
+# Node modules
+node_modules/
+npm-debug.log
+yarn-error.log
 
-# Tooling cache and local backups (not project code)
-.serena/
-*.bak
-/.metadata/
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Eclipse (local IDE files, not project code)
-.classpath
-.project
-.factorypath
-.settings/
+# OS
+.DS_Store
+Thumbs.db
 
-# Playwright CLI snapshots and logs
-.playwright-cli/
+# Build outputs
+dist/
+build/
+out/
+
+# Logs
+logs/
+*.log
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Cache
+.cache/
+.next/
+
+# Database
+pgdata/
+*.sql.backup
+
+# Local agent working memory & knowledge graph
+working.md
+graphify-out/
+.superpowers/

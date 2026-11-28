@@ -32,7 +32,7 @@ export function LanguageSelectorPill({
           ({activeMeta.englishName})
         </span>
       )}
-      <span className="hidden md:inline-flex items-center text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-wash)] text-[var(--text-secondary)] border border-[var(--border-default)]">
+      <span className="hidden md:inline-flex items-center font-mono text-[11px] font-medium px-2 py-0.5 rounded-full bg-[var(--accent-wash)] text-[var(--text-secondary)] border border-[var(--border-default)]">
         {activeMeta.script.toUpperCase()}
       </span>
       <ChevronDown className="w-3 h-3 text-[var(--text-secondary)] opacity-70 group-hover:opacity-100 transition-opacity" />
