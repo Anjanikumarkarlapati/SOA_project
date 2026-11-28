@@ -1,0 +1,92 @@
+AgriTech security probes -> http://localhost:8080   groups: auth, idor, harden, crud, lb
+
+== authentication / authorization ==
+  [PASS] A01    Unauthenticated request to a protected API is refused
+         SECURE: GET /api/sensors -> 401 {'error': 'unauthorized', 'message': 'Missing or malformed Authorization header', 'timestamp': '2026-10-28T18:24:09.1370
+  [PASS] A02    Public registration cannot mint an ADMIN account
+         SECURE: registered with role=ADMIN -> issued token role=FARMER
+  [PASS] A03    Access tokens are not forgeable with a committed default secret
+         SECURE: HS256 token signed with the default dev secret -> GET /api/sensors 401
+  [PASS] A04    Unsigned tokens ("alg":"none") are rejected
+         SECURE: -> 401
+  [PASS] A05    Expired tokens are rejected
+         SECURE: -> 401
+  [PASS] A06    Logged-out access token stops working (revocation propagates)
+         SECURE: before logout 200, 20 s after logout 401
+  [PASS] A07    Refresh token is single-use (rotation + reuse detection)
+         SECURE: first refresh 200, replay 401
+  [PASS] A08    Login timing does not reveal whether an account exists
+         SECURE: avg unknown-user 195 ms vs existing-user 198 ms (delta 3 ms)
+  [PASS] A09    Client-supplied X-User-Role is not trusted by the gateway
+         SECURE: -> 401 {'error': 'unauthorized', 'message': 'Missing or malformed Authorization header'
+
+== cross-tenant object access ==
+  [PASS] B01    Each new account gets its own tenant (farm) scope
+         SECURE: alice=FARM-40BC35C1 bob=FARM-2412D36B
+  [PASS] B02    Tenant A cannot read tenant B's field by id
+         SECURE: GET /api/crops/CROP-F34B3892 as alice -> 404
+  [PASS] B03    Tenant A's crop list does not contain tenant B's field
+         SECURE: GET /api/crops as alice -> 200, 0 rows, bob's field present=False
+  [PASS] B04    farmId query parameter cannot be used to read another tenant
+         SECURE: GET /api/crops?farmId=FARM-2412D36B as alice -> 200, 0 rows
+  [PASS] B05    Tenant A cannot update tenant B's field
+         SECURE: PUT -> 404
+  [PASS] B06    Tenant A cannot delete tenant B's field
+         SECURE: DELETE -> 404
+  [PASS] B07    Tenant A cannot read tenant B's sensor device
+         SECURE: GET /api/sensors/SENSOR-CROP-F34B3892 as alice -> 404
+  [PASS] B08    Tenant A's sensor list is limited to its own farm
+         SECURE: 0 rows visible to alice, bob's device visible=False
+  [PASS] B09    Tenant A cannot read tenant B's telemetry history
+         SECURE: GET /api/telemetry/SENSOR-CROP-F34B3892 as alice -> 404
+  [PASS] B10    Tenant A cannot inject readings into tenant B's device
+         SECURE: POST /api/telemetry/ingest as alice -> 200, accepted=0, rejected=[{'deviceId': 'SENSOR-CROP-F34B3892', 'reason': 'soilTemperature out of range (-50 to 80)'}]
+  [PASS] B11    Tenant A's valve list is limited to its own farm
+         SECURE: GET /api/valves as alice -> 200, 0 valves visible
+  [PASS] B12    Tenant A's schedule list is limited to its own farm
+         SECURE: GET /api/irrigation/schedules as alice -> 200, 0 rows, bob's visible=False
+
+== hardening: gateway, registry, direct ports ==
+  [PASS] H01    A forged gateway signature using the committed default secret is refused
+         SECURE: direct :8082/api/sensors with default-secret HMAC -> 401 {'error': 'untrusted_caller', 'message': 'Requests must arrive through the API g
+  [PASS] H02    Direct service port rejects unsigned identity headers
+         SECURE: -> 401
+  [PASS] H03    Gateway actuator does not expose the routing table unauthenticated
+         SECURE: GET /actuator/gateway/routes -> 404
+  [PASS] H04    Service /actuator/env is not readable
+         SECURE: -> 404
+  [FAIL] H05    Eureka registry requires authentication
+         VULNERABLE: GET :8761/ -> 200, GET /eureka/apps -> 200
+  [PASS] H06    Rate limit cannot be bypassed by rotating the X-Device-Id header
+         SECURE: 130 authenticated GETs, each with a fresh X-Device-Id -> 79 rate-limited
+  [PASS] H07    Public endpoint rate limiting engages
+         SECURE: 130 unauthenticated POSTs -> 130 rate-limited
+  [PASS] H08    A foreign origin is not granted credentialed CORS
+         SECURE: OPTIONS from evil.example.com -> 403, allow-origin='', allow-credentials=''
+  [info] H09    Seed demo accounts are gated by agritech.seed-demo-accounts
+         INFO: login as seeded admin@agritech.io/admin1234 -> 200; known credentials by design for the demo - set agritech.seed-demo-accounts=false before deploying
+
+== CRUD completeness (rubric: CRUD operations) ==
+  [PASS] CRUD   Crop field /api/crops
+         PRESENT: complete
+  [PASS] CRUD   Sensor device /api/sensors
+         PRESENT: complete
+  [PASS] CRUD   Valve /api/valves supports Create
+         PRESENT: POST /api/valves -> 201 {'valveId': 'PROBE-VALVE-EF6F7FEB', 'farmId': 'FARM-001', 'cropId': 'CROP-001', 'zoneName': 'Probe Z
+  [PASS] CRUD   Account password can be changed (Update)
+         PRESENT: PUT /api/auth/me -> 200 {'status': 'password_changed'}
+  [PASS] CRUD   Account can be deleted (Delete)
+         PRESENT: DELETE /api/auth/me -> 200 {'status': 'deleted', 'email': 'probe-crud-d92d4699@example.test'}
+
+== load balancing across Eureka replicas (rubric: CRUD with load balancing) ==
+  [PASS] L01    Requests are distributed across sensor-service replicas
+         SECURE: 40 gateway calls -> per-instance counters {8082: 129.0, 18082: 95.0}
+  [PASS] L02    All services registered with Eureka
+         SECURE: registry: {'API-GATEWAY': 1, 'AUTH-SERVICE': 1, 'CROP-SERVICE': 2, 'SENSOR-SERVICE': 2, 'RECOMMENDATION-SERVICE': 1, 'IRRIGATION-SERVICE': 2, 'CLIMATE-SERVICE': 1}
+
+==============================================================================
+37 checks, 1 failing
+  H05    VULNERABLE Eureka registry requires authentication
+
+wrote .run/probes-after.json
+PROBES_EXIT=1

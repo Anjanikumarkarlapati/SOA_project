@@ -43,6 +43,9 @@ async function request<T>(
   token?: string | null,
   retried = false
 ): Promise<T> {
+  if (token && isOfflineToken(token)) {
+    throw new ApiError(401, "Offline session cannot call live API");
+  }
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
@@ -175,12 +178,17 @@ export interface UpdateSensorPayload {
 export interface SensorSummary { total: number; online: number; offline: number; lowBattery: number }
 
 export const sensorApi = {
-  list: (token: string, params?: string) =>
-    request<{ content: Sensor[]; totalElements: number; totalPages?: number; page?: number; size?: number }>(
-      `/api/sensors${params ? `?${params}` : ""}`,
+  list: (token: string, params?: string | URLSearchParams) => {
+    const query =
+      typeof params === "string"
+        ? new URLSearchParams(params.replace(/^\?/, "")).toString()
+        : params?.toString() ?? "";
+    return request<{ content: Sensor[]; totalElements: number; totalPages?: number; page?: number; size?: number }>(
+      `/api/sensors${query ? `?${query}` : ""}`,
       {},
       token
-    ),
+    );
+  },
   get: (id: string, token: string) =>
     request<Sensor>(`/api/sensors/${encodeURIComponent(id)}`, {}, token),
   summary: (token: string) => request<SensorSummary>("/api/sensors/summary", {}, token),

@@ -10,7 +10,10 @@ import static org.junit.jupiter.api.Assertions.*;
 /** Services must only trust identity headers that the gateway (or a peer service) signed. */
 class InternalAuthTest {
 
-    private final InternalAuth auth = new InternalAuth("internal-test-secret");
+    /** Must be at least {@link Secrets#MIN_LENGTH}: a short key is refused at construction. */
+    private static final String SECRET = "internal-test-secret-value-at-least-32-chars";
+
+    private final InternalAuth auth = new InternalAuth(SECRET);
 
     private MockHttpServletResponse call(String role, String signature, long ts) throws Exception {
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/api/sensors");
@@ -43,6 +46,14 @@ class InternalAuthTest {
     }
 
     @Test
+    void farmSwapBreaksTheSignature() throws Exception {
+        // Same user and role, pointed at a different tenant: the signature must not survive it.
+        long now = System.currentTimeMillis();
+        String otherFarm = auth.sign("admin@agritech.io", "FARMER", "FARM-999", now);
+        assertEquals(401, call("FARMER", otherFarm, now).getStatus());
+    }
+
+    @Test
     void replayedOldSignatureIsRejected() throws Exception {
         long old = System.currentTimeMillis() - InternalAuth.MAX_SKEW_MS - 1_000;
         assertEquals(401, call("ADMIN", auth.sign("admin@agritech.io", "ADMIN", "FARM-001", old), old).getStatus());
@@ -51,7 +62,8 @@ class InternalAuthTest {
     @Test
     void signatureFromAnotherSecretIsRejected() throws Exception {
         long now = System.currentTimeMillis();
-        String other = new InternalAuth("some-other-secret").sign("admin@agritech.io", "ADMIN", "FARM-001", now);
+        String other = new InternalAuth("a-completely-different-secret-value-32chars")
+                .sign("admin@agritech.io", "ADMIN", "FARM-001", now);
         assertEquals(401, call("ADMIN", other, now).getStatus());
     }
 
@@ -59,5 +71,23 @@ class InternalAuthTest {
     void actuatorIsNotFiltered() throws Exception {
         MockHttpServletRequest req = new MockHttpServletRequest("GET", "/actuator/health");
         assertTrue(auth.shouldNotFilter(req));
+    }
+
+    /** The published development default must never be loadable again, even if it is still set. */
+    @Test
+    void publishedDefaultSecretRefusesToStart() {
+        assertThrows(IllegalStateException.class,
+                () -> new InternalAuth("agritech-internal-dev-secret-change-me-0123456789"));
+    }
+
+    @Test
+    void missingSecretRefusesToStart() {
+        assertThrows(IllegalStateException.class, () -> new InternalAuth(""));
+        assertThrows(IllegalStateException.class, () -> new InternalAuth(null));
+    }
+
+    @Test
+    void tooShortSecretRefusesToStart() {
+        assertThrows(IllegalStateException.class, () -> new InternalAuth("too-short"));
     }
 }

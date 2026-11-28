@@ -1,0 +1,261 @@
+[
+  {
+    "id": "A01",
+    "group": "auth",
+    "title": "Unauthenticated request to a protected API is refused",
+    "verdict": "SECURE",
+    "evidence": "GET /api/sensors -> 401 {'error': 'unauthorized', 'message': 'Missing or malformed Authorization header', 'timestamp': '2026-10-28T18:24:09.1370"
+  },
+  {
+    "id": "A02",
+    "group": "auth",
+    "title": "Public registration cannot mint an ADMIN account",
+    "verdict": "SECURE",
+    "evidence": "registered with role=ADMIN -> issued token role=FARMER"
+  },
+  {
+    "id": "A03",
+    "group": "auth",
+    "title": "Access tokens are not forgeable with a committed default secret",
+    "verdict": "SECURE",
+    "evidence": "HS256 token signed with the default dev secret -> GET /api/sensors 401"
+  },
+  {
+    "id": "A04",
+    "group": "auth",
+    "title": "Unsigned tokens (\"alg\":\"none\") are rejected",
+    "verdict": "SECURE",
+    "evidence": "-> 401"
+  },
+  {
+    "id": "A05",
+    "group": "auth",
+    "title": "Expired tokens are rejected",
+    "verdict": "SECURE",
+    "evidence": "-> 401"
+  },
+  {
+    "id": "A06",
+    "group": "auth",
+    "title": "Logged-out access token stops working (revocation propagates)",
+    "verdict": "SECURE",
+    "evidence": "before logout 200, 20 s after logout 401"
+  },
+  {
+    "id": "A07",
+    "group": "auth",
+    "title": "Refresh token is single-use (rotation + reuse detection)",
+    "verdict": "SECURE",
+    "evidence": "first refresh 200, replay 401"
+  },
+  {
+    "id": "A08",
+    "group": "auth",
+    "title": "Login timing does not reveal whether an account exists",
+    "verdict": "SECURE",
+    "evidence": "avg unknown-user 195 ms vs existing-user 198 ms (delta 3 ms)"
+  },
+  {
+    "id": "A09",
+    "group": "auth",
+    "title": "Client-supplied X-User-Role is not trusted by the gateway",
+    "verdict": "SECURE",
+    "evidence": "-> 401 {'error': 'unauthorized', 'message': 'Missing or malformed Authorization header'"
+  },
+  {
+    "id": "B01",
+    "group": "idor",
+    "title": "Each new account gets its own tenant (farm) scope",
+    "verdict": "SECURE",
+    "evidence": "alice=FARM-40BC35C1 bob=FARM-2412D36B"
+  },
+  {
+    "id": "B02",
+    "group": "idor",
+    "title": "Tenant A cannot read tenant B's field by id",
+    "verdict": "SECURE",
+    "evidence": "GET /api/crops/CROP-F34B3892 as alice -> 404"
+  },
+  {
+    "id": "B03",
+    "group": "idor",
+    "title": "Tenant A's crop list does not contain tenant B's field",
+    "verdict": "SECURE",
+    "evidence": "GET /api/crops as alice -> 200, 0 rows, bob's field present=False"
+  },
+  {
+    "id": "B04",
+    "group": "idor",
+    "title": "farmId query parameter cannot be used to read another tenant",
+    "verdict": "SECURE",
+    "evidence": "GET /api/crops?farmId=FARM-2412D36B as alice -> 200, 0 rows"
+  },
+  {
+    "id": "B05",
+    "group": "idor",
+    "title": "Tenant A cannot update tenant B's field",
+    "verdict": "SECURE",
+    "evidence": "PUT -> 404"
+  },
+  {
+    "id": "B06",
+    "group": "idor",
+    "title": "Tenant A cannot delete tenant B's field",
+    "verdict": "SECURE",
+    "evidence": "DELETE -> 404"
+  },
+  {
+    "id": "B07",
+    "group": "idor",
+    "title": "Tenant A cannot read tenant B's sensor device",
+    "verdict": "SECURE",
+    "evidence": "GET /api/sensors/SENSOR-CROP-F34B3892 as alice -> 404"
+  },
+  {
+    "id": "B08",
+    "group": "idor",
+    "title": "Tenant A's sensor list is limited to its own farm",
+    "verdict": "SECURE",
+    "evidence": "0 rows visible to alice, bob's device visible=False"
+  },
+  {
+    "id": "B09",
+    "group": "idor",
+    "title": "Tenant A cannot read tenant B's telemetry history",
+    "verdict": "SECURE",
+    "evidence": "GET /api/telemetry/SENSOR-CROP-F34B3892 as alice -> 404"
+  },
+  {
+    "id": "B10",
+    "group": "idor",
+    "title": "Tenant A cannot inject readings into tenant B's device",
+    "verdict": "SECURE",
+    "evidence": "POST /api/telemetry/ingest as alice -> 200, accepted=0, rejected=[{'deviceId': 'SENSOR-CROP-F34B3892', 'reason': 'soilTemperature out of range (-50 to 80)'}]"
+  },
+  {
+    "id": "B11",
+    "group": "idor",
+    "title": "Tenant A's valve list is limited to its own farm",
+    "verdict": "SECURE",
+    "evidence": "GET /api/valves as alice -> 200, 0 valves visible"
+  },
+  {
+    "id": "B12",
+    "group": "idor",
+    "title": "Tenant A's schedule list is limited to its own farm",
+    "verdict": "SECURE",
+    "evidence": "GET /api/irrigation/schedules as alice -> 200, 0 rows, bob's visible=False"
+  },
+  {
+    "id": "H01",
+    "group": "harden",
+    "title": "A forged gateway signature using the committed default secret is refused",
+    "verdict": "SECURE",
+    "evidence": "direct :8082/api/sensors with default-secret HMAC -> 401 {'error': 'untrusted_caller', 'message': 'Requests must arrive through the API g"
+  },
+  {
+    "id": "H02",
+    "group": "harden",
+    "title": "Direct service port rejects unsigned identity headers",
+    "verdict": "SECURE",
+    "evidence": "-> 401"
+  },
+  {
+    "id": "H03",
+    "group": "harden",
+    "title": "Gateway actuator does not expose the routing table unauthenticated",
+    "verdict": "SECURE",
+    "evidence": "GET /actuator/gateway/routes -> 404"
+  },
+  {
+    "id": "H04",
+    "group": "harden",
+    "title": "Service /actuator/env is not readable",
+    "verdict": "SECURE",
+    "evidence": "-> 404"
+  },
+  {
+    "id": "H05",
+    "group": "harden",
+    "title": "Eureka registry requires authentication",
+    "verdict": "VULNERABLE",
+    "evidence": "GET :8761/ -> 200, GET /eureka/apps -> 200"
+  },
+  {
+    "id": "H06",
+    "group": "harden",
+    "title": "Rate limit cannot be bypassed by rotating the X-Device-Id header",
+    "verdict": "SECURE",
+    "evidence": "130 authenticated GETs, each with a fresh X-Device-Id -> 79 rate-limited"
+  },
+  {
+    "id": "H07",
+    "group": "harden",
+    "title": "Public endpoint rate limiting engages",
+    "verdict": "SECURE",
+    "evidence": "130 unauthenticated POSTs -> 130 rate-limited"
+  },
+  {
+    "id": "H08",
+    "group": "harden",
+    "title": "A foreign origin is not granted credentialed CORS",
+    "verdict": "SECURE",
+    "evidence": "OPTIONS from evil.example.com -> 403, allow-origin='', allow-credentials=''"
+  },
+  {
+    "id": "H09",
+    "group": "harden",
+    "title": "Seed demo accounts are gated by agritech.seed-demo-accounts",
+    "verdict": "INFO",
+    "evidence": "login as seeded admin@agritech.io/admin1234 -> 200; known credentials by design for the demo - set agritech.seed-demo-accounts=false before deploying"
+  },
+  {
+    "id": "CRUD",
+    "group": "crud",
+    "title": "Crop field /api/crops",
+    "verdict": "PRESENT",
+    "evidence": "complete"
+  },
+  {
+    "id": "CRUD",
+    "group": "crud",
+    "title": "Sensor device /api/sensors",
+    "verdict": "PRESENT",
+    "evidence": "complete"
+  },
+  {
+    "id": "CRUD",
+    "group": "crud",
+    "title": "Valve /api/valves supports Create",
+    "verdict": "PRESENT",
+    "evidence": "POST /api/valves -> 201 {'valveId': 'PROBE-VALVE-EF6F7FEB', 'farmId': 'FARM-001', 'cropId': 'CROP-001', 'zoneName': 'Probe Z"
+  },
+  {
+    "id": "CRUD",
+    "group": "crud",
+    "title": "Account password can be changed (Update)",
+    "verdict": "PRESENT",
+    "evidence": "PUT /api/auth/me -> 200 {'status': 'password_changed'}"
+  },
+  {
+    "id": "CRUD",
+    "group": "crud",
+    "title": "Account can be deleted (Delete)",
+    "verdict": "PRESENT",
+    "evidence": "DELETE /api/auth/me -> 200 {'status': 'deleted', 'email': 'probe-crud-d92d4699@example.test'}"
+  },
+  {
+    "id": "L01",
+    "group": "lb",
+    "title": "Requests are distributed across sensor-service replicas",
+    "verdict": "SECURE",
+    "evidence": "40 gateway calls -> per-instance counters {8082: 129.0, 18082: 95.0}"
+  },
+  {
+    "id": "L02",
+    "group": "lb",
+    "title": "All services registered with Eureka",
+    "verdict": "SECURE",
+    "evidence": "registry: {'API-GATEWAY': 1, 'AUTH-SERVICE': 1, 'CROP-SERVICE': 2, 'SENSOR-SERVICE': 2, 'RECOMMENDATION-SERVICE': 1, 'IRRIGATION-SERVICE': 2, 'CLIMATE-SERVICE': 1}"
+  }
+]

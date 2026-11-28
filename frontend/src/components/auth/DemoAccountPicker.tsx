@@ -7,7 +7,13 @@ export interface DemoAccountPickerProps {
   onSelect: (credentials: { email: string; password: string }) => void;
 }
 
+const DEMO_ACCOUNTS_ENABLED =
+  process.env.NEXT_PUBLIC_ENABLE_DEMO_ACCOUNTS === "true" ||
+  process.env.NODE_ENV !== "production";
+
 export function DemoAccountPicker({ onSelect }: DemoAccountPickerProps) {
+  if (!DEMO_ACCOUNTS_ENABLED) return null;
+
   return (
     <div
       data-testid="demo-account-picker"

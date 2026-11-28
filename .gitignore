@@ -16,10 +16,6 @@ dist/
 **/.env.*.local
 !**/.env.example
 
-# Next.js
-web/.next/
-web/out/
-web/next-env.d.ts
 
 # Tooling cache and local backups (not project code)
 .serena/
@@ -31,3 +27,6 @@ web/next-env.d.ts
 .project
 .factorypath
 .settings/
+
+# Playwright CLI snapshots and logs
+.playwright-cli/

@@ -1,5 +1,7 @@
 package com.agritech.sensor;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -11,6 +13,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -42,16 +45,22 @@ public class DeviceSimulator implements CommandLineRunner {
     private final SensorDeviceRepository devices;
     private final TelemetryRepository readings;
     private final FieldWateringRepository watering;
+    private final ObjectMapper json;
     private final boolean enabled;
+    private final double tickHours;
 
     public DeviceSimulator(SensorDeviceRepository devices, TelemetryRepository readings,
-                           FieldWateringRepository watering,
+                           FieldWateringRepository watering, ObjectMapper json,
                            @org.springframework.beans.factory.annotation.Value(
-                                   "${agritech.simulator.enabled:true}") boolean enabled) {
+                                   "${agritech.simulator.enabled:true}") boolean enabled,
+                           @org.springframework.beans.factory.annotation.Value(
+                                   "${agritech.simulator.interval-ms:30000}") long intervalMs) {
         this.devices = devices;
         this.readings = readings;
         this.watering = watering;
+        this.json = json;
         this.enabled = enabled;
+        this.tickHours = intervalMs / 3_600_000.0;
     }
 
     @Override
@@ -86,6 +95,12 @@ public class DeviceSimulator implements CommandLineRunner {
         Instant now = Instant.now();
         List<TelemetryReading> batch = new ArrayList<>();
         for (SensorDevice d : fleet) {
+            if (d.getSimProfile() != null) {
+                batch.addAll(farmHistory(d, now));
+                d.recordReading(now.minus(Duration.ofMinutes(2)), d.getBatteryPercent());
+                devices.save(d);
+                continue;
+            }
             double[] base = baseline(d.getFieldId());
             for (int minutesAgo = 48 * 60; minutesAgo > 0; minutesAgo -= 15) {
                 Instant at = now.minus(Duration.ofMinutes(minutesAgo));
@@ -101,6 +116,35 @@ public class DeviceSimulator implements CommandLineRunner {
             devices.save(d);
         }
         readings.saveAll(batch);
+    }
+
+    /** 48h of 15-minute farm readings, each step carrying soil and water state on from the last. */
+    private List<TelemetryReading> farmHistory(SensorDevice d, Instant now) {
+        FarmSimulation.Profile profile = profileOf(d);
+        Set<String> capabilities = capabilitiesOf(d);
+        List<TelemetryReading> history = new ArrayList<>();
+        TelemetryReading previous = null;
+        for (int minutesAgo = 48 * 60; minutesAgo > 0; minutesAgo -= 15) {
+            previous = FarmSimulation.next(d.getDeviceId(), profile, capabilities, previous,
+                    now.minus(Duration.ofMinutes(minutesAgo)), 0.25, d.getBatteryPercent(),
+                    ThreadLocalRandom.current());
+            history.add(previous);
+        }
+        return history;
+    }
+
+    FarmSimulation.Profile profileOf(SensorDevice d) {
+        try {
+            return FarmSimulation.Profile.of(json.readValue(d.getSimProfile(), new TypeReference<Map<String, Double>>() {}));
+        } catch (Exception e) {
+            log.warn("Unreadable simulation profile on {}, using defaults: {}", d.getDeviceId(), e.getMessage());
+            return FarmSimulation.Profile.of(Map.of());
+        }
+    }
+
+    static Set<String> capabilitiesOf(SensorDevice d) {
+        if (d.getCapabilities() == null || d.getCapabilities().isBlank()) return Set.of();
+        return Set.of(d.getCapabilities().split(","));
     }
 
     /** Called when the irrigation service opens a valve on this field. */
@@ -128,6 +172,15 @@ public class DeviceSimulator implements CommandLineRunner {
         for (SensorDevice d : devices.findAll()) {
             if (!"ACTIVE".equals(d.getStatus()) || "SENSOR-FARM01-013".equals(d.getDeviceId())) continue;
             TelemetryReading last = readings.findFirstByDeviceIdOrderByTimestampDesc(d.getDeviceId()).orElse(null);
+            if (d.getSimProfile() != null) {
+                double stepHours = last == null ? tickHours
+                        : Duration.between(last.getTimestamp(), now).toSeconds() / 3600.0;
+                if (devices.touchReadingIfPresent(d.getDeviceId(), now) > 0) {
+                    readings.save(FarmSimulation.next(d.getDeviceId(), profileOf(d), capabilitiesOf(d), last,
+                            now, stepHours, d.getBatteryPercent(), ThreadLocalRandom.current()));
+                }
+                continue;
+            }
             double[] base = baseline(d.getFieldId());
             double moisture = last == null ? base[0] : last.getSoilMoisture();
             double temp = last == null ? base[1] : last.getSoilTemperature();
@@ -146,13 +199,13 @@ public class DeviceSimulator implements CommandLineRunner {
                     ? 1.4
                     : Math.max(MAX_DRY_RATE, (base[0] - moisture) * REVERSION_RATE);
 
-            readings.save(new TelemetryReading(d.getDeviceId(), now,
-                    clamp(moisture + noise(0.6) + drift, 0, 100),
-                    clamp(temp + noise(0.3), -50, 80),
-                    clamp(ph + noise(0.02), 0, 14),
-                    d.getBatteryPercent()));
-            d.recordReading(now, d.getBatteryPercent());
-            devices.save(d);
+            if (devices.touchReadingIfPresent(d.getDeviceId(), now) > 0) {
+                readings.save(new TelemetryReading(d.getDeviceId(), now,
+                        clamp(moisture + noise(0.6) + drift, 0, 100),
+                        clamp(temp + noise(0.3), -50, 80),
+                        clamp(ph + noise(0.02), 0, 14),
+                        d.getBatteryPercent()));
+            }
         }
     }
 

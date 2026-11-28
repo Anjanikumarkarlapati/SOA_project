@@ -9,7 +9,7 @@ import java.time.LocalDate;
 
 /** A field planted with one crop. Its id doubles as the sensor fieldId (FR-5). */
 @Entity
-@Table(name = "crops")
+@Table(name = "crop_fields")
 public class Crop {
 
     @Id
@@ -58,6 +58,42 @@ public class Crop {
         this.temperatureMax = temperatureMax;
         this.phMin = phMin;
         this.phMax = phMax;
+    }
+
+    static String newId() {
+        return "CROP-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    }
+
+    /** A new field planted today, with the crop's optimal envelope from the catalog. */
+    static Crop of(String cropId, String farmId, String name, CropCatalog.Spec spec, double areaHectares) {
+        Crop crop = new Crop(cropId, farmId, name, spec.name(), null, areaHectares, LocalDate.now(),
+                0, 0, 0, 0, 0, 0);
+        crop.apply(name, spec, areaHectares);
+        return crop;
+    }
+
+    /** The farmer changed crop or land size: re-point the field at the new crop's envelope. */
+    void apply(String name, CropCatalog.Spec spec, double areaHectares) {
+        this.name = name;
+        this.cropType = spec.name();
+        this.areaHectares = areaHectares;
+        this.moistureMin = spec.moisture().min();
+        this.moistureMax = spec.moisture().max();
+        this.temperatureMin = spec.temperature().min();
+        this.temperatureMax = spec.temperature().max();
+        this.phMin = spec.ph().min();
+        this.phMax = spec.ph().max();
+    }
+
+    /**
+     * Rename or resize the field while keeping its crop, so the optimal envelope the health score
+     * is graded against is left untouched. {@link #apply} cannot be used here: it rebuilds every
+     * band from a catalog {@code Spec}, and a {@code Spec} cannot be reconstructed from the three
+     * bands stored on this row.
+     */
+    void relabel(String name, double areaHectares) {
+        this.name = name;
+        this.areaHectares = areaHectares;
     }
 
     public String getCropId() { return cropId; }

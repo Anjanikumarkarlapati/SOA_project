@@ -467,6 +467,7 @@ export interface FarmStoreState {
     token?: string | null
   ) => Promise<{ flushed: number; remaining: number; skipped: boolean }>;
   seedSampleFarmIfEmpty: () => Promise<FarmProperty | null>;
+  clearSessionData: () => void;
 }
 
 function makeUid(prefix: string): string {
@@ -590,6 +591,19 @@ export const useFarmStore = create<FarmStoreState>()(
       _hasHydrated: false,
 
       setHasHydrated: (v) => set({ _hasHydrated: v }),
+
+      clearSessionData: () =>
+        set({
+          properties: [],
+          activePropertyId: null,
+          sensorsByFarm: {},
+          valvesByFarm: {},
+          schedulesByFarm: {},
+          eventsByFarm: {},
+          checklistByFarm: {},
+          waterSavedLitres: 0,
+          syncOutbox: [],
+        }),
 
       addProperty: async (input, token) => {
         const now = new Date().toISOString();
@@ -2032,3 +2046,17 @@ export const useFarmStore = create<FarmStoreState>()(
     }
   )
 );
+
+useAuthStore.subscribe((next, prev) => {
+  const prevUser = prev.user;
+  const nextUser = next.user;
+  if (!prevUser) return;
+  const accountChanged =
+    !nextUser ||
+    prevUser.email.toLowerCase() !== nextUser.email.toLowerCase() ||
+    prevUser.farmId !== nextUser.farmId ||
+    isOfflineToken(prevUser.token) !== isOfflineToken(nextUser.token);
+  if (accountChanged) {
+    useFarmStore.getState().clearSessionData();
+  }
+});

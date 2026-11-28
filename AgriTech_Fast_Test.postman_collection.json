@@ -199,7 +199,7 @@
           ]
         },
         {
-          "name": "Google sign-in with bogus token (expect 401)",
+          "name": "Google sign-in with bogus token (expect 401|502|503)",
           "request": {
             "method": "POST",
             "header": [
@@ -216,7 +216,18 @@
             "auth": {
               "type": "noauth"
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('no token issued', () => pm.expect(pm.response.json().token).to.be.undefined);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "No token (expect 401)",
@@ -699,6 +710,288 @@
       ]
     },
     {
+      "name": "Farm & Properties",
+      "item": [
+        {
+          "name": "Get my farm (expect 200|204)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/farm/me"
+          }
+        },
+        {
+          "name": "Create property (expect 201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/farm/properties",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"farmName\": \"Postman Property {{runId}}\",\n  \"landSize\": 5.5,\n  \"landUnit\": \"HECTARES\",\n  \"cropId\": \"rice\",\n  \"state\": \"Telangana\",\n  \"district\": \"Hyderabad\",\n  \"sensors\": [\"air-temperature\", \"humidity\"],\n  \"profile\": {\n    \"lat\": 17.385,\n    \"lon\": 78.4867,\n    \"soilType\": \"LOAMY\",\n    \"waterSource\": \"CANAL\",\n    \"waterAvailability\": \"ADEQUATE\",\n    \"cropIntent\": \"RECOMMEND_BEST\"\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('propertyId returned', () => pm.expect(j.propertyId).to.be.a('string'));",
+                  "pm.collectionVariables.set('farmPropertyId', j.propertyId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List properties",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/farm/properties"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const list = pm.response.json();",
+                  "pm.test('contains created property', () => pm.expect(list.some(p => p.propertyId === pm.collectionVariables.get('farmPropertyId'))).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get property",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/farm/properties/{{farmPropertyId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('propertyId matches', () => pm.expect(pm.response.json().propertyId).to.eql(pm.collectionVariables.get('farmPropertyId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update property #1 (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/farm/properties/{{farmPropertyId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"farmName\": \"Postman Property Updated 1\",\n  \"landSize\": 6.2,\n  \"landUnit\": \"HECTARES\",\n  \"cropId\": \"wheat\",\n  \"state\": \"Punjab\",\n  \"district\": \"Ludhiana\",\n  \"sensors\": [\"air-temperature\", \"rainfall\"],\n  \"profile\": {\n    \"lat\": 30.901,\n    \"lon\": 75.8573,\n    \"soilType\": \"ALLUVIAL\",\n    \"waterSource\": \"BOREWELL\",\n    \"waterAvailability\": \"MODERATE\",\n    \"cropIntent\": \"GROW_NOW\"\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('update #1 persisted water & cropIntent', () => {",
+                  "  pm.expect(j.farmName).to.eql('Postman Property Updated 1');",
+                  "  pm.expect(j.water.waterSource).to.eql('BOREWELL');",
+                  "  pm.expect(j.cropIntent.intent).to.eql('GROW_NOW');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update property #2 (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/farm/properties/{{farmPropertyId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"farmName\": \"Postman Property Updated 2\",\n  \"landSize\": 7.0,\n  \"landUnit\": \"ACRES\",\n  \"cropId\": \"maize\",\n  \"state\": \"Maharashtra\",\n  \"district\": \"Pune\",\n  \"sensors\": [\"air-temperature\", \"humidity\", \"rainfall\"],\n  \"profile\": {\n    \"lat\": 18.5204,\n    \"lon\": 73.8567,\n    \"soilType\": \"BLACK\",\n    \"waterSource\": \"DRIP\",\n    \"waterAvailability\": \"ADEQUATE\",\n    \"cropIntent\": \"PLAN_DATES\",\n    \"intentStartDate\": \"2025-06-15\"\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('update #2 persisted water & cropIntent', () => {",
+                  "  pm.expect(j.farmName).to.eql('Postman Property Updated 2');",
+                  "  pm.expect(j.water.waterSource).to.eql('DRIP');",
+                  "  pm.expect(j.cropIntent.intent).to.eql('PLAN_DATES');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Property climate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/farm/properties/{{farmPropertyId}}/climate?start=2025-01-01&end=2025-01-05"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('property climate has statistics', () => {",
+                  "  pm.expect(j.propertyId).to.eql(pm.collectionVariables.get('farmPropertyId'));",
+                  "  pm.expect(j.statistics).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Property recommendations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/farm/properties/{{farmPropertyId}}/recommendations?start=2025-01-01&end=2025-01-05"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('property recommendations returned', () => {",
+                  "  pm.expect(j.propertyId).to.eql(pm.collectionVariables.get('farmPropertyId'));",
+                  "  pm.expect(j.recommendations).to.be.an('array').with.lengthOf.above(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Farm reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/farm/me/reports?propertyId={{farmPropertyId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('reports array returned', () => pm.expect(pm.response.json()).to.be.an('array').with.lengthOf.above(0));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Climate & Recommendations",
+      "item": [
+        {
+          "name": "Climate history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/climate/history?lat=17.38&lon=78.48&start=2025-01-01&end=2025-01-05"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('climate history has provider and statistics', () => {",
+                  "  pm.expect(j.provider).to.be.a('string');",
+                  "  pm.expect(j.statistics).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Climate history invalid lat (expect 400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/climate/history?lat=999&lon=73.85&start=2025-01-01&end=2025-01-05"
+          }
+        },
+        {
+          "name": "Score crop recommendations",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/recommendations/score",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"climate\": {\n    \"temperatureC\": { \"count\": 365, \"mean\": 26.5, \"median\": 26.2, \"standardDeviation\": 4.1, \"p05\": 19.0, \"p25\": 23.5, \"p75\": 29.8, \"p95\": 34.5 },\n    \"rainfallMm\": { \"count\": 365, \"mean\": 2.4, \"median\": 0.0, \"standardDeviation\": 6.2, \"p05\": 0.0, \"p25\": 0.0, \"p75\": 1.2, \"p95\": 14.0 },\n    \"temperatureTrendCPerDecade\": 0.25,\n    \"rainfallTrendMmPerDecade\": -1.2,\n    \"growingDegreeDays\": 4500.0,\n    \"referenceEvapotranspirationMm\": 1350.0,\n    \"waterBalanceMm\": -474.0,\n    \"droughtRiskPercent\": 24.0,\n    \"heatStressRiskPercent\": 22.0,\n    \"extremeEventProbabilityPercent\": 8.0\n  },\n  \"soilType\": \"LOAMY\",\n  \"waterSource\": \"CANAL\",\n  \"waterAvailability\": \"ADEQUATE\",\n  \"intent\": \"RECOMMEND_BEST\",\n  \"limit\": 5\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const j = pm.response.json();",
+                  "pm.test('recommendations ranked', () => {",
+                  "  pm.expect(j.weights).to.be.an('object');",
+                  "  pm.expect(j.recommendations).to.be.an('array').with.lengthOf.above(0);",
+                  "  pm.expect(j.adaptations).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Role checks (farmer)",
       "item": [
         {
@@ -818,6 +1111,30 @@
             "header": [],
             "url": "{{baseUrl}}/api/sensors/SENSOR-PM-{{runId}}"
           }
+        },
+        {
+          "name": "Delete farm property (expect 204)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/farm/properties/{{farmPropertyId}}"
+          }
+        },
+        {
+          "name": "Deleted farm property is gone (expect 404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/farm/properties/{{farmPropertyId}}"
+          }
+        },
+        {
+          "name": "Cleanup farm property sensor (expect 200|404)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/sensors/SENSOR-{{farmPropertyId}}"
+          }
         }
       ]
     },
@@ -879,6 +1196,219 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('at least one UP instance', () => pm.expect(pm.response.json().application.instance.some(i => i.status === 'UP')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "All 6 business services registered in Eureka",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{eurekaUrl}}/eureka/apps",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const apps = pm.response.json().applications.application;",
+                  "const names = apps.map(a => a.name);",
+                  "['API-GATEWAY','AUTH-SERVICE','SENSOR-SERVICE','CROP-SERVICE','CLIMATE-SERVICE','RECOMMENDATION-SERVICE','IRRIGATION-SERVICE'].forEach(n =>",
+                  "  pm.test(n + ' is registered', () => pm.expect(names).to.include(n)));",
+                  "const upCount = apps.reduce((sum, a) => sum + a.instance.filter(i => i.status === 'UP').length, 0);",
+                  "pm.test('at least 7 UP instances across Eureka', () => pm.expect(upCount).to.be.at.least(7));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "OpenAPI & Swagger",
+      "item": [
+        {
+          "name": "Swagger UI HTML",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/swagger-ui.html",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('contains swagger-ui', () => pm.expect(pm.response.text()).to.include('swagger-ui'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Gateway /v3/api-docs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/v3/api-docs",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('openapi 3.x', () => pm.expect(pm.response.json().openapi).to.match(/^3\\./));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "auth-service /v3/api-docs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth-service/v3/api-docs",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('auth paths present', () => pm.expect(pm.response.json().paths).to.have.property('/api/auth/login'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "sensor-service /v3/api-docs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/sensor-service/v3/api-docs",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('sensor paths present', () => pm.expect(pm.response.json().paths).to.have.property('/api/sensors'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "crop-service /v3/api-docs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/crop-service/v3/api-docs",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('farm paths present', () => pm.expect(pm.response.json().paths).to.have.property('/api/farm/properties'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "climate-service /v3/api-docs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/climate-service/v3/api-docs",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('climate paths present', () => pm.expect(pm.response.json().paths).to.have.property('/api/climate/history'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "recommendation-service /v3/api-docs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/recommendation-service/v3/api-docs",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('recommendation paths present', () => pm.expect(pm.response.json().paths).to.have.property('/api/recommendations/score'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "irrigation-service /v3/api-docs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/irrigation-service/v3/api-docs",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('irrigation paths present', () => pm.expect(pm.response.json().paths).to.have.property('/api/irrigation/schedules'));"
                 ]
               }
             }
@@ -989,6 +1519,10 @@
     },
     {
       "key": "runId",
+      "value": ""
+    },
+    {
+      "key": "farmPropertyId",
       "value": ""
     }
   ],

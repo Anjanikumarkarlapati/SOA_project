@@ -19,7 +19,8 @@ import java.time.Duration;
  * with the token as bearer. Supabase is the authority on its own tokens, so this works with both
  * the legacy HS256 JWT secret and the newer asymmetric (ES256/JWKS) signing keys without us
  * tracking or rotating keys locally. The email Supabase returns is the verified identity we mint
- * our own app JWT against.
+ * our own app JWT against; the Supabase user id is kept as the stable provider id so repeat
+ * logins are idempotent even if the user changes their Google email.
  */
 @Service
 public class SupabaseVerifier {
@@ -45,6 +46,14 @@ public class SupabaseVerifier {
 
     /** Returns the verified email, or throws 401 if the token is missing/invalid/expired. */
     public String verifiedEmail(String accessToken) {
+        return verifiedUser(accessToken).email();
+    }
+
+    /**
+     * Full verification: email plus the Supabase user id (used as the stable provider id for
+     * idempotent repeat logins) and the display name Google reported.
+     */
+    public VerifiedUser verifiedUser(String accessToken) {
         // Left blank until a Supabase project is configured; then we reject every token rather
         // than trusting an unverified one.
         if (endpoint == null || anonKey.isBlank()) {
@@ -84,10 +93,19 @@ public class SupabaseVerifier {
         if (email == null || email.isBlank()) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "invalid_token", "Token carries no email");
         }
-        // Supabase sets this once the provider confirms the address; don't provision on an unverified one.
-        if (!user.path("email_verified").asBoolean(true)) {
+        // Supabase sets this once the provider confirms the address; reject if explicitly false anywhere.
+        boolean explicitFalse = (user.has("email_verified") && !user.path("email_verified").asBoolean(false))
+                || (user.path("user_metadata").has("email_verified")
+                && !user.path("user_metadata").path("email_verified").asBoolean(false));
+        if (explicitFalse) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "email_unverified", "Email is not verified");
         }
-        return email.toLowerCase();
+        String providerId = user.path("id").asText(null);
+        String displayName = user.path("user_metadata").path("full_name").asText(null);
+        if (displayName == null || displayName.isBlank()) displayName = user.path("name").asText(null);
+        return new VerifiedUser(email.toLowerCase(), providerId, displayName);
     }
+
+    /** The verified identity Supabase returned for the token. providerId is the stable Supabase user id. */
+    public record VerifiedUser(String email, String providerId, String displayName) {}
 }

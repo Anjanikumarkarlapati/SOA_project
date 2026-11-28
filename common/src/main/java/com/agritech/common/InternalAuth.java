@@ -34,8 +34,12 @@ public class InternalAuth extends OncePerRequestFilter {
 
     private final byte[] secret;
 
-    public InternalAuth(@Value("${AGRITECH_INTERNAL_SECRET:agritech-internal-dev-secret-change-me-0123456789}") String secret) {
-        this.secret = secret.getBytes(StandardCharsets.UTF_8);
+    /**
+     * @param secret shared with the gateway; has no default on purpose. A service that cannot
+     *               prove it is talking to the real gateway must not start (see {@link Secrets}).
+     */
+    public InternalAuth(@Value("${AGRITECH_INTERNAL_SECRET:}") String secret) {
+        this.secret = Secrets.requireBytes("AGRITECH_INTERNAL_SECRET", secret);
     }
 
     public String sign(String email, String role, String farmId, long timestamp) {

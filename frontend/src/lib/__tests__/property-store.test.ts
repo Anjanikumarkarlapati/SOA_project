@@ -6,6 +6,7 @@ import {
   useFarmStore,
   usePropertyWizard,
 } from "@/lib/property-store";
+import { useAuthStore } from "@/lib/auth";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -285,5 +286,40 @@ describe("useFarmStore persistence, outbox & field operations", () => {
     // Verify exact valveApi URL parameter placement (not token in query string!)
     expect(fetchSpy.mock.calls[1][0]).toContain(`/api/valves/${valve.valveId}/open?durationMinutes=30`);
     expect(fetchSpy.mock.calls[2][0]).toContain("/api/valves/emergency-stop?reason=Power%20cut");
+  });
+
+  it("clears properties and syncOutbox when the authenticated user changes or logs out", async () => {
+    useAuthStore.setState({
+      user: {
+        token: "jwt-farmer",
+        email: "farmer@agritech.io",
+        role: "FARMER",
+        farmId: "FARM-A",
+        expiresAt: Date.now() + 60_000,
+      },
+      _hasHydrated: true,
+    });
+
+    const farm = await useFarmStore.getState().addProperty({ name: "Farmer A Plot", lat: 30.9, lon: 75.85 });
+    expect(useFarmStore.getState().properties).toHaveLength(1);
+    expect(useFarmStore.getState().syncOutbox).toHaveLength(1);
+
+    useAuthStore.getState().setUser({
+      token: "jwt-admin",
+      email: "admin@agritech.io",
+      role: "ADMIN",
+      farmId: "FARM-001",
+      expiresAt: Date.now() + 60_000,
+    });
+    expect(useFarmStore.getState().properties).toHaveLength(0);
+    expect(useFarmStore.getState().syncOutbox).toHaveLength(0);
+
+    await useFarmStore.getState().addProperty({ name: "Admin Plot", lat: 16.3, lon: 80.4 });
+    expect(useFarmStore.getState().properties).toHaveLength(1);
+    expect(farm.id).not.toBe(useFarmStore.getState().properties[0].id);
+
+    useAuthStore.getState().clearUser();
+    expect(useFarmStore.getState().properties).toHaveLength(0);
+    expect(useFarmStore.getState().syncOutbox).toHaveLength(0);
   });
 });

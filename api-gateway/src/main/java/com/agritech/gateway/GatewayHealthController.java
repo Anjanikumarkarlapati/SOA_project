@@ -41,28 +41,23 @@ public class GatewayHealthController {
         
         response.put("services", services);
         
-        // Helpful links
+        // Public links (no internal topology URLs or admin-only actuator paths)
         Map<String, String> links = new LinkedHashMap<>();
-        links.put("eurekaDashboard", "http://localhost:8761");
         links.put("health", "/actuator/health");
-        links.put("gatewayRoutes", "/actuator/gateway/routes");
         
         response.put("links", links);
-        response.put("hint", "Ensure all microservices are registered in Eureka before testing endpoints.");
         
         return Mono.just(response);
     }
 
     /**
-     * Returns gateway status and route information.
+     * Returns gateway status.
      */
     @GetMapping("/status")
     public Mono<Map<String, Object>> status() {
         Map<String, Object> status = new LinkedHashMap<>();
         status.put("gateway", "UP");
         status.put("timestamp", Instant.now().toString());
-        status.put("eurekaUrl", "http://localhost:8761/eureka");
-        status.put("checkEureka", "Visit http://localhost:8761 to see registered services");
         
         return Mono.just(status);
     }

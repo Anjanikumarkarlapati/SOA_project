@@ -18,10 +18,24 @@ public class TelemetryReading {
     @Column(nullable = false)
     private Instant timestamp;
 
+    // Soil probe: every device reports these.
     private double soilMoisture;
     private double soilTemperature;
     private double ph;
     private Double batteryPercent;
+
+    // Optional measurements, null when the device has no such sensor.
+    private Double airTemperature;
+    private Double humidity;
+    private Double lightLux;
+    /** Soil nitrogen, phosphorus and potassium, mg/kg. */
+    private Double nitrogen;
+    private Double phosphorus;
+    private Double potassium;
+    /** Rain since the previous reading, mm. */
+    private Double rainfallMm;
+    /** Standing water in a ponded (paddy) field, mm. */
+    private Double waterLevelMm;
 
     protected TelemetryReading() {}
 
@@ -35,6 +49,21 @@ public class TelemetryReading {
         this.batteryPercent = batteryPercent;
     }
 
+    /** Fills the optional measurements; pass null for any the device does not have. */
+    public TelemetryReading environment(Double airTemperature, Double humidity, Double lightLux,
+                                        Double nitrogen, Double phosphorus, Double potassium,
+                                        Double rainfallMm, Double waterLevelMm) {
+        this.airTemperature = airTemperature;
+        this.humidity = humidity;
+        this.lightLux = lightLux;
+        this.nitrogen = nitrogen;
+        this.phosphorus = phosphorus;
+        this.potassium = potassium;
+        this.rainfallMm = rainfallMm;
+        this.waterLevelMm = waterLevelMm;
+        return this;
+    }
+
     public Long getId() { return id; }
     public String getDeviceId() { return deviceId; }
     public Instant getTimestamp() { return timestamp; }
@@ -42,4 +71,12 @@ public class TelemetryReading {
     public double getSoilTemperature() { return soilTemperature; }
     public double getPh() { return ph; }
     public Double getBatteryPercent() { return batteryPercent; }
+    public Double getAirTemperature() { return airTemperature; }
+    public Double getHumidity() { return humidity; }
+    public Double getLightLux() { return lightLux; }
+    public Double getNitrogen() { return nitrogen; }
+    public Double getPhosphorus() { return phosphorus; }
+    public Double getPotassium() { return potassium; }
+    public Double getRainfallMm() { return rainfallMm; }
+    public Double getWaterLevelMm() { return waterLevelMm; }
 }

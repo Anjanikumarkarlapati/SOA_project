@@ -33,4 +33,5 @@ public class StoredToken {
     public String getEmail() { return email; }
     public Instant getExpiresAt() { return expiresAt; }
     public boolean isRevoked() { return revoked; }
+    void markRevoked() { this.revoked = true; }
 }

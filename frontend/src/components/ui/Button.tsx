@@ -62,6 +62,19 @@ export function Button({
   const resolvedElevation =
     elevation ?? (mappedVariant === "primary" ? "low" : "none");
 
+  const variantClass =
+    variant === "primary"
+      ? "btn-tactile-primary"
+      : variant === "secondary"
+        ? "btn-tactile-secondary"
+        : variant === "outline"
+          ? "btn-tactile-outline"
+          : variant === "brass"
+            ? "btn-tactile-brass"
+            : variant === "destructive"
+              ? "btn-tactile-destructive"
+              : "btn-tactile-ghost";
+
   return (
     <AstryxButton
       label={resolvedLabel}
@@ -77,10 +90,7 @@ export function Button({
       tooltip={tooltip}
       type={type}
       onClick={onClick}
-      className={cn(
-        "rounded-full font-semibold transition-transform duration-150 [transition-timing-function:var(--ease-out)] active:scale-[0.985]",
-        className
-      )}
+      className={cn("rounded-full btn-tactile", variantClass, className)}
       {...props}
     >
       {resolvedChildren}

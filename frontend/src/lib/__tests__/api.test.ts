@@ -443,4 +443,13 @@ describe("api.ts :8080 contracts", () => {
     await farmApi.propertyRecommendations("PROP-001", "jwt-reg");
     expect(fetchSpy.mock.calls[5][0]).toContain("/api/farm/properties/PROP-001/recommendations");
   });
+
+  it("blocks synthetic offline tokens inside request() before fetch is called", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    await expect(cropApi.list("offline-field-123")).rejects.toMatchObject({
+      status: 401,
+      message: "Offline session cannot call live API",
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 });

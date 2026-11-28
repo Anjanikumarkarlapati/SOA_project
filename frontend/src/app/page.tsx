@@ -28,6 +28,7 @@ import { BrowserShowcaseFrame } from "@/components/landing/BrowserShowcaseFrame"
 import { LandingScrollStory } from "@/components/landing/LandingScrollStory";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { Button } from "@/components/ui/Button";
+import { FieldShaderBackdrop } from "@/components/ui/FieldShaderBackdrop";
 
 const BENEFITS = [
   {
@@ -231,7 +232,12 @@ export default function RootPage() {
 
       <main className="mx-auto w-full max-w-[1200px] px-5 sm:px-8">
         {/* Hero Section */}
-        <section className="pt-12 sm:pt-16 pb-10 text-center">
+        <section className="relative pt-12 sm:pt-16 pb-10 text-center">
+          <FieldShaderBackdrop
+            className="pointer-events-none absolute -top-12 inset-x-0 h-[440px] [mask-image:radial-gradient(ellipse_at_top,black_35%,transparent_75%)]"
+            intensity="ambient"
+          />
+          <div className="relative z-10 surface-enter">
           <h1 className="mx-auto max-w-4xl font-serif-display text-5xl sm:text-7xl lg:text-[92px] leading-[0.98] tracking-[-0.035em] text-[var(--text-primary)]">
             Sense everything.
           </h1>
@@ -258,6 +264,7 @@ export default function RootPage() {
               variant="secondary"
               size="lg"
             />
+          </div>
           </div>
 
           {googleError && (

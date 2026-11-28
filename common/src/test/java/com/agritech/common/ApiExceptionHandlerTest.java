@@ -1,9 +1,12 @@
 package com.agritech.common;
 
+import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -22,6 +25,13 @@ class ApiExceptionHandlerTest {
     void wrongMethodIs405() {
         assertEquals(405, handler.handleOther(new HttpRequestMethodNotSupportedException("PATCH"))
                 .getStatusCode().value());
+    }
+
+    @Test
+    void constraintViolationIs400() {
+        var res = handler.handleConstraintViolation(new ConstraintViolationException("bad param", Set.of()));
+        assertEquals(400, res.getStatusCode().value());
+        assertEquals("validation_error", res.getBody().get("error"));
     }
 
     @Test

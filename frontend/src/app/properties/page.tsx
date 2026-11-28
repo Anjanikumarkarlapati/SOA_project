@@ -18,7 +18,15 @@ import { MEDIA_MANIFEST } from "@/lib/media-manifest";
 import { FarmMap } from "@/components/FarmMap";
 import { BezelCard } from "@/components/ui/BezelCard";
 import { Button } from "@/components/ui/Button";
+import { EditorialPhotoFrame } from "@/components/ui/EditorialPhotoFrame";
 import { Banner } from "@astryxdesign/core/Banner";
+
+const PARCEL_GALLERY = [
+  MEDIA_MANIFEST["aerial-farm"],
+  MEDIA_MANIFEST["crop-canopy"],
+  MEDIA_MANIFEST["soil-sensing"],
+  MEDIA_MANIFEST["irrigation-drip"],
+] as const;
 
 export default function PropertiesPage() {
   const properties = useFarmStore((s) => s.properties);
@@ -111,9 +119,20 @@ export default function PropertiesPage() {
       {/* Empty state */}
       {properties.length === 0 ? (
         <BezelCard innerClassName="p-6 sm:p-8 text-center space-y-5">
-          <div
+          <EditorialPhotoFrame
             data-testid="property-aerial-cover"
-            className="photo-frame relative mx-auto h-40 max-w-xl overflow-hidden rounded-2xl"
+            className="mx-auto max-w-xl"
+            innerClassName="h-52 sm:h-56"
+            caption={
+              <>
+                <span className="rounded-full border border-white/25 bg-black/65 px-2.5 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+                  Parcel aerial survey
+                </span>
+                <span className="rounded-full border border-white/25 bg-black/65 px-2.5 py-0.5 font-mono text-[11px] tabular-nums text-[#DFECC6] backdrop-blur-sm">
+                  20.296°N · 85.825°E
+                </span>
+              </>
+            }
           >
             <Image
               src={aerialMedia.src}
@@ -122,15 +141,7 @@ export default function PropertiesPage() {
               sizes="(min-width: 768px) 560px, 100vw"
               className="object-cover photo-duotone"
             />
-            <div className="absolute inset-x-3 bottom-2.5 flex items-center justify-between">
-              <span className="rounded-full border border-white/20 bg-black/75 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-white backdrop-blur-sm">
-                Illustrative Parcel Survey
-              </span>
-              <span className="rounded-full border border-white/20 bg-black/75 px-2.5 py-0.5 font-mono text-[10px] tabular-nums text-[#DFECC6] backdrop-blur-sm">
-                20.296°N · 85.825°E
-              </span>
-            </div>
-          </div>
+          </EditorialPhotoFrame>
 
           <div>
             <h2 className="font-semibold text-lg mb-1" style={{ color: "var(--text-primary)", fontFamily: "var(--font-serif)" }}>
@@ -156,9 +167,10 @@ export default function PropertiesPage() {
         <>
           {/* Farm cards grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {properties.map((farm) => {
+            {properties.map((farm, idx) => {
               const isActive = activeFarm?.id === farm.id;
               const crop = getCropById(farm.selectedCropId || "wheat");
+              const parcelMedia = PARCEL_GALLERY[idx % PARCEL_GALLERY.length];
               return (
                 <BezelCard
                   key={farm.id}
@@ -166,27 +178,30 @@ export default function PropertiesPage() {
                   innerClassName="p-4 sm:p-5 flex flex-col justify-between gap-4"
                 >
                   <div>
-                    {/* Human-free Aerial Specimen Cover Strip */}
-                    <div
+                    {/* Human-free Editorial Parcel Specimen Frame */}
+                    <EditorialPhotoFrame
                       data-testid="property-aerial-cover"
-                      className="photo-frame relative mb-4 h-28 w-full overflow-hidden rounded-xl"
+                      className="mb-4"
+                      innerClassName="h-44 w-full"
+                      caption={
+                        <>
+                          <span className="rounded-full border border-white/25 bg-black/65 px-2.5 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+                            {crop.name} parcel
+                          </span>
+                          <span className="rounded-full border border-white/25 bg-black/65 px-2.5 py-0.5 font-mono text-[11px] tabular-nums text-[#DFECC6] backdrop-blur-sm">
+                            {farm.lat.toFixed(3)}°N · {farm.lon.toFixed(3)}°E
+                          </span>
+                        </>
+                      }
                     >
                       <Image
-                        src={aerialMedia.src}
-                        alt={aerialMedia.alt}
+                        src={parcelMedia.src}
+                        alt={parcelMedia.alt}
                         fill
                         sizes="(min-width: 768px) 480px, 100vw"
                         className="object-cover photo-duotone"
                       />
-                      <div className="absolute inset-x-2.5 bottom-2 flex items-center justify-between">
-                        <span className="rounded-full border border-white/20 bg-black/75 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-white backdrop-blur-sm">
-                          Illustrative Parcel Survey
-                        </span>
-                        <span className="rounded-full border border-white/20 bg-black/75 px-2.5 py-0.5 font-mono text-[10px] tabular-nums text-[#DFECC6] backdrop-blur-sm">
-                          {farm.lat.toFixed(3)}°N · {farm.lon.toFixed(3)}°E
-                        </span>
-                      </div>
-                    </div>
+                    </EditorialPhotoFrame>
 
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div>

@@ -1,0 +1,100 @@
+AgriTech security probes -> http://localhost:8080   groups: auth, idor, harden, crud, lb
+
+== authentication / authorization ==
+  [PASS] A01    Unauthenticated request to a protected API is refused
+         SECURE: GET /api/sensors -> 401 {'error': 'unauthorized', 'message': 'Missing or malformed Authorization header', 'timestamp': '2026-10-28T16:30:28.8384
+  [FAIL] A02    Public registration cannot mint an ADMIN account
+         VULNERABLE: registered with role=ADMIN -> issued token role=ADMIN
+  [FAIL] A03    Access tokens are not forgeable with a committed default secret
+         VULNERABLE: HS256 token signed with the default dev secret -> GET /api/sensors 200
+  [PASS] A04    Unsigned tokens ("alg":"none") are rejected
+         SECURE: -> 401
+  [PASS] A05    Expired tokens are rejected
+         SECURE: -> 401
+  [PASS] A06    Logged-out access token stops working (revocation propagates)
+         SECURE: before logout 200, 20 s after logout 401
+  [PASS] A07    Refresh token is single-use (rotation + reuse detection)
+         SECURE: first refresh 200, replay 401
+  [FAIL] A08    Login timing does not reveal whether an account exists
+         VULNERABLE: avg unknown-user 54 ms vs existing-user 259 ms (delta 205 ms)
+  [PASS] A09    Client-supplied X-User-Role is not trusted by the gateway
+         SECURE: -> 401 {'error': 'unauthorized', 'message': 'Missing or malformed Authorization header'
+
+== cross-tenant object access ==
+  [PASS] B01    Each new account gets its own tenant (farm) scope
+         SECURE: alice=FARM-CA9727B6 bob=FARM-88C88139
+  [FAIL] B02    Tenant A cannot read tenant B's field by id
+         VULNERABLE: GET /api/crops/CROP-6EFA7017 as alice -> 200
+  [FAIL] B03    Tenant A's crop list does not contain tenant B's field
+         VULNERABLE: GET /api/crops as alice -> 200, 15 rows, bob's field present=True
+  [FAIL] B04    farmId query parameter cannot be used to read another tenant
+         VULNERABLE: GET /api/crops?farmId=FARM-88C88139 as alice -> 200, 1 rows
+  [PASS] B05    Tenant A cannot update tenant B's field
+         SECURE: PUT -> 405
+  [PASS] B06    Tenant A cannot delete tenant B's field
+         SECURE: DELETE -> 405
+  [FAIL] B07    Tenant A cannot read tenant B's sensor device
+         VULNERABLE: GET /api/sensors/SENSOR-CROP-6EFA7017 as alice -> 200
+  [FAIL] B08    Tenant A's sensor list is limited to its own farm
+         VULNERABLE: 24 rows visible to alice, bob's device visible=True
+  [FAIL] B09    Tenant A cannot read tenant B's telemetry history
+         VULNERABLE: GET /api/telemetry/SENSOR-CROP-6EFA7017 as alice -> 200
+  [FAIL] B10    Tenant A cannot inject readings into tenant B's device
+         VULNERABLE: POST /api/telemetry/ingest as alice -> 200
+  [FAIL] B11    Tenant A's valve list is limited to its own farm
+         VULNERABLE: GET /api/valves as alice -> 200, 4 valves visible
+  [PASS] B12    Tenant A's schedule list is limited to its own farm
+         SECURE: GET /api/irrigation/schedules as alice -> 200, 4 rows, bob's visible=False
+
+== hardening: gateway, registry, direct ports ==
+  [FAIL] H01    A forged gateway signature using the committed default secret is refused
+         VULNERABLE: direct :8082/api/sensors with default-secret HMAC -> 200 {'content': [{'deviceId': 'SENSOR-CROP-10688854', 'farmId': 'FARM-00B9AAD5', 'se
+  [PASS] H02    Direct service port rejects unsigned identity headers
+         SECURE: -> 401
+  [PASS] H03    Gateway actuator does not expose the routing table unauthenticated
+         SECURE: GET /actuator/gateway/routes -> 404
+  [PASS] H04    Service /actuator/env is not readable
+         SECURE: -> 404
+  [FAIL] H05    Eureka registry requires authentication
+         VULNERABLE: GET :8761/ -> 200, GET /eureka/apps -> 200
+  [FAIL] H06    Rate limit cannot be bypassed by rotating the X-Device-Id header
+         VULNERABLE: 130 authenticated GETs, each with a fresh X-Device-Id -> 0 rate-limited
+  [FAIL] H07    Public endpoint rate limiting engages
+         VULNERABLE: 130 unauthenticated POSTs -> 0 rate-limited
+  [PASS] H08    A foreign origin is not granted credentialed CORS
+         SECURE: OPTIONS from evil.example.com -> 403, allow-origin='', allow-credentials=''
+  [FAIL] H09    Seed demo credentials are not valid production credentials
+         VULNERABLE: login as seeded admin@agritech.io/admin1234 -> 200
+
+== CRUD completeness (rubric: CRUD operations) ==
+  [FAIL] CRUD   Crop field /api/crops
+         MISSING: missing/blocked: Update(405), Delete(405)
+Traceback (most recent call last):
+  File "C:\Users\anjan\OneDrive\Documents\SOA-Hackthon\scripts\security-probes.py", line 588, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\anjan\OneDrive\Documents\SOA-Hackthon\scripts\security-probes.py", line 573, in main
+    groups[g]()
+    ~~~~~~~~~^^
+  File "C:\Users\anjan\OneDrive\Documents\SOA-Hackthon\scripts\security-probes.py", line 478, in group_crud
+    probe("Sensor device /api/sensors",
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+          ("POST", "/api/sensors/register", {"deviceId": did, "farmId": "FARM-001",
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+          ("PUT", "/api/sensors/{id}", {"status": "OFFLINE"}),
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+          ("DELETE", "/api/sensors/{id}"), use_admin=True)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\anjan\OneDrive\Documents\SOA-Hackthon\scripts\security-probes.py", line 465, in probe
+    record("CRUD", "crud", label, "FULL CRUD" if not missing else "MISSING",
+    ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+           "complete" if not missing else "missing/blocked: " + ", ".join(missing))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\anjan\OneDrive\Documents\SOA-Hackthon\scripts\security-probes.py", line 114, in record
+    colour = {"SECURE": "PASS", "VULNERABLE": "FAIL", "MISSING": "FAIL",
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+              "INFO": "info", "PRESENT": "PASS"}[verdict]
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+KeyError: 'FULL CRUD'
+PROBES_EXIT=1

@@ -1,26 +1,44 @@
 server:
   port: 8081
+  # Finish in-flight requests on a rolling restart instead of dropping them.
+  shutdown: graceful
 
 spring:
+  # Bounded wait for the graceful shutdown above; past this the context closes.
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   application:
     name: auth-service
-  # Set DB_URL / DB_USERNAME / DB_PASSWORD (in .env) to use Supabase Postgres; unset = local H2 file.
+  # Configure DB_URL / DB_USERNAME / DB_PASSWORD for PostgreSQL; unset = persistent local H2 file.
   datasource:
-    url: ${DB_URL:jdbc:h2:file:${agritech.data-dir:./.run/data}/authdb;AUTO_SERVER=TRUE}
+    url: ${DB_URL:jdbc:h2:file:${agritech.data-dir:./.run/data}/authdb;AUTO_SERVER=TRUE;DATABASE_TO_LOWER=TRUE}
     username: ${DB_USERNAME:sa}
     password: ${DB_PASSWORD:}
     hikari:
       # 4 services share Supabase's pooler connection limit.
       maximum-pool-size: 3
+  # Flyway owns the schema. V1 rebuilds users/stored_tokens with the UUID baseline; Hibernate only
+  # validates that entities match. baseline-on-migrate lets an existing (pre-Flyway) database
+  # adopt versioning instead of failing startup.
+  flyway:
+    enabled: true
+    schemas: auth_service
+    default-schema: auth_service
+    baseline-on-migrate: true
+    baseline-version: 0
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
+    properties:
+      hibernate.default_schema: auth_service
     open-in-view: false
 
 agritech:
   jwt:
-    # Override in every real environment: AGRITECH_JWT_SECRET
-    secret: ${AGRITECH_JWT_SECRET:agritech-dev-secret-key-change-me-in-production-0123456789}
+    # No default on purpose. Set AGRITECH_JWT_SECRET (generate with `openssl rand -hex 32`).
+    # scripts/stack.ps1 provisions one into .env automatically on first run; without it the
+    # service refuses to start rather than sign tokens with a key from the repository.
+    secret: ${AGRITECH_JWT_SECRET:}
     # Short-lived access tokens; clients renew silently via POST /api/auth/refresh (30-day refresh token).
     access-ttl-minutes: 15
   supabase:

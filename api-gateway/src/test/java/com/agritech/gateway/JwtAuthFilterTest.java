@@ -22,7 +22,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class JwtAuthFilterTest {
 
     private static final String SECRET = "test-secret-key-that-is-at-least-32-bytes-long!!";
-    private final GatewaySigner signer = new GatewaySigner("internal-test-secret");
+    /** Must satisfy GatewaySecrets.require: >= 32 chars and not a published default. */
+    private final GatewaySigner signer = new GatewaySigner("internal-test-secret-value-at-least-32-chars");
     private boolean revokeAll;
     private final RevocationCache revocations = new RevocationCache(WebClient.builder(), signer) {
         @Override
@@ -115,8 +116,53 @@ class JwtAuthFilterTest {
     @Test
     void publicPathsAreExactMatches() {
         assertTrue(JwtAuthFilter.isPublic("/api/auth/login"));
+        assertTrue(JwtAuthFilter.isPublic("/sensor-service/v3/api-docs"));
+        assertTrue(JwtAuthFilter.isPublic("/v3/api-docs/swagger-config"));
         assertFalse(JwtAuthFilter.isPublic("/api/auth/loginX"));
         assertFalse(JwtAuthFilter.isPublic("/api/auth/me"));
         assertFalse(JwtAuthFilter.isPublic("/actuator/gateway/routes"));
+        assertFalse(JwtAuthFilter.isPublic("/api/sensors/v3/api-docs"));
+        assertFalse(JwtAuthFilter.isPublic("/api/crops/v3/api-docs"));
+        assertFalse(JwtAuthFilter.isPublic("/api/sensors/v3/api-docs/../../sensors"));
+    }
+
+    @Test
+    void pathTraversalAndV3ApiDocsBypassAreRejectedAtGateway() {
+        MockServerWebExchange docsBypass = get("/api/sensors/v3/api-docs", null);
+        assertNull(run(docsBypass));
+        assertEquals(HttpStatus.UNAUTHORIZED, docsBypass.getResponse().getStatusCode());
+
+        MockServerWebExchange traversal = get("/api/sensors/v3/api-docs/../../sensors", null);
+        assertNull(run(traversal));
+        assertEquals(HttpStatus.BAD_REQUEST, traversal.getResponse().getStatusCode());
+    }
+
+    @Test
+    void actuatorFilterBlocksUnauthenticatedAndFarmerAndAllowsAdminAndHealth() {
+        ActuatorAuthWebFilter actuatorFilter = new ActuatorAuthWebFilter(filter);
+        org.springframework.web.server.WebFilterChain passChain = ex -> Mono.empty();
+
+        MockServerWebExchange health = MockServerWebExchange.from(MockServerHttpRequest.get("/actuator/health"));
+        actuatorFilter.filter(health, passChain).block();
+        assertNull(health.getResponse().getStatusCode());
+
+        MockServerWebExchange unauth = MockServerWebExchange.from(MockServerHttpRequest.get("/actuator/circuitbreakers"));
+        actuatorFilter.filter(unauth, passChain).block();
+        assertEquals(HttpStatus.UNAUTHORIZED, unauth.getResponse().getStatusCode());
+
+        String farmerJwt = Jwts.builder().setId("jf").setSubject("f@agritech.io")
+                .claim("role", "FARMER").claim("farmId", "FARM-002")
+                .setExpiration(new Date(System.currentTimeMillis() + 60_000))
+                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)), SignatureAlgorithm.HS256)
+                .compact();
+        MockServerWebExchange farmer = MockServerWebExchange.from(MockServerHttpRequest.get("/actuator/circuitbreakers")
+                .header("Authorization", "Bearer " + farmerJwt));
+        actuatorFilter.filter(farmer, passChain).block();
+        assertEquals(HttpStatus.FORBIDDEN, farmer.getResponse().getStatusCode());
+
+        MockServerWebExchange admin = MockServerWebExchange.from(MockServerHttpRequest.get("/actuator/circuitbreakers")
+                .header("Authorization", "Bearer " + token(SECRET, "ja", 60_000)));
+        actuatorFilter.filter(admin, passChain).block();
+        assertNull(admin.getResponse().getStatusCode());
     }
 }

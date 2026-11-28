@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { useRouter } from "next/navigation";
 import { authApi, isBackendUnreachableError } from "@/lib/api";
+import { useFarmStore } from "@/lib/property-store";
 import {
   buildUser,
   createOfflineUser,
@@ -165,6 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       void authApi.logout(currentUser.token, currentUser.refreshToken).catch(() => {});
     }
     void supabaseSignOut();
+    useFarmStore.getState().clearSessionData();
     clearUser();
   }, [clearUser]);
 

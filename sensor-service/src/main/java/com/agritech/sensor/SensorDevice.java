@@ -38,6 +38,20 @@ public class SensorDevice {
     private Double batteryPercent;
     private Instant lastReadingAt;
 
+    /**
+     * Comma-separated optional measurements this device reports beyond the soil probe, e.g.
+     * "air-temperature,humidity,rainfall" (see FarmSimulation.CAPABILITIES). Null for the
+     * original soil-only devices.
+     */
+    private String capabilities;
+
+    /**
+     * JSON targets for a simulated farm device (crop-tuned baselines, set by crop-service when a
+     * farm is set up). Null for real hardware, which reports through /api/telemetry/ingest.
+     */
+    @Column(length = 2000)
+    private String simProfile;
+
     protected SensorDevice() {}
 
     public SensorDevice(String deviceId, String farmId, String sensorType, String fieldId,
@@ -80,4 +94,8 @@ public class SensorDevice {
     public Double getBatteryPercent() { return batteryPercent; }
     public void setBatteryPercent(Double batteryPercent) { this.batteryPercent = batteryPercent; }
     public Instant getLastReadingAt() { return lastReadingAt; }
+    public String getCapabilities() { return capabilities; }
+    public void setCapabilities(String capabilities) { this.capabilities = capabilities; }
+    public String getSimProfile() { return simProfile; }
+    public void setSimProfile(String simProfile) { this.simProfile = simProfile; }
 }

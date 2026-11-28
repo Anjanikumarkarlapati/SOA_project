@@ -90,18 +90,8 @@ export function FarmMap({
   const [locationName, setLocationName] = useState<string>("");
   const [selectedSensor, setSelectedSensor] = useState<SensorMarker | null>(null);
 
-  // Determine Google Maps Platform API key availability
-  const [storedGKey] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return (
-        localStorage.getItem("gmaps_api_key") ||
-        process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
-        ""
-      );
-    }
-    return "";
-  });
-  const gKey = apiKey !== undefined ? apiKey : storedGKey;
+  // Determine Google Maps Platform API key from build-time public config only
+  const gKey = apiKey !== undefined ? apiKey : (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "");
   const [googleAuthError, setGoogleAuthError] = useState(false);
 
   const hasValidGoogleKey = Boolean(gKey && gKey.trim().length > 10 && !googleAuthError);

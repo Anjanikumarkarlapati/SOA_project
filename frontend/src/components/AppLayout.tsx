@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { ActivePropertyProvider } from "@/components/providers/ActivePropertyProvider";
 import { AgriTechLogo } from "@/components/brand/AgriTechLogo";
+import { FieldShaderBackdrop } from "@/components/ui/FieldShaderBackdrop";
 import {
   LayoutDashboard,
   MapPin,
@@ -180,7 +181,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </aside>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="relative flex-1 flex flex-col min-w-0">
+          <FieldShaderBackdrop
+            className="absolute inset-x-0 top-14 h-56 [mask-image:linear-gradient(to_bottom,black_20%,transparent_100%)]"
+            intensity="subtle"
+          />
           {/* Global Context Top Bar */}
           <header
             className="relative z-20 flex items-center justify-between gap-2 px-4 sm:px-6 py-3 border-b flex-wrap"
@@ -267,7 +272,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </header>
 
           {/* Page Content */}
-          <main className="flex-1 overflow-y-auto overflow-x-clip min-w-0">{children}</main>
+          <main className="relative z-10 flex-1 overflow-y-auto overflow-x-clip min-w-0 surface-enter">{children}</main>
         </div>
 
         {/* Regional Language & Typography Modal */}

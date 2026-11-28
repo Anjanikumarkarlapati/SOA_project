@@ -5,7 +5,9 @@ import com.agritech.common.CallerContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -60,19 +62,8 @@ public class CropController {
                 snap == null ? List.of() : snap.getRecommendations());
     }
 
-    /** Optimal envelope per crop type: moisture min/max, temperature min/max, pH min/max. */
-    static final Map<String, double[]> CROP_PROFILES = Map.of(
-            "maize", new double[]{55, 75, 18, 27, 5.8, 7.0},
-            "wheat", new double[]{45, 65, 15, 24, 6.0, 7.5},
-            "tomato", new double[]{60, 80, 18, 26, 6.0, 6.8},
-            "soybean", new double[]{50, 70, 20, 30, 6.0, 7.0},
-            "rice", new double[]{70, 90, 20, 35, 5.5, 7.0},
-            "cotton", new double[]{45, 65, 21, 32, 5.8, 8.0},
-            "sugarcane", new double[]{60, 80, 20, 33, 6.0, 7.5},
-            "potato", new double[]{60, 80, 15, 22, 5.0, 6.5});
-    static final double[] DEFAULT_PROFILE = {50, 70, 18, 28, 6.0, 7.0};
-
-    public record CreateCropRequest(@NotBlank String name, @NotBlank String cropType, @Positive Double areaHectares) {}
+    public record CreateCropRequest(@NotBlank @Size(max = 80) String name, @NotBlank @Size(max = 60) String cropType,
+                                    @Positive @Max(100000) Double areaHectares) {}
 
     /**
      * Any signed-in farmer adds a field and names its crop. The field gets that crop's optimal band,
@@ -81,27 +72,47 @@ public class CropController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CropView create(@Valid @RequestBody CreateCropRequest req, HttpServletRequest http) {
-        String farmId = Optional.ofNullable(CallerContext.farmId(http)).filter(f -> !f.isBlank()).orElse("FARM-001");
-        double[] p = CROP_PROFILES.getOrDefault(req.cropType().trim().toLowerCase(), DEFAULT_PROFILE);
-        String cropId = "CROP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        Crop crop = crops.save(new Crop(cropId, farmId, req.name().trim(), req.cropType().trim(), null,
-                req.areaHectares() == null ? 1 : req.areaHectares(), LocalDate.now(),
-                p[0], p[1], p[2], p[3], p[4], p[5]));
+        String farmId = CallerContext.farmScope(http);
+        if (farmId == null) {
+            if (!CallerContext.isPrivileged(http)) {
+                throw new ApiException(HttpStatus.UNAUTHORIZED, "unauthorized", "Missing tenant scope");
+            }
+            farmId = "FARM-001";
+        }
+        CropCatalog.Spec spec = CropCatalog.find(req.cropType())
+                .orElseGet(() -> CropCatalog.generic(req.cropType().trim()));
+        String cropId = Crop.newId();
+        Crop crop = crops.save(Crop.of(cropId, farmId, req.name().trim(), spec,
+                req.areaHectares() == null ? 1 : req.areaHectares()));
         // ponytail: best effort, no rollback; if sensor-service is down the field reads NO_DATA.
         if (sensors.provisionSensor(cropId, farmId)) {
             analysis.backfillHistory(crop);
             analysis.analyze(crop);
         }
-        return get(cropId);
+        return view(crop, snapshots.findFirstByCropIdOrderByTimestampDesc(cropId).orElse(null));
     }
 
-    private Crop require(String cropId) {
-        return crops.findById(cropId).orElseThrow(() -> ApiException.notFound("Crop", cropId));
+    private Crop require(String cropId, HttpServletRequest http) {
+        Crop crop = crops.findById(cropId).orElseThrow(() -> ApiException.notFound("Crop", cropId));
+        CallerContext.requireAccess(http, crop.getFarmId(), "Crop", cropId);
+        return crop;
+    }
+
+    /**
+     * Fields this caller may see: everything for an administrator or a peer service, this farm's
+     * own fields for a farmer. This is what stops {@code GET /api/crops} from being a cross-tenant
+     * dump.
+     */
+    private List<Crop> visibleCrops(HttpServletRequest http) {
+        String scope = CallerContext.scopeListFilter(http, null);
+        return scope == null ? crops.findAll() : crops.findByFarmId(scope);
     }
 
     @GetMapping
-    public List<CropView> list(@RequestParam(required = false) String farmId) {
-        List<Crop> all = farmId == null ? crops.findAll() : crops.findByFarmId(farmId);
+    public List<CropView> list(@RequestParam(required = false) String farmId, HttpServletRequest http) {
+        // A farmer asking for someone else's farm is quietly narrowed to their own.
+        String scope = CallerContext.scopeListFilter(http, farmId);
+        List<Crop> all = scope == null ? crops.findAll() : crops.findByFarmId(scope);
         return all.stream()
                 .map(c -> view(c, snapshots.findFirstByCropIdOrderByTimestampDesc(c.getCropId()).orElse(null)))
                 .sorted(Comparator.comparing(CropView::cropId))
@@ -109,15 +120,15 @@ public class CropController {
     }
 
     @GetMapping("/{cropId}")
-    public CropView get(@PathVariable String cropId) {
-        Crop crop = require(cropId);
+    public CropView get(@PathVariable String cropId, HttpServletRequest http) {
+        Crop crop = require(cropId, http);
         return view(crop, snapshots.findFirstByCropIdOrderByTimestampDesc(cropId).orElse(null));
     }
 
     /** FR-5: current health score (0-100). */
     @GetMapping("/{cropId}/health")
-    public CropView health(@PathVariable String cropId) {
-        Crop crop = require(cropId);
+    public CropView health(@PathVariable String cropId, HttpServletRequest http) {
+        Crop crop = require(cropId, http);
         return view(crop, analysis.currentHealth(crop).orElse(null));
     }
 
@@ -127,8 +138,9 @@ public class CropController {
      */
     @GetMapping("/{cropId}/metrics")
     public Map<String, Object> metrics(@PathVariable String cropId,
-                                       @RequestParam(defaultValue = "7d") String range) {
-        Crop crop = require(cropId);
+                                       @RequestParam(defaultValue = "7d") String range,
+                                       HttpServletRequest http) {
+        Crop crop = require(cropId, http);
         Instant from = Instant.now().minus(parseRange(range));
 
         List<Map<String, Object>> healthTrend = snapshots
@@ -153,9 +165,10 @@ public class CropController {
 
     /** FR-5: trigger a manual analysis, for one crop or the whole farm. */
     @PostMapping("/analyze")
-    public Map<String, Object> analyze(@RequestBody(required = false) Map<String, String> body) {
+    public Map<String, Object> analyze(@RequestBody(required = false) Map<String, String> body,
+                                       HttpServletRequest http) {
         String cropId = body == null ? null : body.get("cropId");
-        List<Crop> targets = cropId == null ? crops.findAll() : List.of(require(cropId));
+        List<Crop> targets = cropId == null ? visibleCrops(http) : List.of(require(cropId, http));
 
         List<CropView> results = targets.stream()
                 .map(c -> view(c, analysis.analyze(c).orElse(null)))
@@ -165,9 +178,9 @@ public class CropController {
 
     /** FR-6: deviations that need a farmer's attention, newest first. */
     @GetMapping("/alerts")
-    public List<Map<String, Object>> alerts() {
+    public List<Map<String, Object>> alerts(HttpServletRequest http) {
         List<Map<String, Object>> alerts = new ArrayList<>();
-        for (Crop crop : crops.findAll()) {
+        for (Crop crop : visibleCrops(http)) {
             HealthSnapshot snap = snapshots.findFirstByCropIdOrderByTimestampDesc(crop.getCropId()).orElse(null);
             if (snap == null || "OPTIMAL".equals(snap.overallStatus())) continue;
             alerts.add(Map.of(
@@ -186,14 +199,59 @@ public class CropController {
 
     /** Dashboard stat tile: share of fields currently reading optimal. */
     @GetMapping("/summary")
-    public Map<String, Object> summary() {
-        List<Crop> all = crops.findAll();
+    public Map<String, Object> summary(HttpServletRequest http) {
+        List<Crop> all = visibleCrops(http);
         long optimal = all.stream()
                 .map(c -> snapshots.findFirstByCropIdOrderByTimestampDesc(c.getCropId()).orElse(null))
                 .filter(s -> s != null && "OPTIMAL".equals(s.overallStatus()))
                 .count();
         int percent = all.isEmpty() ? 0 : (int) Math.round(optimal * 100.0 / all.size());
         return Map.of("totalFields", all.size(), "optimalFields", optimal, "optimalPercent", percent);
+    }
+
+    /** Every field is optional; only the properties present are changed. */
+    public record UpdateCropRequest(@Size(max = 80) String name, @Size(max = 60) String cropType,
+                                    @Positive @Max(100000) Double areaHectares) {}
+
+    /**
+     * Update: rename a field, resize it, or replant it as another crop. Changing the crop type
+     * re-points the field at that crop's optimal envelope, which is what the health score is
+     * measured against, so a fresh analysis is taken straight after.
+     */
+    @PutMapping("/{cropId}")
+    public CropView update(@PathVariable String cropId,
+                           @Valid @RequestBody UpdateCropRequest req, HttpServletRequest http) {
+        Crop crop = require(cropId, http);
+        String name = req.name() == null || req.name().isBlank() ? crop.getName() : req.name().trim();
+        double area = req.areaHectares() == null ? crop.getAreaHectares() : req.areaHectares();
+        boolean replanted = req.cropType() != null && !req.cropType().isBlank()
+                && !req.cropType().equals(crop.getCropType());
+        if (replanted) {
+            CropCatalog.Spec spec = CropCatalog.find(req.cropType())
+                    .orElseGet(() -> CropCatalog.generic(req.cropType().trim()));
+            crop.apply(name, spec, area);
+        } else {
+            crop.relabel(name, area);
+        }
+        crops.save(crop);
+        // A new crop means a new optimal envelope, so the old score is meaningless: re-grade it.
+        HealthSnapshot snap = replanted
+                ? analysis.analyze(crop).orElse(null)
+                : snapshots.findFirstByCropIdOrderByTimestampDesc(cropId).orElse(null);
+        return view(crop, snap);
+    }
+
+    /**
+     * Delete: remove the field, the health history recorded against it, and the soil sensor that
+     * was provisioned for it, so nothing is left billing the farm for a field that is gone.
+     */
+    @DeleteMapping("/{cropId}")
+    public Map<String, String> delete(@PathVariable String cropId, HttpServletRequest http) {
+        Crop crop = require(cropId, http);
+        sensors.removeSensor(cropId);
+        snapshots.deleteByCropId(cropId);
+        crops.delete(crop);
+        return Map.of("status", "deleted", "cropId", cropId);
     }
 
     private static Duration parseRange(String range) {

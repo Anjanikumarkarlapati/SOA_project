@@ -24,16 +24,28 @@ public class TokenStore {
         return token;
     }
 
-    /** Returns the owning email, or null if unknown/expired. */
+    /** Atomically consumes a refresh token so parallel or replayed refreshes cannot succeed. */
+    @org.springframework.transaction.annotation.Transactional
     public String consumeRefresh(String token) {
-        return tokens.findById(token)
-                .filter(t -> !t.isRevoked() && t.getExpiresAt().isAfter(Instant.now()))
-                .map(StoredToken::getEmail)
-                .orElse(null);
+        if (token == null) return null;
+        StoredToken stored = tokens.findByIdForUpdate(token).orElse(null);
+        if (stored == null || stored.isRevoked() || !stored.getExpiresAt().isAfter(Instant.now())
+                || stored.getEmail() == null) {
+            return null;
+        }
+        String email = stored.getEmail();
+        stored.markRevoked();
+        tokens.save(stored);
+        return email;
     }
 
     public void dropRefresh(String token) {
         if (token != null) tokens.deleteById(token);
+    }
+
+    /** Every refresh token for an account, e.g. when that account is deleted. */
+    public void dropAllRefresh(String email) {
+        if (email != null) tokens.deleteByEmail(email);
     }
 
     /** Revoke an access token by its jti until it would have expired anyway. */
@@ -41,10 +53,14 @@ public class TokenStore {
         if (jti != null) tokens.save(new StoredToken(jti, null, tokenExpiry, true));
     }
 
+    public boolean isRevoked(String jti) {
+        return jti != null && tokens.existsByIdAndRevokedTrue(jti);
+    }
+
     public Set<String> revokedIds() {
         Instant now = Instant.now();
         tokens.deleteByExpiresAtBefore(now);
-        return tokens.findByRevokedTrueAndExpiresAtAfter(now).stream()
+        return tokens.findByRevokedTrueAndEmailIsNullAndExpiresAtAfter(now).stream()
                 .map(StoredToken::getId).collect(Collectors.toSet());
     }
 }

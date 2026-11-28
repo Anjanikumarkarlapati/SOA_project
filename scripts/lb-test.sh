@@ -27,6 +27,17 @@ hits() { # hits <port> <uri>
 
 code() { cat "$TMP/code"; }
 
+wait_rate_window() { # wait_rate_window <needed-requests>
+  local needed="$1" rem wait_s
+  curl -s -D "$TMP/rlh" -o /dev/null "${AUTH[@]}" "$GATEWAY/api/sensors/summary"
+  rem=$(grep -i '^X-RateLimit-Remaining:' "$TMP/rlh" | tail -1 | tr -dc '0-9')
+  if [ -z "$rem" ] || [ "$rem" -lt "$needed" ]; then
+    wait_s=$((62 - ($(date +%s) % 60)))
+    echo "  ..waiting ${wait_s}s for gateway 60s rate-limit window reset"
+    sleep "$wait_s"
+  fi
+}
+
 curl -s -X POST "$GATEWAY/api/auth/login" -H 'Content-Type: application/json' \
   -d '{"email":"admin@agritech.io","password":"admin1234"}' > "$TMP/admin.json"
 ADMIN=$(json "json.load(sys.stdin)['token']" "$TMP/admin.json")
@@ -51,6 +62,7 @@ all=$(json "sum(len(a['instance']) for a in json.load(sys.stdin)['applications']
 
 echo
 echo "== Gateway load balancing (lb://) =="
+wait_rate_window 85
 
 lb_check() { # lb_check <label> <uri-template> <gateway-path> <port1> <port2>
   local a0 b0 a1 b1
@@ -89,6 +101,7 @@ curl -s -o /dev/null -X DELETE "${AUTH[@]}" "$GATEWAY/api/irrigation/schedules/$
 
 echo
 echo "== Inter-service calls are load balanced through Eureka =="
+wait_rate_window 55
 
 # crop-service -> sensor-service (@LoadBalanced RestTemplate, http://sensor-service/...)
 URI=/api/telemetry/field/{fieldId}/series

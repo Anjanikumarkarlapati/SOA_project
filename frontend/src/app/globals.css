@@ -25,7 +25,13 @@
   --accent-brass: #8E9C78;
   --on-accent: #FFFFFF;
   --block: #8E9C78;
+  --on-block: #0E110B;
   --hero-ink: #000000;
+  --bezel-shadow: 0 12px 30px -16px rgba(16, 24, 6, 0.22);
+  --btn-rim: rgba(255, 255, 255, 0.26);
+  --btn-lip-olive: #101506;
+  --btn-lip-critical: #1a0605;
+  --btn-critical-ink: #FBF6F5;
 
   --status-good: #485C11;
   --status-warning: #9A6300;
@@ -60,7 +66,13 @@
   --accent-brass: #C5D69A;
   --on-accent: #0E110B;
   --block: #3C4829;
+  --on-block: #F5F7F2;
   --hero-ink: #080A06;
+  --bezel-shadow: 0 12px 30px -16px rgba(0, 0, 0, 0.48);
+  --btn-rim: rgba(255, 255, 255, 0.16);
+  --btn-lip-olive: #080B04;
+  --btn-lip-critical: #1a0605;
+  --btn-critical-ink: #FBF6F5;
 
   --status-good: #9AB556;
   --status-warning: #E0B243;
@@ -174,6 +186,7 @@ html[data-lang-script="malayalam"] {
     font-family: var(--font-serif);
     font-weight: 400;
     letter-spacing: var(--indic-tracking, -0.025em);
+    text-wrap: balance;
   }
 
   /* Tabular mono numbers and identifiers */
@@ -207,17 +220,109 @@ html[data-lang-script="malayalam"] {
   .photo-frame {
     position: relative;
     overflow: hidden;
-    border-radius: 28px;
+    border-radius: 24px;
     border: 1px solid var(--border-default);
     background-color: var(--bg-raised);
   }
-  .photo-duotone {
-    filter: contrast(102%) saturate(98%);
-    transition: transform 420ms var(--ease-out), filter 420ms var(--ease-out);
+  .photo-frame-bezel {
+    padding: 8px;
+    border-radius: 28px;
+    border: 1px solid var(--border-default);
+    background-color: var(--bg-bezel);
+    box-shadow: var(--bezel-shadow);
+    transition: border-color 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
   }
+  .photo-frame-bezel:hover {
+    border-color: var(--border-strong);
+  }
+  .photo-duotone {
+    filter: contrast(103%) saturate(102%);
+    transition: filter 320ms var(--ease-out);
+  }
+  .group:hover .photo-duotone,
   .photo-duotone:hover {
-    filter: contrast(105%) saturate(102%);
-    transform: scale(1.015);
+    filter: contrast(106%) saturate(105%);
+  }
+
+  /* Tactile Botanical Button Surfaces (shared by Button.tsx over @astryxdesign/core/Button) */
+  .btn-tactile {
+    border-radius: 9999px;
+    font-weight: 600;
+    transition: transform 150ms var(--ease-out), box-shadow 150ms var(--ease-out), background-color 150ms var(--ease-out), border-color 150ms var(--ease-out), color 150ms var(--ease-out);
+  }
+  .btn-tactile:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .btn-tactile:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+  .btn-tactile:not(:disabled):active {
+    transform: translateY(1px) scale(0.985);
+  }
+  .btn-tactile-primary {
+    background-color: var(--accent) !important;
+    color: var(--on-accent) !important;
+    border: 1px solid color-mix(in oklab, var(--accent) 80%, var(--btn-lip-olive)) !important;
+    box-shadow:
+      inset 0 1px 0 var(--btn-rim),
+      0 2px 0 color-mix(in oklab, var(--accent) 72%, var(--btn-lip-olive)),
+      0 6px 14px -4px color-mix(in oklab, var(--accent) 34%, transparent) !important;
+  }
+  .btn-tactile-primary:not(:disabled):hover {
+    background-color: var(--accent-hover) !important;
+  }
+  .btn-tactile-secondary {
+    background-color: var(--accent-wash) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid color-mix(in oklab, var(--accent) 28%, var(--border-strong)) !important;
+    box-shadow:
+      inset 0 1px 0 var(--btn-rim),
+      0 2px 0 color-mix(in oklab, var(--accent) 18%, var(--border-default)) !important;
+  }
+  .btn-tactile-secondary:not(:disabled):hover {
+    background-color: color-mix(in oklab, var(--accent-wash) 76%, var(--accent)) !important;
+  }
+  .btn-tactile-outline {
+    background-color: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-strong) !important;
+    box-shadow:
+      inset 0 1px 0 var(--btn-rim),
+      0 2px 0 color-mix(in oklab, var(--border-strong) 55%, transparent) !important;
+  }
+  .btn-tactile-outline:not(:disabled):hover {
+    border-color: var(--accent) !important;
+    background-color: color-mix(in oklab, var(--accent-wash) 45%, var(--bg-surface)) !important;
+  }
+  .btn-tactile-brass {
+    background-color: var(--block) !important;
+    color: var(--on-block) !important;
+    border: 1px solid color-mix(in oklab, var(--block) 78%, var(--btn-lip-olive)) !important;
+    box-shadow:
+      inset 0 1px 0 var(--btn-rim),
+      0 2px 0 color-mix(in oklab, var(--block) 70%, var(--btn-lip-olive)),
+      0 6px 14px -4px color-mix(in oklab, var(--block) 32%, transparent) !important;
+  }
+  .btn-tactile-destructive {
+    background-color: var(--status-critical) !important;
+    color: var(--btn-critical-ink) !important;
+    border: 1px solid color-mix(in oklab, var(--status-critical) 75%, var(--btn-lip-critical)) !important;
+    box-shadow:
+      inset 0 1px 0 var(--btn-rim),
+      0 2px 0 color-mix(in oklab, var(--status-critical) 70%, var(--btn-lip-critical)),
+      0 6px 14px -4px color-mix(in oklab, var(--status-critical) 32%, transparent) !important;
+  }
+  .btn-tactile-ghost {
+    background-color: transparent !important;
+    color: var(--text-secondary) !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+  }
+  .btn-tactile-ghost:not(:disabled):hover {
+    background-color: color-mix(in oklab, var(--accent-wash) 65%, transparent) !important;
+    color: var(--text-primary) !important;
+    border-color: color-mix(in oklab, var(--accent) 18%, var(--border-default)) !important;
   }
 }
 
@@ -314,7 +419,44 @@ html[data-lang-script="malayalam"] {
   }
 }
 
+@keyframes theme-radial-reveal {
+  from {
+    clip-path: circle(0px at var(--theme-x, 85%) var(--theme-y, 32px));
+  }
+  to {
+    clip-path: circle(var(--theme-r, 150vmax) at var(--theme-x, 85%) var(--theme-y, 32px));
+  }
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-new(root) {
+  animation: theme-radial-reveal 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes surface-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.surface-enter {
+  animation: surface-fade-up 340ms var(--ease-out) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

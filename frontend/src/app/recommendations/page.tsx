@@ -123,12 +123,15 @@ export default function RecommendationsPage() {
         return;
       }
       try {
-        let res: BackendRecommendationResponse;
+        const end = pastIsoDate(5);
+        const start = pastIsoDate(5, 1);
+        let res: BackendRecommendationResponse | null = null;
         if (activeFarm?.syncedToBackend) {
-          res = await farmApi.propertyRecommendations(activeFarm.id, token);
-        } else {
-          const end = pastIsoDate(5);
-          const start = pastIsoDate(5, 10);
+          res = await farmApi
+            .propertyRecommendations(activeFarm.id, token, start, end)
+            .catch(() => null);
+        }
+        if (!res) {
           const hist = await climateApi
             .history(targetLat, targetLon, start, end, token)
             .catch(() => null);
@@ -308,7 +311,7 @@ export default function RecommendationsPage() {
                 className="text-base font-semibold"
                 style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
               >
-                Regional Crop Advisory Engine (10-Year Climate + Soil/Water Fit)
+                Regional Crop Advisory Engine (Climate + Soil/Water Fit)
               </h2>
               <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
                 Live multi-factor suitability score from synced climate &amp; soil profiles

@@ -13,6 +13,7 @@ import { fetchClimate, computeClimateStats, type ClimateStats } from "@/lib/clim
 import { RootZoneSoilCard } from "@/components/RootZoneSoilCard";
 import { BezelCard } from "@/components/ui/BezelCard";
 import { Button } from "@/components/ui/Button";
+import { EditorialPhotoFrame } from "@/components/ui/EditorialPhotoFrame";
 import { Banner } from "@astryxdesign/core/Banner";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import {
@@ -350,23 +351,27 @@ export default function SensorsPage() {
       {/* Hardware Probe Placement Guide (Zero-Human soil-sensing.jpg) */}
       <BezelCard
         data-testid="probe-placement-guide"
-        innerClassName="p-5 grid grid-cols-1 md:grid-cols-12 gap-5 items-center"
+        innerClassName="p-5 grid grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-5 items-center"
       >
-        <div className="md:col-span-4">
-          <div className="photo-frame relative h-40 w-full overflow-hidden rounded-xl">
+        <div className="min-w-0">
+          <EditorialPhotoFrame
+            innerClassName="h-48 sm:h-52 w-full"
+            caption={
+              <span className="rounded-full border border-white/25 bg-black/65 px-2.5 py-0.5 font-mono text-[11px] tabular-nums text-[#DFECC6] backdrop-blur-sm">
+                15 / 30 / 60 cm horizons
+              </span>
+            }
+          >
             <img
               src="/images/soil-sensing.jpg"
               alt="In-situ dielectric capacitance probe placed in active root-zone horizon"
               className="h-full w-full object-cover photo-duotone"
             />
-            <span className="absolute bottom-2 left-2 rounded-full border border-white/20 bg-black/75 px-2.5 py-0.5 font-mono text-[10px] text-[#DFECC6]">
-              15 / 30 / 60 cm Horizons
-            </span>
-          </div>
+          </EditorialPhotoFrame>
         </div>
-        <div className="md:col-span-8 space-y-2 text-xs">
-          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-secondary)]">
-            FIELD DEPLOYMENT PROTOCOL · FAO-56 CALIBRATION
+        <div className="min-w-0 space-y-2 text-xs">
+          <span className="text-[12px] font-medium text-[var(--accent)]">
+            FAO-56 calibration protocol
           </span>
           <h2 className="text-lg font-serif-display text-[var(--text-primary)]">
             Multi-Depth Dielectric Probe Placement Guide

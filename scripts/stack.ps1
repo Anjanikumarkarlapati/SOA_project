@@ -43,6 +43,38 @@ if (Test-Path $envFile) {
     }
 }
 
+# Signing secrets. Neither the services (common/Secrets.java) nor the gateway
+# (GatewaySecrets.java) accept a built-in default any more, so a first run has to mint real ones.
+# They are persisted to .env - which .gitignore excludes - so every service, every replica and
+# every later run shares one key. Existing values are left exactly as they are: rotation is a
+# deliberate edit, not something a start script should do behind your back.
+function New-SigningSecret {
+    $bytes = New-Object byte[] 32
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
+    return -join ($bytes | ForEach-Object { $_.ToString('x2') })
+}
+
+foreach ($name in @('AGRITECH_JWT_SECRET', 'AGRITECH_INTERNAL_SECRET')) {
+    $existing = [Environment]::GetEnvironmentVariable($name)
+
+    if ($existing) {
+        continue
+    }
+
+    $generated = New-SigningSecret
+    [Environment]::SetEnvironmentVariable($name, $generated, 'Process')
+
+    if (-not (Test-Path $envFile)) {
+        Set-Content -Path $envFile -Value '# Local configuration. Never commit this file.' -Encoding utf8
+    }
+    Add-Content -Path $envFile -Value "$name=$generated" -Encoding utf8
+
+    Write-Host "generated a new $name and saved it to .env (values are never printed)" -ForegroundColor Yellow
+}
+
+Write-Host 'note: changing AGRITECH_JWT_SECRET invalidates every token issued under the old key.' -ForegroundColor DarkGray
+
 # Every instance of a service shares one H2 file DB here, so load-balanced replicas agree.
 $env:AGRITECH_DATA_DIR = Join-Path $logDir 'data'
 
@@ -51,6 +83,8 @@ $services = @(
     @{ Name = 'auth-service';       Port = 8081 },
     @{ Name = 'sensor-service';     Port = 8082 },
     @{ Name = 'crop-service';       Port = 8083 },
+    @{ Name = 'climate-service';    Port = 8086 },
+    @{ Name = 'recommendation-service'; Port = 8087 },
     @{ Name = 'irrigation-service'; Port = 8084 },
     @{ Name = 'api-gateway';        Port = 8080 }
 )
@@ -78,7 +112,7 @@ function Wait-ForPort {
     param(
         [int]$Port,
         [string]$Name,
-        [int]$TimeoutSeconds = 90
+        [int]$TimeoutSeconds = 300
     )
 
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
@@ -102,11 +136,17 @@ function Wait-ForPort {
 }
 
 function Start-Stack {
+    $buildRoot = $root
     if (-not $SkipBuild) {
         Write-Host 'Building all modules...' -ForegroundColor Cyan
+        # Build into a fresh local temp path: OneDrive placeholders can block clean/package writes,
+        # and package (unlike install) does not write artifacts to the shared Maven repository.
+        $buildRoot = Join-Path $env:TEMP ("agritech-stack-" + [guid]::NewGuid().ToString('N'))
 
         # JVM warnings on stderr must not abort under ErrorActionPreference=Stop; exit code decides.
-        & { $ErrorActionPreference = 'Continue'; & (Join-Path $root 'mvnw.cmd') -q -B install -DskipTests 2>&1 | Out-Host }
+        # The reactor resolves inter-module dependencies in memory; install would write to the
+        # user's shared ~/.m2 repository and is unnecessary to launch this local stack.
+        & { $ErrorActionPreference = 'Continue'; & (Join-Path $root 'mvnw.cmd') -q -B package -DskipTests "-Dagritech.build.root=$buildRoot" 2>&1 | Out-Host }
 
         if ($LASTEXITCODE -ne 0) {
             throw 'Maven build failed.'
@@ -131,7 +171,7 @@ function Start-Stack {
             continue
         }
 
-        $jar = Join-Path $root "$($service.Name)\target\$($service.Name)-1.0.0.jar"
+        $jar = Join-Path $buildRoot "$($service.Name)\target\$($service.Name)-1.0.0-exec.jar"
 
         if (-not (Test-Path $jar)) {
             throw "Missing JAR: $jar. Run without -SkipBuild."

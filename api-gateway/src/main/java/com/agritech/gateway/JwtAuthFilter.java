@@ -35,15 +35,17 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             "/api/auth/login", "/api/auth/register", "/api/auth/refresh", "/api/auth/google",
             "/actuator/health", "/fallback", "/swagger-ui.html",
             "/auth-service/v3/api-docs", "/sensor-service/v3/api-docs",
-            "/crop-service/v3/api-docs", "/irrigation-service/v3/api-docs");
+            "/crop-service/v3/api-docs", "/irrigation-service/v3/api-docs",
+            "/climate-service/v3/api-docs", "/recommendation-service/v3/api-docs");
 
     private final SecretKey key;
     private final RevocationCache revocations;
     private final GatewaySigner signer;
 
-    public JwtAuthFilter(@Value("${agritech.jwt.secret}") String secret, RevocationCache revocations,
+    public JwtAuthFilter(@Value("${agritech.jwt.secret:}") String secret, RevocationCache revocations,
                          GatewaySigner signer) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.key = Keys.hmacShaKeyFor(GatewaySecrets.require("AGRITECH_JWT_SECRET", secret)
+                .getBytes(StandardCharsets.UTF_8));
         this.revocations = revocations;
         this.signer = signer;
     }
@@ -57,36 +59,50 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().value();
+        String rawPath = request.getURI().getRawPath();
+
+        if (hasUnsafePathSegment(path) || hasUnsafePathSegment(rawPath)) {
+            return GatewayResponses.reject(exchange.getResponse(), HttpStatus.BAD_REQUEST,
+                    "bad_request", "Invalid request path");
+        }
 
         if (request.getMethod().name().equals("OPTIONS") || isPublic(path)) {
             // Still strip and re-sign: a client must never smuggle its own identity headers through.
             return chain.filter(exchange.mutate().request(forward(request, "", "ANONYMOUS", "")).build());
         }
 
-        String header = request.getHeaders().getFirst("Authorization");
-        if (header == null || !header.startsWith("Bearer ")) {
+        AuthResult auth = verifyHeader(request.getHeaders().getFirst("Authorization"), path);
+        if (!auth.ok()) {
             return GatewayResponses.reject(exchange.getResponse(), HttpStatus.UNAUTHORIZED,
-                    "unauthorized", "Missing or malformed Authorization header");
+                    auth.code(), auth.message());
         }
 
+        Claims claims = auth.claims();
+        Object rawFarm = claims.get("farmId");
+        String farmId = rawFarm == null ? "" : String.valueOf(rawFarm);
+        ServerHttpRequest forwarded = forward(request, claims.getSubject(),
+                String.valueOf(claims.get("role")), farmId);
+        return chain.filter(exchange.mutate().request(forwarded).build());
+    }
+
+    record AuthResult(boolean ok, Claims claims, String code, String message) {}
+
+    AuthResult verifyHeader(String header, String path) {
+        if (header == null || !header.startsWith("Bearer ")) {
+            return new AuthResult(false, null, "unauthorized", "Missing or malformed Authorization header");
+        }
         Claims claims;
         try {
             claims = Jwts.parserBuilder().setSigningKey(key).build()
                     .parseClaimsJws(header.substring(7)).getBody();
         } catch (JwtException | IllegalArgumentException e) {
             audit.warn("auth REJECTED path={} reason={}", path, e.getClass().getSimpleName());
-            return GatewayResponses.reject(exchange.getResponse(), HttpStatus.UNAUTHORIZED,
-                    "invalid_token", "Token is invalid or has expired");
+            return new AuthResult(false, null, "invalid_token", "Token is invalid or has expired");
         }
-
         if (revocations.isRevoked(claims.getId())) {
-            return GatewayResponses.reject(exchange.getResponse(), HttpStatus.UNAUTHORIZED,
-                    "token_revoked", "This session has been logged out");
+            return new AuthResult(false, null, "token_revoked", "This session has been logged out");
         }
-
-        ServerHttpRequest forwarded = forward(request, claims.getSubject(),
-                String.valueOf(claims.get("role")), String.valueOf(claims.get("farmId")));
-        return chain.filter(exchange.mutate().request(forwarded).build());
+        return new AuthResult(true, claims, null, null);
     }
 
     static final Set<String> IDENTITY_HEADERS = Set.of("X-User-Email", "X-User-Role", "X-Farm-Id",
@@ -99,9 +115,15 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         }).build();
     }
 
+    static boolean hasUnsafePathSegment(String path) {
+        if (path == null) return false;
+        String lower = path.toLowerCase();
+        return lower.contains("..") || lower.contains("%2e") || path.contains(";") || lower.contains("%3b");
+    }
+
     static boolean isPublic(String path) {
-        return PUBLIC_PATHS.contains(path) || path.startsWith("/fallback/")
-                || path.startsWith("/swagger-ui/") || path.startsWith("/webjars/")
-                || path.startsWith("/v3/api-docs");
+        return !hasUnsafePathSegment(path) && (PUBLIC_PATHS.contains(path) || path.startsWith("/fallback/")
+                || path.startsWith("/swagger-ui") || path.startsWith("/webjars")
+                || path.equals("/v3/api-docs") || path.startsWith("/v3/api-docs/"));
     }
 }

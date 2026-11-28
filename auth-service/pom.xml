@@ -32,6 +32,16 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
+    <!-- Flyway owns the schema (V1 baseline, then incremental migrations); Hibernate only validates. -->
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
@@ -72,4 +82,17 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- This machine runs JDK 26; Byte Buddy/Mockito only officially support up to Java 23.
+               The experimental flag lets the mock-maker instrument newer class files. -->
+          <argLine>-Dnet.bytebuddy.experimental=true</argLine>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

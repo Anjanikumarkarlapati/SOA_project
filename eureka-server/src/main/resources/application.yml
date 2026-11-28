@@ -1,7 +1,12 @@
 server:
   port: 8761
+  # Finish in-flight requests on a rolling restart instead of dropping them.
+  shutdown: graceful
 
 spring:
+  # Bounded wait for the graceful shutdown above; past this the context closes.
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   application:
     name: eureka-server
 

@@ -22,6 +22,7 @@ import { useLanguage } from "@/lib/i18n";
 import { useFarmStore, getActiveProperty } from "@/lib/property-store";
 import { BezelCard } from "@/components/ui/BezelCard";
 import { Button } from "@/components/ui/Button";
+import { EditorialPhotoFrame } from "@/components/ui/EditorialPhotoFrame";
 
 interface FarmerRecommendationCardProps {
   recommendations: FarmerRecommendations;
@@ -137,29 +138,31 @@ export function FarmerRecommendationCard({
       </div>
 
       {/* Visual Field Scouting Editorial Card (Zero-Human crop-canopy.webp) */}
-      <div className="photo-frame relative h-48 sm:h-52 select-none group">
+      <EditorialPhotoFrame
+        innerClassName="h-52 sm:h-56 select-none"
+        topRight={
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-black/65 px-3 py-1 text-[11px] font-medium text-white backdrop-blur-md">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#DFECC6]" />
+            <span>FAO-56 validated</span>
+          </span>
+        }
+        caption={
+          <div>
+            <span className="block text-[11px] font-medium text-[#DFECC6]">
+              Agronomic field observation
+            </span>
+            <h4 className="font-serif-display text-lg sm:text-xl text-white">
+              In-Situ Crop Scouting &amp; Advisory Protocol
+            </h4>
+          </div>
+        }
+      >
         <img
           src="/images/crop-canopy.webp"
           alt="Sunlit golden-green cultivated wheat ears and terraced crop furrows in morning mist"
           className="w-full h-full object-cover photo-duotone"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/82 via-black/25 to-transparent flex flex-col justify-end p-4 text-white">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <span className="text-[10px] uppercase font-mono tracking-wider text-[#DFECC6] block">
-                Agronomic Field Observation
-              </span>
-              <h4 className="font-serif-display text-lg text-white">
-                In-Situ Crop Scouting &amp; Advisory Protocol
-              </h4>
-            </div>
-            <span className="pill-btn py-1 px-3 text-[11px] bg-black/75 text-white border border-white/20 backdrop-blur-sm hidden sm:inline-flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#DFECC6]" />
-              <span>FAO-56 Validated</span>
-            </span>
-          </div>
-        </div>
-      </div>
+      </EditorialPhotoFrame>
 
       {/* Phenological Crop Growth Stage Visualizer */}
       <div className="bg-[var(--bg-raised)] p-3.5 rounded-xl border border-[var(--border-default)] flex flex-col gap-2 text-xs">

@@ -1,26 +1,47 @@
 server:
   port: 8083
+  # Finish in-flight requests on a rolling restart instead of dropping them.
+  shutdown: graceful
 
 spring:
+  # Bounded wait for the graceful shutdown above; past this the context closes.
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   application:
     name: crop-service
-  # Set DB_URL / DB_USERNAME / DB_PASSWORD (in .env) to use Supabase Postgres; unset = local H2 file.
+  # Configure DB_URL / DB_USERNAME / DB_PASSWORD for PostgreSQL; unset = persistent local H2 file.
   datasource:
-    url: ${DB_URL:jdbc:h2:file:${agritech.data-dir:./.run/data}/cropdb;AUTO_SERVER=TRUE}
+    url: ${DB_URL:jdbc:h2:file:${agritech.data-dir:./.run/data}/cropdb;AUTO_SERVER=TRUE;DATABASE_TO_LOWER=TRUE}
     username: ${DB_USERNAME:sa}
     password: ${DB_PASSWORD:}
     hikari:
       # 4 services share Supabase's pooler connection limit.
       maximum-pool-size: 3
+  flyway:
+    enabled: true
+    schemas: crop_service
+    default-schema: crop_service
+    baseline-on-migrate: true
+    baseline-version: 0
   jpa:
     hibernate:
       ddl-auto: update
+    properties:
+      hibernate.default_schema: crop_service
+      hibernate.hbm2ddl.create_namespaces: true
     open-in-view: false
   jackson:
     serialization:
       write-dates-as-timestamps: false
 
 agritech:
+  recommendation:
+    weights:
+      temperature: ${CROP_WEIGHT_TEMPERATURE:0.30}
+      water: ${CROP_WEIGHT_WATER:0.25}
+      soil: ${CROP_WEIGHT_SOIL:0.15}
+      season: ${CROP_WEIGHT_SEASON:0.15}
+      trend-risk: ${CROP_WEIGHT_TREND_RISK:0.15}
   analysis:
     # PRD 5.1: crop health metrics updated every 5 minutes.
     interval-ms: 300000

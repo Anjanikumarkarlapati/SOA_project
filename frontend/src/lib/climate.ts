@@ -242,8 +242,14 @@ export async function fetchClimate(
   // Optional enrichment if free OpenWeather key provided
   if (apiKey && apiKey.trim().length > 10) {
     try {
+      const owmParams = new URLSearchParams({
+        lat: String(lat),
+        lon: String(lon),
+        appid: apiKey.trim(),
+        units: "metric",
+      });
       const owmRes = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey.trim()}&units=metric`
+        `https://api.openweathermap.org/data/2.5/weather?${owmParams}`
       );
       if (owmRes.ok) {
         const owmData = await owmRes.json();

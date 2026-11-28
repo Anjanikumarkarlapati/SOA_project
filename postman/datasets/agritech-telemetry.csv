@@ -1,0 +1,9 @@
+region,farm_id,crop_id,crop_type,soil_moisture,soil_temp_c,ph,valve_id,expected_action
+Odisha-Coastal,farm-odisha-01,crop-rice-01,Paddy Rice (Kharif),24.5,29.8,6.4,VALVE-01,OPEN_VALVE
+Odisha-Delta,farm-odisha-02,crop-pulses-02,Moong Dal (Zaid),38.2,28.1,6.7,VALVE-02,HOLD_OPTIMAL
+Punjab-Malwa,farm-punjab-01,crop-wheat-01,HD-2967 Wheat (Rabi),28.4,21.5,7.2,VALVE-03,OPEN_VALVE
+Punjab-Doaba,farm-punjab-02,crop-maize-02,Spring Maize (Zaid),35.0,24.0,7.0,VALVE-04,HOLD_OPTIMAL
+Telangana-Deccan,farm-telangana-01,crop-cotton-01,Bt Cotton (Kharif),21.8,33.4,7.5,VALVE-05,OPEN_VALVE_URGENT
+Telangana-Krishna,farm-telangana-02,crop-chilli-02,Guntur Chilli (Rabi),31.2,30.2,6.8,VALVE-06,OPEN_VALVE
+Maharashtra-Vidarbha,farm-maha-01,crop-soybean-01,Soybean (Kharif),41.6,27.3,6.6,VALVE-07,HOLD_OPTIMAL
+Maharashtra-Nashik,farm-maha-02,crop-onion-02,Rabi Red Onion,26.9,25.7,6.9,VALVE-08,OPEN_VALVE

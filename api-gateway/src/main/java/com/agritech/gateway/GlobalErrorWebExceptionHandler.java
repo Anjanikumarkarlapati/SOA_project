@@ -74,10 +74,10 @@ public class GlobalErrorWebExceptionHandler implements ErrorWebExceptionHandler 
         String message = determineMessage(ex, exchange);
         response.put("message", message);
         
-        // Add available endpoints hint for 404 errors
+        // Add available endpoints hint for 404 errors without exposing internal registry URLs
         if (status == HttpStatus.NOT_FOUND) {
             response.put("availableEndpoints", getAvailableEndpoints());
-            response.put("hint", "Check if the service is registered in Eureka at http://localhost:8761");
+            response.put("hint", "Verify the API route prefix (e.g., /api/auth/**, /api/farm/**, /api/sensors/**)");
         }
         
         return response;
@@ -88,26 +88,26 @@ public class GlobalErrorWebExceptionHandler implements ErrorWebExceptionHandler 
         
         // Root path hint
         if (path.equals("/") || path.isEmpty()) {
-            return "API Gateway is running. Use /api/auth, /api/sensors, /api/crops, or /api/irrigation endpoints.";
+            return "API Gateway is running. Use /api/auth, /api/sensors, /api/crops, /api/farm, or /api/irrigation endpoints.";
         }
         
         // Service unavailable (no instances in Eureka)
         if (ex.getMessage() != null && ex.getMessage().contains("Unable to find instance")) {
-            return "Service not available. Ensure the target service is running and registered with Eureka.";
+            return "Service is temporarily unavailable.";
         }
         
         // Connection refused
         if (ex.getMessage() != null && ex.getMessage().contains("Connection refused")) {
-            return "Could not connect to backend service. Verify the service is healthy in Eureka.";
+            return "Could not connect to backend service.";
         }
         
         // Generic 404
         if (ex instanceof ResponseStatusException rse && rse.getStatusCode().value() == 404) {
-            return "No route found for " + path + ". Check if the path matches a configured route.";
+            return "No route found for the requested path.";
         }
         
-        // Fallback
-        return ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred";
+        // Fallback: never echo arbitrary internal exception messages to external callers
+        return "An unexpected error occurred";
     }
 
     private Map<String, String> getAvailableEndpoints() {

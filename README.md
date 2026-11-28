@@ -5,8 +5,8 @@ NFR targets, threat model and traceability matrix): soil telemetry
 comes in from an IoT fleet, the crop service scores each field against its optimal envelope, and
 the irrigation service opens and closes valves from that score.
 
-Spring Cloud microservices behind an API gateway with Eureka service discovery, plus a React
-operations dashboard.
+Spring Cloud microservices behind an API gateway with Eureka service discovery, plus React/Next.js
+operations dashboards.
 
 ---
 
@@ -14,40 +14,42 @@ operations dashboard.
 
 ```
                         +-------------------+
-  Dashboard (5173) ---> |  API Gateway 8080 |  JWT validation, routing, rate limiting
+  Dashboards (5173/3000)|  API Gateway 8080 |  JWT validation, routing, rate limiting
                         +---------+---------+
                                   | lb:// (Eureka)
-        +-------------+-----------+-----------+--------------+
-        v             v                       v              v
-  auth-service  sensor-service          crop-service   irrigation-service
-      8081           8082                    8083             8084
-                       ^                      |  ^              |
-                       |                      |  |              |
-                       +--- telemetry --------+  +-- health ----+
-                       ^                                        |
-                       +----------- valve state ----------------+
+        +-------------+-----------+-----------+----------------+------------------+
+        v             v                       v                v                  v
+  auth-service  sensor-service          crop-service   climate-service   recommendation-service
+      8081           8082                    8083             8086                8087
+                       ^                      |  ^              ^                  ^
+                       |                      |  |              |                  |
+                       +--- telemetry --------+  +-- owner-checked property facade+
+                       |                      |                                     |
+                       +-------- irrigation-service 8084 --------------------------+
 
-                     Eureka Server 8761  (all services register)
+                     Eureka Server 8761  (7 Spring Boot services register)
 ```
 
 | Module | Port | Responsibility |
 |--------|------|----------------|
 | `eureka-server` | 8761 | Service registry, 30s health checks, 90s de-registration |
-| `api-gateway` | 8080 | Single entry point: JWT validation, signed identity headers, rate limiting, circuit breakers, security headers, CORS |
-| `auth-service` | 8081 | Login, registration, 15-min JWTs, rotating refresh tokens, revocation list |
+| `api-gateway` | 8080 | Single entry point: JWT validation, HMAC-signed identity headers, rate limiting, Resilience4j circuit breakers, Retry, OWASP security headers, CORS, aggregated Swagger UI (`/swagger-ui.html`) |
+| `auth-service` | 8081 | Login, registration (`FARMER` pinned), 15-min JWTs, DB-backed rotating refresh tokens, revocation list, Google/Supabase federation |
 | `sensor-service` | 8082 | Device registry, telemetry ingestion and validation, historical queries |
-| `crop-service` | 8083 | Health scoring, optimal-range evaluation, recommendations, forecasts |
-| `irrigation-service` | 8084 | Schedules, valve control, moisture cut-out, emergency stop |
-| `common` | - | Shared error envelope, caller identity, gateway-signature verification |
-| `web` | 3000 | Next.js dashboard (current) |
-| `frontend` | 5173 | Vite dashboard (legacy, kept until the swap is signed off) |
+| `crop-service` | 8083 | Property ownership, crop field CRUD, health scoring, daily reports, and the authenticated `/api/farm/**` property facade |
+| `climate-service` | 8086 | Stateless Open-Meteo historical retrieval, caching, ET0/water-balance/GDD statistics and risk indices |
+| `recommendation-service` | 8087 | Persistent crop reference data (`recommendation_service.crops`) and weighted, explainable crop ranking |
+| `irrigation-service` | 8084 | Schedules, valve CRUD and control, moisture cut-out, emergency stop |
+| `common` | - | Shared error envelope (`ApiExceptionHandler`), `CallerContext` tenant/role enforcement, `InternalAuth` HMAC verification, `Secrets` startup checks, `OpenApiConfig` |
+| `frontend` | 5173 | Operations dashboard (React 18 + Vite 5 SPA) |
+| `web` | 3000 | Next.js 16 dashboard (App Router, React 19, Tailwind v4, shadcn) |
 
 **Security model.** The gateway is the only component that parses a JWT. On every request it
 strips any client-supplied `X-User-*` headers, sets its own from the verified token, and
 HMAC-signs them (`X-Gateway-Signature` + timestamp). Every service rejects an `/api` call whose
 signature is missing, wrong or older than 60 s, so calling a service port directly with a forged
 `X-User-Role: ADMIN` gets a 401. Inter-service calls go direct through Eureka and sign themselves
-as the `SERVICE` identity. Access tokens live 15 minutes; both dashboards renew them silently
+as the `SERVICE` identity. Access tokens live 15 minutes; the dashboard renews them silently
 with the rotating refresh token.
 
 **Resilience.** Each gateway route has a Resilience4j circuit breaker with a fallback that
@@ -63,24 +65,43 @@ Requires JDK 21+ and Node 20+. No global Maven needed - the wrapper is committed
 ./scripts/stack.ps1 start
 ```
 
-That builds every module and launches the six services in dependency order, waiting for each to
-report healthy. Then start the dashboard:
+That builds all 9 child Maven modules (`pom.xml`) and launches `eureka-server` plus the seven Spring Boot services (8 processes; 11 with `-Replicas`) in dependency order, waiting for each to report healthy. Then start either dashboard:
 
 ```bash
+# React + Vite dashboard (port 5173)
+npm install --prefix frontend
+npm run dev --prefix frontend
+
+# Next.js 16 dashboard (port 3000)
 npm install --prefix web
 npm run dev --prefix web
 ```
 
-- Dashboard: http://localhost:3000
-- API gateway: http://localhost:8080
+- Vite dashboard: http://localhost:5173
+- Next.js dashboard: http://localhost:3000
+- API gateway: http://localhost:8080 (Swagger UI: http://localhost:8080/swagger-ui.html)
 - Eureka: http://localhost:8761
 
-The Vite app in `frontend/` still runs (`npm run dev --prefix frontend`, port 5173) and talks to
-the same gateway. It is kept only so the two can be compared side by side; delete it once the
-Next app is signed off.
+Other actions: `./scripts/stack.ps1 status`, `stop`, `restart`. Logs land in `.run/`.
 
-Other actions: `./scripts/stack.ps1 status`, `stop`, `restart`. Logs land in `.run/`, data in
-`.run/data/` (one H2 file per service; stop the stack and delete that folder to reseed).
+### Database
+
+The five stateful data services persist their entities with Spring Data JPA (`climate-service` is stateless with no database). PostgreSQL is the preferred shared database for a demo with replicas; each stateful service writes only to its own schema (`auth_service`, `sensor_service`, `crop_service`, `recommendation_service`, or `irrigation_service`). Flyway manages schema migrations on `auth_service` (`V1`), `crop_service` (`V1`–`V4`), and `recommendation_service` (`V1`), while `sensor_service` and `irrigation_service` use Hibernate `ddl-auto: update` (`create_namespaces: true`). When `DB_URL` is unset, each stateful service falls back to its own persistent H2 file under `.run/data/` (`AUTO_SERVER=TRUE;DATABASE_TO_LOWER=TRUE`).
+
+With PostgreSQL 16+ installed and running on localhost, create the application role/database and write
+the connection settings to the ignored root `.env` file:
+
+```powershell
+.\scripts\db-setup.ps1
+.\scripts\stack.ps1 start
+```
+
+The setup script asks for the local PostgreSQL `postgres` administrator password, generates an
+application password, preserves other `.env` settings, and keeps the prior file as `.env.bak`. Copy
+`.env.example` only when you need a starting template; do not commit `.env`. `scripts/stack.ps1`
+also generates `AGRITECH_JWT_SECRET` and `AGRITECH_INTERNAL_SECRET` into `.env` on first run
+(services refuse to start without >= 32-char non-default secrets). No Supabase database credentials
+are needed. To reseed the H2 demo database, stop the stack and remove `.run/data/`.
 
 **Load balancing.** `./scripts/stack.ps1 start -Replicas` adds a second sensor, crop and irrigation
 instance (ports 18082-18084) under the same Eureka names. The gateway (`lb://`) and the
@@ -109,82 +130,149 @@ the issued token.
 telemetry, then keeps emitting readings every 30 seconds. One device is deliberately left dark so
 the offline state is visible, and one field starts dry so the critical-alert path is exercised.
 Set `SIMULATOR_ENABLED=false` to run against real devices instead - they post to
-`POST /api/telemetry/ingest`, which is the actual contract.
+`POST /api/telemetry/ingest`, which is the actual contract. That endpoint is not public: the field
+gateway must send `Authorization: Bearer <token>` for an account on the owning farm, and a reading
+addressed to a device on someone else's farm is rejected in the per-reading `rejected` list.
 
 ---
 
 ## Tests
 
 ```bash
-./mvnw test              # unit tests
-bash scripts/smoke-test.sh   # end-to-end against a running stack
-bash scripts/lb-test.sh      # discovery + load balancing + failover (needs start -Replicas)
+./mvnw.cmd test                  # 95 unit & integration tests across 17 test classes (10 Maven modules)
+bash scripts/smoke-test.sh       # 33-check end-to-end verification against a running stack
+bash scripts/crud-demo.sh        # 18-check CRUD + 40-read round-robin + shared DB demo
+bash scripts/lb-test.sh          # 14-check discovery + load balancing + failover (needs start -Replicas)
+python scripts/security-probes.py  # 37-check live security & rubric probe suite
 ```
 
-The smoke test (31 checks) covers the PRD's section 9.3 scenarios: unauthenticated rejection,
+The smoke test (`33 checks`) covers the PRD's section 9.3 scenarios: unauthenticated rejection,
 login for both roles, forged-token rejection, farmer/admin authorization split, device
 registration, telemetry ingestion including out-of-range rejection, health scoring from live
 telemetry, cross-service trend retrieval through Eureka, manual valve control, emergency stop,
-schedule CRUD, and logout revocation taking effect at the gateway. Scenario 3 adds: all five
-services registered in Eureka, 15-min token TTL, refresh rotation and replay rejection,
-exact-match public paths, direct-to-service bypass rejection, header-based role escalation,
-OWASP security headers, correlation ids, rate-limit headers, `no-store`, the 1 MB body cap, and
-a circuit breaker on each route.
+schedule CRUD, climate analytics (`/api/climate/history`), crop recommendations
+(`/api/recommendations/score`), and logout revocation taking effect at the gateway. Scenario 3
+checks: all seven API services registered in Eureka, 15-min token TTL, refresh rotation and replay
+rejection, exact-match public auth paths, direct-to-service bypass rejection, header-based role
+escalation, OWASP security headers, correlation ids, rate-limit headers, `no-store`, the 1 MB body
+cap, and 6 route circuit breakers.
 
-Unit tests (30) include `JwtAuthFilterTest` (valid, missing, forged-key, expired, `alg:none`,
-revoked, spoofed headers, exact public paths) and `InternalAuthTest` (signed passes; unsigned,
-escalated, replayed and wrong-secret signatures are rejected).
+`AgriTech_Fast_Test.postman_collection.json` (`84 requests` across `14 folders`; 86 executed
+including 2 auto-login prerequests, `124` assertions passing via `postman collection run`) exercises
+auth, sensors, telemetry, crops, valves, schedules, `Farm & Properties` (`/api/farm/**`),
+`Climate & Recommendations` (`/api/climate/**`, `/api/recommendations/**`), farmer RBAC checks,
+Eureka discovery, `OpenAPI & Swagger`, and gateway/actuator error paths against
+`AgriTech_Local.postman_environment.json`.
+
+Backend unit and integration tests (`95` `@Test` methods across `17` classes in all `10` Maven
+reactor modules: `common` 22, `api-gateway` 9, `auth-service` 20, `sensor-service` 14,
+`crop-service` 21, `climate-service` 2, `recommendation-service` 3, `irrigation-service` 4,
+`eureka-server` 0) include `JwtAuthFilterTest` (valid, missing, forged-key, expired, `alg:none`,
+revoked, spoofed headers, exact public paths), `RouteRetryConfigTest` (`CircuitBreaker` outside
+`GET`-only `Retry` on `IOException` and `PrematureCloseException`), `InternalAuthTest` (signed
+passes; unsigned, escalated, replayed and wrong-secret signatures are rejected),
+`CallerContextTest`, `ApiExceptionHandlerTest` (including `ConstraintViolationException` -> 400),
+and `SensorControllerTenantTest`.
+
+`scripts/security-probes.py` runs `37` live checks (`H05` unauthenticated Eureka `:8761` is an
+accepted local-demo simplification). Frontend verification includes in-repo
+`frontend/tests/sensorCapabilities.test.js`, `scripts/e2e/farm-flow.js`, and
+`scripts/check-i18n.mjs`, while the companion Next.js 16 frontend checkout on `:5000`
+(`c:\Users\anjan\Downloads\SOA-Hackthon\frontend`) verifies **69 Vitest unit tests** (11 files)
+and **51 Playwright E2E tests** (8 spec files) against the `:8080` gateway.
 
 ---
 
 ## API
 
-All paths are relative to the gateway (`http://localhost:8080`). Everything except
-`/api/auth/login`, `/api/auth/register` and `/api/auth/refresh` needs `Authorization: Bearer <jwt>`.
+All paths are relative to the gateway (`http://localhost:8080`; interactive docs at
+`http://localhost:8080/swagger-ui.html`). Protected routes require `Authorization: Bearer <jwt>`;
+public routes are `/api/auth/login`, `/api/auth/register`, `/api/auth/refresh`,
+`/api/auth/google`, `/actuator/health`, `/swagger-ui.html`, `/<service>/v3/api-docs`, and
+`/fallback/**`.
 
 ### Auth
 | Method | Path | Notes |
 |--------|------|-------|
-| POST | `/api/auth/login` | Returns access token, refresh token, role, farm |
-| POST | `/api/auth/register` | ADMIN or FARMER |
-| POST | `/api/auth/refresh` | Exchanges a refresh token for a new pair |
-| POST | `/api/auth/logout` | Revokes the access token id and the refresh token |
-| GET | `/api/auth/me` | Decoded claims |
+| POST | `/api/auth/login` | Returns access token (15 min), refresh token, role, farm, displayName |
+| POST | `/api/auth/register` | Public signup; always creates `FARMER` with a unique `FARM-xxxxxxxx` tenant ID (ignores caller `role`) |
+| POST | `/api/auth/google` | Supabase token introspection (`/auth/v1/user`); provisions `FARMER` on `FARM-001` |
+| POST | `/api/auth/refresh` | Exchanges a single-use rotating refresh token for a new pair |
+| POST | `/api/auth/logout` | Revokes the access token `jti` and drops `{refreshToken}` |
+| GET | `/api/auth/revoked` | Revoked `jti` set polled every 15 s by gateway `RevocationCache` |
+| GET | `/api/auth/me` | Decoded claims (`email`, `role`, `farmId`, `displayName`, `expiresAt`) |
+| PUT | `/api/auth/me` | Change password (`currentPassword`, `newPassword`) |
+| DELETE | `/api/auth/me` | Delete account, drop all refresh tokens, revoke current `jti` |
 
 ### Sensors and telemetry
 | Method | Path | Notes |
 |--------|------|-------|
-| POST | `/api/sensors/register` | Admin only |
-| GET | `/api/sensors` | Paginated; `page`, `size`, `q`, `health`, `fieldId` |
-| GET/PUT/DELETE | `/api/sensors/{deviceId}` | PUT and DELETE are admin only |
-| GET | `/api/sensors/summary` | Online / offline / low-battery counts |
-| POST | `/api/telemetry/ingest` | Bulk; each reading validated independently |
-| GET | `/api/telemetry/{deviceId}` | `range` = 1h, 24h, 7d, 30d, 90d |
-| GET | `/api/telemetry/field/{fieldId}/latest` | Averaged rollup used by crop-service |
+| POST | `/api/sensors/register` | `ADMIN` or peer `SERVICE` |
+| GET | `/api/sensors` | Paginated, tenant-scoped; `page`, `size`, `q`, `health`, `fieldId` |
+| GET/PUT/DELETE | `/api/sensors/{deviceId}` | Tenant-scoped GET; `PUT` and `DELETE` allow `ADMIN` or peer `SERVICE` |
+| GET | `/api/sensors/summary` | Online / offline / low-battery counts (tenant-scoped) |
+| POST | `/api/telemetry/ingest` | Bulk; each reading validated independently with per-reading tenant ownership check |
+| GET | `/api/telemetry/{deviceId}` | `range` = `1h`, `24h`, `7d`, `30d`, `90d` (or `from`/`to` ISO-8601) |
+| GET | `/api/telemetry/{deviceId}/latest` | Latest reading for one device |
+| GET | `/api/telemetry/field/{fieldId}/latest` | Averaged rollup used by `crop-service` |
 | GET | `/api/telemetry/field/{fieldId}/series` | Bucketed series for charts |
+| POST | `/api/telemetry/field/{fieldId}/irrigation-event` | Simulator watering signal from `irrigation-service` |
 | GET | `/api/telemetry/stats` | Ingestion volume |
 
 ### Crops
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/api/crops` | Every field with its latest health snapshot |
+| POST | `/api/crops` | Create a field, map optimal bands from `CropCatalog`, and provision its sensor |
+| GET | `/api/crops` | Tenant-scoped fields with latest health snapshot |
+| GET/PUT/DELETE | `/api/crops/{cropId}` | Single field read; rename/resize/replant (`PUT`); remove field, snapshots, and sensor (`DELETE`) |
 | GET | `/api/crops/{cropId}/health` | Current score, computed on demand if stale |
-| GET | `/api/crops/{cropId}/metrics` | Environment series, health trend, optimal bands |
-| POST | `/api/crops/analyze` | Manual analysis; body `{"cropId": "..."}` or empty for all |
+| GET | `/api/crops/{cropId}/metrics` | Environment series, health trend, optimal bands (`range` = `24h`, `7d`, `30d`, `90d`) |
+| POST | `/api/crops/analyze` | Manual analysis; body `{"cropId": "..."}` or empty for all visible fields |
 | GET | `/api/crops/alerts` | Fields outside their optimal envelope |
 | GET | `/api/crops/summary` | Share of fields at optimal |
+
+### My farm and properties (authenticated owner scope)
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/api/farm/me` | Default or selected (`?propertyId=`) farm property plus newest readings graded against the crop; `204` until onboarding |
+| PUT | `/api/farm/me` | First-login setup and default-property edits: `farmName`, `landSize`, `landUnit` (`ACRES`/`HECTARES`), `cropId`, `state`, `district`, `sensors`, `profile` |
+| GET/POST | `/api/farm/properties` | List all properties owned by the signed-in account, or create an additional property |
+| GET/PUT/DELETE | `/api/farm/properties/{propertyId}` | Read, update, or delete one owned property |
+| GET | `/api/farm/properties/{propertyId}/climate` | Owner-checked historical climate analytics proxied to `climate-service` (`start`, `end`) |
+| GET | `/api/farm/properties/{propertyId}/recommendations` | Owner-checked crop ranking orchestrating `climate-service` and `recommendation-service` (`start`, `end`) |
+| GET | `/api/farm/me/reports` | Report history (up to 90 days, optional `?propertyId=`), newest first |
+| GET | `/api/farm/me/reports/latest` | Today's report (rebuilt at most every 15 min), or yesterday's if today has no data yet |
+| GET | `/api/farm/me/reports/{date}` | One day, `YYYY-MM-DD` (optional `?propertyId=`) |
+
+Every `/api/farm` call is scoped to the caller's gateway-verified email; there is no farm id in the
+URL to tamper with.
+
+### Climate analytics (`climate-service`)
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/api/climate/history` | Query `lat`, `lon`, `start`, `end` (`YYYY-MM-DD`); Open-Meteo historical summary, ET0, water balance, GDD, and `annualSeries` |
+| GET | `/api/internal/climate/history` | Internal `SERVICE`-role route called by `crop-service` via Eureka (`lb://climate-service`) |
+
+### Crop recommendations (`recommendation-service`)
+| Method | Path | Notes |
+|--------|------|-------|
+| POST | `/api/recommendations/score` | Body `{climate, soilType, waterSource, waterAvailability, intent, targetDate, limit}`; `intent` in `GROW_NOW`, `PLAN_DATES`, `RECOMMEND_BEST`; returns weights, ranked crops, and adaptations |
+| POST | `/api/internal/recommendations/score` | Internal `SERVICE`-role route called by `crop-service` via Eureka (`lb://recommendation-service`) |
 
 ### Irrigation
 | Method | Path | Notes |
 |--------|------|-------|
-| GET/POST | `/api/irrigation/schedules` | POST is admin only |
+| GET/POST | `/api/irrigation/schedules` | `POST` is admin only |
 | GET/PUT/DELETE | `/api/irrigation/schedules/{id}` | Admin only for writes |
-| PATCH | `/api/irrigation/schedules/{id}/active` | The list's on/off toggle |
-| GET | `/api/irrigation/events` | Valve activity for the alert feed |
-| GET | `/api/valves` | All zones with live state |
-| POST | `/api/valves/{id}/open` | `durationMinutes` 1-240; admin only |
+| PATCH | `/api/irrigation/schedules/{id}/active` | On/off toggle; admin only |
+| GET | `/api/irrigation/events` | Valve activity for the alert feed (tenant-scoped) |
+| GET/POST | `/api/valves` | All zones with live state; `POST` creates a zone (admin only) |
+| GET | `/api/valves/{id}/status` | Single zone status |
+| PUT/DELETE | `/api/valves/{id}` | Reconfigure or decommission a zone (admin only; refuses delete while open) |
+| POST | `/api/valves/{id}/open` | `durationMinutes` 1–240; admin only (409 if saturated) |
 | POST | `/api/valves/{id}/close` | Admin only |
-| POST | `/api/valves/emergency-stop` | Closes every open valve |
+| POST | `/api/valves/emergency-stop` | Closes every open valve (`ADMIN`/`SERVICE`) or the caller's own farm's valves (`FARMER`) |
+| GET | `/api/valves/summary` | Total zones and running count |
 
 Errors use one envelope everywhere, per PRD 7.3:
 
@@ -215,52 +303,138 @@ exists only for the simulator; real deployments learn it from the sensors.
 
 ---
 
+## Farm setup, simulated sensors and daily reports
+
+**First login.** A farmer with no farm is sent to `/onboarding`: crop (48 Indian crops), location,
+land size (acres or hectares) and farm name, then a sensor checklist. The soil probe (moisture,
+soil temperature, pH) is always on; air temperature, humidity, light, soil NPK, rainfall and paddy
+water level are optional, with the ones that suit the crop pre-ticked. Saving stores a
+`farm_profiles` row against the user and creates the field and its sensor device.
+
+**Simulated sensors.** There is no hardware yet, so each farm's device is simulated by
+`FarmSimulation` (sensor-service) from crop-tuned targets that crop-service picks at setup
+(`FarmService.simProfile`). Readings follow a physical model rather than dice: a day/night
+temperature curve, humidity that falls as it warms and jumps in rain, sunlight that is zero at night,
+soil that dries through the day and recovers after rain, slow nutrient uptake, and paddy water that
+drains and is refilled. Each day's weather is seeded by farm and date, so farms differ and stay
+consistent. Only the chosen sensors report. Everything is labelled as simulated in the API and UI.
+Real devices replace this by posting the same fields to `/api/telemetry/ingest`.
+
+**Crop ranges and grading.** `CropCatalog` (crop-service) holds temperature, soil moisture,
+humidity, pH, light, N/P/K and paddy water-level ranges for every crop. A reading is **Optimal**
+inside its range, **Normal** within 10% of the range width outside it, **Warning** within 35%, and
+**Critical** beyond that.
+
+**Daily report.** `ReportBuilder` turns an IST calendar day of readings into: farm details, a
+sensor summary (average; light's midday peak; rain's total), the overall condition (Optimal /
+Acceptable / Needs attention / Critical), alerts that say what each abnormal reading means for the
+crop, practical recommendations (irrigation, temperature, disease, soil pH, fertiliser, light, paddy
+water) and a short summary. Reports are stored per user per day in `daily_reports`; today's is
+rebuilt at most every 15 minutes, and a nightly job (00:15 IST) freezes yesterday's for every farm.
+The dashboard shows the latest report with a picker for past days.
+
+**Browser test.** `scripts/e2e/farm-flow.js` signs up a brand-new farmer and walks the whole flow
+onboarding, sensor choice, saved farm, simulated readings, crop ranges, report,
+history, server-side persistence, and the existing pages.
+
+```bash
+playwright-cli open
+playwright-cli run-code --filename=scripts/e2e/farm-flow.js
+```
+
+Each run creates an `e2e-<timestamp>@agritech.test` user.
+
+---
+
+## Farm onboarding and India irrigation planning
+
+A farmer who signs in for the first time (role `FARMER`, no farm set up yet) is sent to
+`/onboarding`, a five-step wizard:
+
+1. **Crop** - 48 Indian crops across cereals, millets, pulses, oilseeds, cash crops, vegetables,
+   fruits, spices and plantation crops, with Hindi names and Kharif/Rabi/Zaid seasons.
+2. **Location** - every state and union territory, key agricultural districts, or "use my
+   location" (nearest district). The district sets the climate zone.
+3. **Field** - farm name, area (acres or hectares), sowing date, soil type (pre-filled from the
+   zone), irrigation method (drip / sprinkler / flood) and pump size.
+4. **Sensors** - which sensors the farm needs (see "Farm setup, simulated sensors and daily
+   reports"), with the full hardware kit and indicative INR prices one click away.
+5. **Irrigation plan** - a seven-day plan uses the live Open-Meteo forecast when available and
+   falls back to the district's IMD climate normals. Completing setup saves the farm to the server
+   and opens the dashboard.
+
+During setup the planner performs the work previously shown on the Farm Assistant screen:
+
+- **Water need.** FAO-56 ET0 comes from live weather, or Hargreaves ET0 from climate normals.
+  Stage-dependent Kc gives crop use (ETc); effective rain is subtracted, irrigation efficiency
+  applied, and water volume and pump minutes are calculated from field area and pump flow.
+- **Timing and advisories.** Temperature bands determine irrigation windows. Hot days split water
+  between pre-dawn and evening, avoiding 11:00-16:00; cold days use late morning, with a light
+  evening run on frost nights. Rain can skip irrigation. Crop, heat, frost and fungal advisories
+  are shown alongside the seven-day schedule.
+- **Sensors.** The wizard recommends sensors, quantities and indicative INR costs from crop,
+  field area and irrigation zones.
+
+These are setup recommendations and a forecast plan; completing setup does not actuate physical
+valves. The farm is stored on the server; the browser keeps a copy for the wizard. The small **+** in the
+top bar opens the setup again from any page, pre-filled, to change crop, land or sensors. The
+engine is in `frontend/src/farm/` (`india.ts` crop and regional data, `engine.ts` calculations).
+
+## Languages
+
+The dashboard has a language button (top right; also on the login and onboarding screens)
+offering English plus all 22 languages of the Eighth Schedule: Hindi, Bengali, Marathi, Telugu,
+Tamil, Gujarati, Urdu, Kannada, Odia, Malayalam, Punjabi, Assamese, Maithili, Santali (Ol Chiki),
+Kashmiri, Nepali, Sindhi, Dogri, Konkani, Manipuri (Bengali script), Bodo and Sanskrit. The choice
+is saved in the browser. It translates the whole interface, including the onboarding wizard, the
+sensor recommendations, the seven-day irrigation plan and its advisories. Urdu, Kashmiri and Sindhi switch
+the page to right-to-left.
+
+- The strings live in `frontend/src/i18n/en.ts`, with one file per language in
+  `frontend/src/i18n/locales/`. Each language is loaded only when it is picked. A key a language
+  does not have falls back to English.
+- `node scripts/check-i18n.mjs` (repo root) checks every language for unknown keys, mismatched
+  `{placeholders}` and coverage.
+- These stay in English: text that comes from the backend (alert messages, recommendations),
+  device IDs, and state and district names.
+- The translations were machine-authored. Have native speakers review them before production use,
+  especially the less-resourced languages (Bodo, Santali, Dogri, Manipuri, Kashmiri, Sindhi,
+  Konkani, Maithili and Sanskrit).
+
 ## Frontend stack
 
-`web/` is Next.js 16 (App Router) + React 19 + Tailwind v4 + shadcn, replacing the Vite SPA.
+Two dashboards exist in this repository, both communicating exclusively through the API gateway (`:8080`):
 
-Everything is client-rendered behind the auth guard: the dashboard polls live telemetry, so there
-is nothing meaningful to server-render. Next earns its place here for file-based routing, route
-level code-splitting and `next/font`, not for SSR.
+1. **`frontend/` (React 18 + Vite 5 SPA on `:5173`)**: routed with React Router, charted with Recharts, styled with plain CSS (`frontend/src/styles.css`: `DM Sans`, `Crimson Text` headlines, `DM Mono` data labels, olive accents), self-hosted via `@fontsource`, and featuring Properties, PropertyDetail, Climate, Recommendations, Settings, Crops, Sensors, Irrigation, Assistant, and Onboarding pages.
+2. **`web/` (Next.js 16.3.4 + React 19.2.8 on `:3000`)**: App Router dashboard with Tailwind CSS v4, shadcn, Recharts, `Inter` and `IBM Plex Mono` (`next/font/google`), and the same 22-language i18n layer.
 
 | Concern | How it works |
 |---------|--------------|
-| API access | `next.config.ts` rewrites `/api/*` to the gateway, so the browser sees one origin and no CORS preflight. Override with `GATEWAY_URL`. |
-| Auth | JWT in `localStorage`, restored in an effect. `SessionProvider` exposes `ready` so a refresh does not bounce a signed-in user to `/login` mid-hydration. |
-| Theme | An inline script in `<head>` applies the stored theme before first paint, so dark-mode users get no white flash. |
-| Charts | Recharts is `dynamic(..., { ssr: false })` per screen, keeping it out of the login and shell bundles. |
-| Route params | Next 16 delivers `params` as a Promise; the `[cropId]` and `[deviceId]` pages await it. |
-
-Three components come from the VengeanceUI registry via `npx shadcn add`:
-`spotlight-navbar` (primary navigation), `gooey-search` (jump to a page or field), and
-`agent-bento-grid`, whose tile shape the dashboard's `BentoCard` is built on.
-
-The design tokens carried over verbatim and drive both our components and anything pulled from a
-registry, because `globals.css` maps shadcn's semantic variables (`--primary`, `--card`,
-`--border`) onto the AgriTech palette. The contrast audit was re-run after the port and matches
-the Vite app exactly: every foreground/background pair clears WCAG AA in both themes, worst case
-4.63:1.
+| API access | `frontend/vite.config.js` proxies `/api/*` to `:8080`, and `web/next.config.ts` rewrites `/api/:path*` to `${GATEWAY_URL:-http://localhost:8080}/api/:path*`, so the browser sees one origin and no CORS preflight. |
+| Auth | JWT in `localStorage`, renewed silently with the rotating refresh token. |
+| Theme | An inline script in `frontend/index.html` (and `web/src/app/layout.tsx`) applies the stored theme (`agritech.theme`) before first paint, so dark-mode users get no white flash. |
 
 ---
 
 ## Design system notes
 
-The dashboard follows its design brief: its tokens, its status encoding (colour plus shape
-plus label), its 8px radius scale, its responsive breakpoints, and full dark mode. Icons come from
-Phosphor at the brief's 1.5px/20px spec rather than hand-drawn paths, and Inter plus IBM Plex Mono
-are self-hosted so the interface renders without a font-CDN round trip.
+Both dashboards share the status-encoding contract (colour plus shape plus label), responsive
+breakpoints, light/dark themes, and Phosphor icons (`@phosphor-icons/react` at 1.5 px / 20 px; `web/`
+also pairs Lucide icons for shadcn primitives). Fonts are self-hosted in `frontend/` (`DM Sans`,
+`Crimson Text`, `DM Mono` via `@fontsource`) and loaded via `next/font/google` in `web/` (`Inter`,
+`IBM Plex Mono`).
 
-Two brief values were changed, both because the same brief requires WCAG AA on every status
-indicator and its literal hex could not reach it:
+Two brief values were changed in both themes because WCAG AA requires >= 4.5:1 on every status
+indicator and the original hex values fell short:
 
 | Token | Brief | Shipped | Reason |
 |-------|-------|---------|--------|
 | `--status-warning` (light) | `#B8860B` | `#8F6708` | 3.05:1 on the light surface; darkened in the same hue to 4.79:1 |
 | `--status-muted` (light/dark) | not specified | `#646E62` / `#95A190` | first pick failed AA at 3.15:1 and 4.01:1 |
 
-Every foreground/background pair in the shipped palette now clears 4.5:1 in both themes, worst
-case 4.63:1. The chart library is code-split, so signing in and the dashboard load 249 kB of
-JavaScript instead of 672 kB.
+Every foreground/background pair in the shipped palette clears 4.5:1 in both themes, worst case
+4.63:1. Heavy chart views are lazy-loaded (`React.lazy` in `frontend/src/App.jsx`) so initial sign-in
+and dashboard navigation avoid loading the full charting bundle upfront.
 
 ---
 
@@ -271,12 +445,13 @@ also marked with `ponytail:` comments at the relevant code.
 
 | Simplification | Ceiling | Upgrade |
 |----------------|---------|---------|
-| H2 file DB per service, shared by its replicas via `AUTO_SERVER` | Replicas must run on one host | Point `spring.datasource.*` at PostgreSQL; TimescaleDB for the telemetry table |
-| Timed jobs run on the primary instance only | If the primary dies, simulation/analysis/schedules pause until it restarts | ShedLock on the shared DB |
+| Local H2 file DB fallback (`AUTO_SERVER=TRUE`) when `DB_URL` is unset; `sensor`/`irrigation` use `ddl-auto: update` | H2 replicas must run on one host; telemetry uses relational tables | Configure PostgreSQL via `scripts/db-setup.ps1` (supported today with 5 schemas + Flyway on `auth`, `crop`, `recommendation`); add Flyway to `sensor`/`irrigation` and TimescaleDB for telemetry |
+| Timed jobs run on the primary instance only (`--agritech.jobs.enabled=false` on replicas) | If the primary dies, simulation/analysis/schedules pause until it restarts | ShedLock on the shared DB |
 | In-memory rate-limit counters | N gateway replicas allow N times the quota | Spring Cloud Gateway's Redis rate limiter |
 | Revocation list polled every 15s | A logged-out token works for up to 15 more seconds | Shared Redis revocation set |
-| Circuit breakers at the gateway only | Service-to-service calls retry the next instance, then degrade by try/catch plus 2 s/4 s timeouts | Resilience4j on `SensorClient` / `FarmClient` too |
-| Device simulator inside sensor-service | Not a real protocol adapter | Delete it; devices already post to the same ingest endpoint |
+| Gateway circuit breakers only (`SensorClient` degrades via try/catch) | Service-to-service calls retry the next instance (`spring-retry`), then degrade by try/catch | Resilience4j on `SensorClient` / `FarmClient` too |
+| Duplicated `CropCatalog` / `ClimateStatistics` / `PublicWeatherClient` across services | Crop or climate helpers must stay aligned across services | Extract a shared non-servlet domain library module |
+| Device simulator inside sensor-service | Not a real protocol adapter | Delete it; devices already post to the same `/api/telemetry/ingest` contract |
 | No message queue | Health analysis is a 5-minute poll, not event-driven | Kafka between ingestion and analysis |
 
 Not built, per the PRD's own scope: Kubernetes manifests, ELK, Prometheus dashboards, and the

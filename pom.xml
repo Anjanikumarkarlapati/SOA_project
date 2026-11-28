@@ -21,6 +21,13 @@
     <java.version>21</java.version>
     <spring-cloud.version>2023.0.3</spring-cloud.version>
     <jjwt.version>0.11.5</jjwt.version>
+    <!--
+      Base directory for module build output. Defaults to the reactor root (where .mvn lives), so
+      "<module>/target" is the same place Maven would normally write and scripts/stack.ps1 can find
+      <module>-1.0.0-exec.jar. Override with -Dagritech.build.root=<dir> to build outside OneDrive.
+      Must NOT be ${project.basedir}: that re-interpolates per module and nests <module>/<module>/target.
+    -->
+    <agritech.build.root>${maven.multiModuleProjectDirectory}</agritech.build.root>
   </properties>
 
   <modules>
@@ -30,6 +37,8 @@
     <module>auth-service</module>
     <module>sensor-service</module>
     <module>crop-service</module>
+    <module>climate-service</module>
+    <module>recommendation-service</module>
     <module>irrigation-service</module>
   </modules>
 
@@ -46,10 +55,14 @@
   </dependencyManagement>
 
   <build>
+    <directory>${agritech.build.root}/${project.artifactId}/target</directory>
     <plugins>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <classifier>exec</classifier>
+        </configuration>
       </plugin>
     </plugins>
   </build>

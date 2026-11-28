@@ -1,12 +1,17 @@
 server:
   port: 8082
+  # Finish in-flight requests on a rolling restart instead of dropping them.
+  shutdown: graceful
 
 spring:
+  # Bounded wait for the graceful shutdown above; past this the context closes.
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   application:
     name: sensor-service
-  # Set DB_URL / DB_USERNAME / DB_PASSWORD (in .env) to use Supabase Postgres; unset = local H2 file.
+  # Configure DB_URL / DB_USERNAME / DB_PASSWORD for PostgreSQL; unset = persistent local H2 file.
   datasource:
-    url: ${DB_URL:jdbc:h2:file:${agritech.data-dir:./.run/data}/sensordb;AUTO_SERVER=TRUE}
+    url: ${DB_URL:jdbc:h2:file:${agritech.data-dir:./.run/data}/sensordb;AUTO_SERVER=TRUE;DATABASE_TO_LOWER=TRUE}
     username: ${DB_USERNAME:sa}
     password: ${DB_PASSWORD:}
     hikari:
@@ -15,9 +20,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    open-in-view: false
     properties:
+      hibernate.default_schema: sensor_service
+      hibernate.hbm2ddl.create_namespaces: true
       hibernate.jdbc.batch_size: 200
+    open-in-view: false
   jackson:
     serialization:
       write-dates-as-timestamps: false

@@ -12,6 +12,7 @@ import { getCropById } from "@/lib/crops";
 import { computeWaterBudget, evaluateValveInterlock } from "@/lib/fieldshield";
 import { BezelCard } from "@/components/ui/BezelCard";
 import { Button } from "@/components/ui/Button";
+import { EditorialPhotoFrame } from "@/components/ui/EditorialPhotoFrame";
 import { Banner } from "@astryxdesign/core/Banner";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import {
@@ -374,34 +375,42 @@ export default function IrrigationPage() {
       {/* Hydraulic Manifold Schematic & Human-Free Irrigation Strip */}
       <BezelCard
         data-testid="irrigation-flow-schematic"
-        innerClassName="p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-center"
+        innerClassName="p-5 grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-5 items-center"
       >
-        <div className="lg:col-span-5">
-          <div className="photo-frame relative h-44 w-full overflow-hidden rounded-xl">
+        <div className="min-w-0">
+          <EditorialPhotoFrame
+            innerClassName="h-48 sm:h-52 w-full"
+            caption={
+              <>
+                <span className="rounded-full border border-white/25 bg-black/65 px-2.5 py-0.5 font-mono text-[11px] tabular-nums text-white backdrop-blur-sm">
+                  Manifold 2.1 bar
+                </span>
+                <span className="rounded-full border border-white/25 bg-black/65 px-2.5 py-0.5 font-mono text-[11px] tabular-nums text-[#DFECC6] backdrop-blur-sm">
+                  {preferences.pumpFlowLpm} L/min
+                </span>
+              </>
+            }
+          >
             <img
               src="/images/irrigation-drip.webp"
               alt="Precision drip irrigation manifold and root-zone moisture distribution"
               className="h-full w-full object-cover photo-duotone"
             />
-            <div className="absolute inset-x-2.5 bottom-2 flex items-center justify-between rounded-lg border border-white/20 bg-black/75 px-2.5 py-1 font-mono text-[10px] text-white">
-              <span>MANIFOLD PRESSURE: 2.1 BAR</span>
-              <span className="text-[#DFECC6] tabular-nums">{preferences.pumpFlowLpm} L/MIN</span>
-            </div>
-          </div>
+          </EditorialPhotoFrame>
         </div>
 
-        <div className="lg:col-span-7 space-y-3">
+        <div className="min-w-0 space-y-3">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div>
-              <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-[var(--text-secondary)]">
-                CLOSED-LOOP HYDRAULIC TELEMETRY
+              <span className="text-[12px] font-medium text-[var(--accent)]">
+                Closed-loop hydraulic telemetry
               </span>
               <h2 className="text-lg font-serif-display text-[var(--text-primary)]">
                 Borewell Header → Solenoid Manifold → Drip Laterals
               </h2>
             </div>
             <span className="rounded-full border border-[var(--border-default)] bg-[var(--bg-raised)] px-3 py-1 font-mono text-[11px] tabular-nums text-[var(--text-primary)]">
-              {valves.some((v) => v.state === "OPEN") ? "FLOW ACTIVE" : "STANDBY LOCK"}
+              {valves.some((v) => v.state === "OPEN") ? "Flow active" : "Standby lock"}
             </span>
           </div>
 

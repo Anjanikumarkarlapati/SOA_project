@@ -22,8 +22,14 @@ public class GatewaySigner {
 
     private final byte[] secret;
 
-    public GatewaySigner(@Value("${AGRITECH_INTERNAL_SECRET:agritech-internal-dev-secret-change-me-0123456789}") String secret) {
-        this.secret = secret.getBytes(StandardCharsets.UTF_8);
+    /**
+     * @param secret shared with every service; deliberately has no default. The gateway is
+     *               reactive and cannot import com.agritech.common.Secrets, so the same rules
+     *               (present, >= 32 chars, not the old published default) are enforced inline.
+     */
+    public GatewaySigner(@Value("${AGRITECH_INTERNAL_SECRET:}") String secret) {
+        this.secret = GatewaySecrets.require("AGRITECH_INTERNAL_SECRET", secret)
+                .getBytes(StandardCharsets.UTF_8);
     }
 
     /** Sets email/role/farm plus timestamp and signature on outgoing headers. */

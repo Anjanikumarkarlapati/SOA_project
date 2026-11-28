@@ -35,9 +35,9 @@ const agritechFieldTheme = defineTheme({
     "--radius-inner": "10px",
     "--radius-element": "14px",
     "--radius-container": "24px",
-    "--shadow-low": "0 2px 8px -2px rgba(16, 24, 6, 0.14)",
-    "--shadow-med": "0 6px 18px -4px rgba(16, 24, 6, 0.18)",
-    "--shadow-high": "none",
+    "--shadow-low": "0 2px 8px -2px rgba(16, 24, 6, 0.16)",
+    "--shadow-med": "0 6px 18px -4px rgba(16, 24, 6, 0.22)",
+    "--shadow-high": "0 14px 32px -8px rgba(16, 24, 6, 0.26)",
     "--font-family-body": "var(--font-sans)",
     "--font-family-heading": "var(--font-serif)",
     "--font-family-code": "var(--font-mono)",
@@ -47,6 +47,11 @@ const agritechFieldTheme = defineTheme({
       base: {
         borderRadius: "9999px",
         fontWeight: "600",
+      },
+    },
+    "icon-button": {
+      base: {
+        borderRadius: "9999px",
       },
     },
     card: {

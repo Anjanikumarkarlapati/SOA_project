@@ -1,5 +1,6 @@
 package com.agritech.common;
 
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.TypeMismatchException;
@@ -39,6 +40,14 @@ public class ApiExceptionHandler {
                 .map(f -> f.getField() + ": " + f.getDefaultMessage())
                 .collect(Collectors.joining("; "));
         return body(HttpStatus.BAD_REQUEST, "validation_error", detail);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
+        String detail = ex.getConstraintViolations().stream()
+                .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+                .collect(Collectors.joining("; "));
+        return body(HttpStatus.BAD_REQUEST, "validation_error", detail.isBlank() ? "Validation failed" : detail);
     }
 
     @ExceptionHandler({HttpMessageNotReadableException.class, TypeMismatchException.class})

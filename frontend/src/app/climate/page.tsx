@@ -102,11 +102,15 @@ export default function ClimatePage() {
         return;
       }
       const end = pastIsoDate(5);
-      const start = pastIsoDate(5, 10);
+      const start = pastIsoDate(5, 1);
       try {
-        const res = activeFarm?.syncedToBackend
-          ? await farmApi.propertyClimate(activeFarm.id, token, start, end)
-          : await climateApi.history(targetLat, targetLon, start, end, token);
+        let res: HistoricalClimateResponse | null = null;
+        if (activeFarm?.syncedToBackend) {
+          res = await farmApi.propertyClimate(activeFarm.id, token, start, end).catch(() => null);
+        }
+        if (!res) {
+          res = await climateApi.history(targetLat, targetLon, start, end, token);
+        }
         if (!cancelled) {
           setHistorical(res);
           setHistoricalNote(
@@ -490,13 +494,13 @@ export default function ClimatePage() {
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
                   <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-[var(--text-secondary)]">
-                    10-YEAR REGIONAL CLIMATE ANALYTICS · {historical.startDate} TO {historical.endDate}
+                    REGIONAL CLIMATE ANALYTICS · {historical.startDate} TO {historical.endDate}
                   </span>
                   <h2
                     className="text-base font-semibold mt-0.5"
                     style={{ fontFamily: "var(--font-serif)", color: "var(--text-primary)" }}
                   >
-                    10-Year Historical Reanalysis &amp; Risk Trends
+                    Historical Reanalysis &amp; Risk Trends
                   </h2>
                 </div>
                 <Badge
@@ -516,7 +520,7 @@ export default function ClimatePage() {
               {historical.statistics && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs tabular-nums">
                   <div className="rounded-lg border border-[var(--border-default)] bg-[var(--bg-raised)] p-3">
-                    <div className="text-[var(--text-secondary)]">Mean Temp (10y)</div>
+                    <div className="text-[var(--text-secondary)]">Mean Temp</div>
                     <div className="text-sm font-bold mt-0.5 text-[var(--text-primary)]">
                       {historical.statistics.temperatureC?.mean !== null &&
                       historical.statistics.temperatureC?.mean !== undefined

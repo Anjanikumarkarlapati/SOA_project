@@ -9,6 +9,7 @@ import { MEDIA_MANIFEST, type MediaId } from "@/lib/media-manifest";
 import { AgriTechLogo } from "@/components/brand/AgriTechLogo";
 import { LiquidMetalLogo } from "@/components/brand/LiquidMetalLogo";
 import { AuthSlabFrame, BezelCard } from "@/components/ui/BezelCard";
+import { FieldShaderBackdrop } from "@/components/ui/FieldShaderBackdrop";
 import { useTheme } from "@/components/providers/ThemeProvider";
 
 export interface AuthSplitShellProps {
@@ -32,10 +33,14 @@ export function AuthSplitShell({
   return (
     <div
       data-testid="auth-split-shell"
-      className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] flex flex-col justify-between px-5 py-6 sm:px-8 lg:px-10"
+      className="relative min-h-screen overflow-hidden bg-[var(--bg-base)] text-[var(--text-primary)] flex flex-col justify-between px-5 py-6 sm:px-8 lg:px-10"
     >
+      <FieldShaderBackdrop
+        className="absolute inset-x-0 top-0 h-[420px] [mask-image:linear-gradient(to_bottom,black_25%,transparent_100%)]"
+        intensity="ambient"
+      />
       {/* Clean Editorial Top Bar */}
-      <header className="mx-auto flex w-full max-w-[1200px] items-center justify-between border-b border-[var(--border-default)] pb-4">
+      <header className="relative z-10 mx-auto flex w-full max-w-[1200px] items-center justify-between border-b border-[var(--border-default)] pb-4">
         <Link
           href="/"
           className="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
@@ -72,7 +77,7 @@ export function AuthSplitShell({
       </header>
 
       {/* 12-Column Split-Screen Core */}
-      <div className="mx-auto my-auto grid w-full max-w-[1200px] grid-cols-1 items-center gap-10 py-10 lg:grid-cols-12 lg:gap-14">
+      <div className="relative z-10 mx-auto my-auto grid w-full max-w-[1200px] grid-cols-1 items-center gap-10 py-10 lg:grid-cols-12 lg:gap-14 surface-enter">
         {/* Left 6 Columns: Editorial Field Showcase */}
         <aside
           aria-label="AgriTech field telemetry preview"

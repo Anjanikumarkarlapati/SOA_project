@@ -62,6 +62,17 @@ public class Valve {
         this.lastChangedAt = Instant.now();
     }
 
+    /**
+     * Re-point the zone at another field, rename it, or correct its rated flow. Null arguments are
+     * left alone so a partial update does not wipe a value. Deliberately cannot touch state,
+     * openUntil or runningScheduleId - those belong to the operator, not to configuration.
+     */
+    public void reconfigure(String cropId, String zoneName, Double flowRateLpm) {
+        if (cropId != null) this.cropId = cropId;
+        if (zoneName != null && !zoneName.isBlank()) this.zoneName = zoneName;
+        if (flowRateLpm != null && flowRateLpm > 0) this.flowRateLpm = flowRateLpm;
+    }
+
     public boolean isOpen() { return "OPEN".equals(state); }
 
     /** Seconds left in the current run, or null when not running to a deadline. */

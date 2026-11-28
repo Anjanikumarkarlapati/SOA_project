@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import type { CropProfile } from "@/lib/crops";
 import { BezelCard } from "@/components/ui/BezelCard";
+import { EditorialPhotoFrame } from "@/components/ui/EditorialPhotoFrame";
 
 interface RootZoneSoilCardProps {
   crop: CropProfile;
@@ -52,27 +53,40 @@ export function RootZoneSoilCard({
       </div>
 
       {/* Grid: Photo on Left, Metrics & Gauge on Right */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-5 items-center">
         {/* Photo Container */}
-        <div className="md:col-span-5 flex flex-col gap-2">
-          <div className="photo-frame relative h-52 sm:h-56 group">
+        <div className="flex flex-col gap-2.5 min-w-0">
+          <EditorialPhotoFrame
+            innerClassName="h-56 sm:h-64"
+            topLeft={
+              <span className="rounded-full border border-white/25 bg-black/65 px-2.5 py-1 font-mono text-[11px] tabular-nums text-white backdrop-blur-md">
+                6 cm depth
+              </span>
+            }
+            caption={
+              <>
+                <span className="font-mono text-[11px] tabular-nums text-white">
+                  Sensor #SZ-04
+                </span>
+                <span className="rounded-full border border-white/25 bg-black/60 px-2.5 py-0.5 text-[11px] font-medium text-[#DFECC6] backdrop-blur-sm">
+                  Active telemetry
+                </span>
+              </>
+            }
+          >
             <img
               src="/images/soil-sensing.jpg"
               alt="Macro photograph of fertile loam soil with emergent sprout and dielectric soil probe"
               className="w-full h-full object-cover photo-duotone"
             />
-            <div className="absolute bottom-2 left-2 right-2 bg-black/75 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-white/20 text-[11px] text-white flex items-center justify-between">
-              <span className="font-mono">Sensor #SZ-04: 6cm Depth</span>
-              <span className="text-[#DFECC6]">Active Telemetry</span>
-            </div>
-          </div>
-          <p className="text-[11px] text-[var(--text-secondary)] italic">
+          </EditorialPhotoFrame>
+          <p className="text-[11px] text-[var(--text-secondary)]">
             Micro-texture analysis confirms well-aerated crumb structure with adequate organic humic fractions.
           </p>
         </div>
 
         {/* Diagnostics & Visual Gauge */}
-        <div className="md:col-span-7 flex flex-col gap-4">
+        <div className="flex flex-col gap-4 min-w-0">
           {/* Numerical highlights */}
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3.5 rounded-xl border border-[var(--border-default)] bg-[var(--bg-raised)]/60 flex flex-col gap-1">

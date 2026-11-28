@@ -100,14 +100,24 @@ curl -s -o /dev/null -w '%{http_code}' -X DELETE "$GATEWAY/api/irrigation/schedu
   -H "Authorization: Bearer $ADMIN" > "$TMP/code"
 [ "$(cat "$TMP/code")" = "200" ]; check "schedule deleted (FR-7)" $?
 
+curl -s -o "$TMP/climate.json" -w '%{http_code}' -H "Authorization: Bearer $ADMIN" \
+  "$GATEWAY/api/climate/history?lat=17.38&lon=78.48&start=2025-01-01&end=2025-01-05" > "$TMP/code"
+[ "$(cat "$TMP/code")" = "200" ] && [ "$(json "'provider' in json.load(sys.stdin)" "$TMP/climate.json")" = "True" ]
+check "climate analytics route responds through gateway" $?
+
+curl -s -X POST "$GATEWAY/api/recommendations/score" -H "Authorization: Bearer $ADMIN" \
+  -H 'Content-Type: application/json' -d '{}' > "$TMP/rec.json"
+[ "$(json "len(json.load(sys.stdin)['recommendations']) > 0" "$TMP/rec.json")" = "True" ]
+check "crop recommendation route responds through gateway" $?
+
 echo
 echo "== Scenario 3: service discovery, token lifecycle, gateway hardening =="
 
 EUREKA="${EUREKA:-http://localhost:8761}"
 curl -s -H 'Accept: application/json' "$EUREKA/eureka/apps" > "$TMP/apps.json"
 [ "$(json "sorted(a['name'] for a in json.load(sys.stdin)['applications']['application'])" "$TMP/apps.json")" \
-  = "['API-GATEWAY', 'AUTH-SERVICE', 'CROP-SERVICE', 'IRRIGATION-SERVICE', 'SENSOR-SERVICE']" ]
-check "all five services are registered in Eureka" $?
+  = "['API-GATEWAY', 'AUTH-SERVICE', 'CLIMATE-SERVICE', 'CROP-SERVICE', 'IRRIGATION-SERVICE', 'RECOMMENDATION-SERVICE', 'SENSOR-SERVICE']" ]
+check "all seven API services are registered in Eureka" $?
 
 [ "$(json "json.load(sys.stdin)['expiresIn']" "$TMP/admin.json")" = "900" ]
 check "access tokens are short-lived (15 min)" $?
@@ -149,8 +159,8 @@ curl -s -o /dev/null -w '%{http_code}' -X POST "$GATEWAY/api/telemetry/ingest" -
 [ "$(cat "$TMP/code")" = "413" ]; check "request bodies over 1 MB are refused (413)" $?
 
 curl -s -H "Authorization: Bearer $ADMIN" "$GATEWAY/actuator/circuitbreakers" > "$TMP/cb.json"
-[ "$(json "len(json.load(sys.stdin)['circuitBreakers'])" "$TMP/cb.json")" = "4" ]
-check "a circuit breaker guards each of the four routes" $?
+[ "$(json "len(json.load(sys.stdin)['circuitBreakers'])" "$TMP/cb.json")" = "6" ]
+check "a circuit breaker guards each of the six routes" $?
 
 echo
 echo "== Cleanup and logout =="
